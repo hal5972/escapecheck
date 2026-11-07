@@ -189,7 +189,7 @@
         parts.push(h('p', { class: 'change-line' }, `避難支援者（${T(((viewPlan.supporters || [])[0] || {}).alias || '')}）: ${sv.mark} ${sv.text}`));
       }
       const m = ui.scenarioMap(result, blocked
-        ? { plan: viewPlan, facts: A.state.facts, T, shelterId: result.shelter_id, oldShelterId: plannedShelterId(viewPlan), shelterLabel: '上がれる避難先' }
+        ? { plan: viewPlan, facts: A.state.facts, T, shelterId: result.shelter_id, oldShelterId: result.planned_shelter_id || plannedShelterId(viewPlan), shelterLabel: '上がれる避難先' }
         : { plan: viewPlan, facts: A.state.facts, T });
       scope.onLeave(() => m.map.destroy());
       parts.push(m.el);
@@ -232,9 +232,13 @@
       return card;
     }
 
-    /** カードを加える。同じ問題点のカードが、違う結果で出ているときは、作り直す。 */
+    /** カードの中身が頼る値。結果のほか、改善案・計画の避難先・地図の事実が変わったときも、作り直す。 */
+    const cardKey = (finding) => JSON.stringify([
+      finding.result, fixesFor(viewPlan, finding).map((f) => f.fix_id), EC.u.plannedShelterId(viewPlan), Boolean(A.state.facts)]);
+
+    /** カードを加える。同じ問題点のカードが、違う内容で出ているときは、作り直す。 */
     function addCard(finding, isNew) {
-      const key = JSON.stringify(finding.result);
+      const key = cardKey(finding);
       const old = cards.get(finding.finding_id);
       if (old && old.resultKey === key) return old;
       const card = buildCard(finding, isNew);
@@ -470,7 +474,10 @@
           enqueue(rec.plan.findings);
           if (draining) await draining;
           if (!scope.alive || token !== revealToken) return;
-          for (const f of rec.plan.findings || []) if (f.result) addCard(f, false); // 実行中のものと違う結果は、作り直す
+          // 地図の事実が届いてから、カードを作り直す（実行中に作ったカードには、改善案も地図の事実も無い）
+          try { await A.ensureFacts(rec); } catch (e) { /* 地図の事実が無くても、結果は出す */ }
+          if (!scope.alive || token !== revealToken) return;
+          for (const f of rec.plan.findings || []) if (f.result) addCard(f, false); // 実行中に作ったものと違う内容は、作り直す
           if (!(await renderFixedParts()) || token !== revealToken) return;
           finishResults();
           if (recheck) A.$main.scrollTop = 0;

@@ -174,7 +174,11 @@
     const plan = ctx.plan;
     const T = ctx.T;
     const home = plan.home;
-    const shelter = findShelter(plan, ctx.facts, ctx.shelterId);
+    // 計算に使った避難先（result.shelter_id）を描く。上がれない避難先を除いたときは、計画の避難先と違う
+    const usedId = ctx.shelterId || (result && result.shelter_id) || undefined;
+    const shelter = findShelter(plan, ctx.facts, usedId);
+    const planned = EC.u.plannedShelterId(plan);
+    const differs = Boolean(!ctx.shelterId && result && result.shelter_id && planned && result.shelter_id !== planned);
     const map = ctx.fixed
       ? EC.map.create({ fixed: true, width: ctx.fixed.width, height: ctx.fixed.height, label: '避難経路の地図' })
       : EC.map.create({ height: ctx.height || 300, label: '避難経路の地図' });
@@ -235,7 +239,7 @@
       points.push(supporter.location);
     }
 
-    shapes.push({ t: 'marker', kind: 'shelter', at: shelter.point, label: ctx.shelterLabel || (ctx.shelterId ? '新しい避難先' : '避難先'), pos: 't' });
+    shapes.push({ t: 'marker', kind: 'shelter', at: shelter.point, label: ctx.shelterLabel || (ctx.shelterId ? '新しい避難先' : (differs && result.shelter_name ? result.shelter_name : '避難先')), pos: 't' });
     shapes.push({ t: 'marker', kind: 'home', at: home, label: '自宅', pos: 'b' });
 
     map.setShapes(shapes);
