@@ -53,7 +53,9 @@
 | `labels.js` | 表示名の一覧。`tools/plan_model.py` の `FIELDS`・`SCENARIOS`・`FIX_TYPES` などと同じ内容にする |
 | `util.js` | DOM の作成（`textContent` のみ）、分の表示（安全側に丸める）、判定の表示、名前の置き換え |
 | `store.js` | 端末の保存（計画・点検の前後の版・本名。`localStorage`） |
-| `speech.js` | 音声入力（Web Speech API）と音声読み上げ（`speechSynthesis`）。R-04 の表示文もここにある |
+| `speech.js` | 音声入力（Web Speech API）と音声読み上げ（`speechSynthesis`）。R-04 の表示文もここにある。読み上げに渡す文だけを、`readings.json` の読み仮名に置き換える。決まった質問は、音声ファイルがあれば再生する |
+| `readings.json` | 読み上げの読み仮名の一覧（`text` の書き方を `reading` の読みに置き換える。画面の表示は漢字のまま）。語は、この一覧に追加する |
+| `audio/questions/` | 決まった質問の音声ファイル（`<欄のキー>.wav`、最初の質問は `initial.wav`、終わりの文は `done.wav`）。置いてあれば再生し、無ければ読み上げる。欄のキーは、`/api/interview` の応答の `next_field`。`.wav` は Git の管理に入れない |
 | `map.js` | 地理院タイルを並べた地図、津波浸水想定のタイル（半透明）、自宅・避難先・経路の SVG。出典の表示 |
 | `timeline.js` | タイムライン（避難を始めるまで｜歩く｜上がる｜余裕または不足） |
 | `ui.js` | 出典のラベルと内容、項目の行、判定の表示、避難経路の地図、場所の事実、確認の表示 |
