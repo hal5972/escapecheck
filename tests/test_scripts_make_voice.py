@@ -100,7 +100,7 @@ class GenerateTest(unittest.TestCase):
 
 class ApiTest(unittest.TestCase):
     def test_missing_key_is_reported(self):
-        with mock.patch.dict(os.environ, {mv.KEY_ENV: ""}):
+        with mock.patch.dict(os.environ, {mv.KEY_ENV: ""}), mock.patch.object(mv, "windows_user_env", return_value=""):
             with self.assertRaises(mv.VoiceError) as ctx:
                 mv.api_key()
         self.assertIn(mv.KEY_ENV, str(ctx.exception))

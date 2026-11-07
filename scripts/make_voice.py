@@ -129,8 +129,22 @@ def numbered_names(texts: list[str]) -> list[tuple[str, str]]:
 # ---------------------------------------------------------------------------
 
 
+def windows_user_env(name: str) -> str:
+    """Windows のユーザーの環境変数を読む（設定したあとに起動し直していないプロセスでも読めるように）。"""
+    if os.name != "nt":
+        return ""
+    try:
+        import winreg
+
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Environment") as reg:
+            value, _ = winreg.QueryValueEx(reg, name)
+        return str(value).strip()
+    except OSError:
+        return ""
+
+
 def api_key() -> str:
-    key = os.environ.get(KEY_ENV, "").strip()
+    key = os.environ.get(KEY_ENV, "").strip() or windows_user_env(KEY_ENV)
     if not key:
         raise VoiceError(f"環境変数 {KEY_ENV} に ElevenLabs の API キーがありません")
     return key
