@@ -367,6 +367,22 @@ def find_fix(plan: pm.Plan, fix_id: Any) -> pm.Fix | None:
     return next((f for f in plan.get("fixes", []) if f.get("fix_id") == fix_id), None)
 
 
+def replaces_unusable_shelter(plan: pm.Plan, fix_type: Any, target_id: Any) -> bool:
+    """避難先を変更する案が、この人には使えない計画の避難先（前提条件 CANNOT_CLIMB の対象）を置き換えるか。
+
+    sim は、上がれない避難先を除いて次の避難先で計算する。そのため、計画の避難先を直す案は、時間が短縮されなくても必要になる。
+    about が無い CANNOT_CLIMB は、計画の避難先を指すとみなす（tools/sim.py と同じ扱い）。
+    """
+    if fix_type != "CHANGE_SHELTER" or not target_id:
+        return False
+    value = (plan.get("fields", {}).get("shelter") or {}).get("value")
+    planned = value.get("shelter_id") if isinstance(value, dict) else None
+    if not planned or planned == target_id:
+        return False
+    return any(p.get("code") == "CANNOT_CLIMB" and p.get("about") in (planned, None, "")
+               for p in plan.get("premises", []))
+
+
 def saved_minutes(finding_result: pm.ScenarioResult, fix_result: pm.ScenarioResult) -> float | None:
     """改善案で短縮できる時間（余裕時間の増え方）。計算できなければ None。"""
     before, after = finding_result.get("margin_min"), fix_result.get("margin_min")
@@ -420,7 +436,7 @@ def check_propose_fix(
         if result.get("supporter_verdict") == "short":
             reasons.append("この改善案では、避難支援者が間に合わなくなります（出さない案です）")
         saved = saved_minutes(baseline or finding["result"], result)
-        if saved is not None and saved <= 0:
+        if saved is not None and saved <= 0 and not replaces_unusable_shelter(plan, fix_type, target_id):
             reasons.append("計算の結果、この改善案では時間が短縮されません")
         if not reasons:
             name = None

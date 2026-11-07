@@ -306,6 +306,33 @@ class ExplanationNumberTest(unittest.TestCase):
         )
         self.assertTrue(reasons)
 
+    def _shelter_fix_case(self, premise_about):
+        plan = make_plan()
+        plan["fields"]["shelter"] = pm.FieldValue(value={"name": "宇佐津波避難タワー", "shelter_id": "shel_tower"},
+                                                  status="filled", source_id="src_utt1", quote="杖ついちゅう")
+        if premise_about is not False:
+            plan["premises"].append(pm.Premise(premise_id="pr_1", code="CANNOT_CLIMB", quote="杖ついちゅう",
+                                               source_id="src_utt1", about=premise_about))
+        same = pm.ScenarioResult(scenario_id="S7", verdict="tight", need_min=18.6, avail_min=20.0, margin_min=1.4,
+                                 breakdown=[], assumptions=[])
+        plan["findings"].append(pm.Finding(finding_id="fnd_7", scenario_id="S7", hole_type="CANNOT_CLIMB",
+                                           explanation_template="説明", result=same, source_ids=["src_utt1"]))
+        known = {"shel_hill": pm.Shelter(shelter_id="shel_hill", name="タンク山", tsunami_ok=True, kind="高台", distance_m=300.0,
+                                         distance_method="straight_x1.3", local_notes=[], source_id="src_arrival")}
+        args = {"finding_id": "fnd_7", "fix_type": "CHANGE_SHELTER", "target_id": "shel_hill",
+                "explanation": "階段を上がらなくてよい{shelter_name}に変えます。"}
+        return hooks.check_propose_fix(plan, args, same, known, baseline=same)
+
+    def test_change_shelter_replacing_unusable_shelter_is_allowed_without_saving(self):
+        # 上がれない計画の避難先を直す案は、sim がすでに次の避難先で計算しているので、時間が短縮されなくても出してよい
+        self.assertEqual(self._shelter_fix_case("shel_tower"), [])
+        self.assertEqual(self._shelter_fix_case(None), [])  # about が無いときは計画の避難先を指す
+
+    def test_change_shelter_without_saving_is_rejected_otherwise(self):
+        reasons = self._shelter_fix_case(False)
+        self.assertTrue(reasons)
+        self.assertIn("短縮されません", reasons[0])
+
     def test_propose_fix_rejects_unknown_fix_type_and_finding(self):
         plan = make_plan()
         reasons = hooks.check_propose_fix(plan, {"finding_id": "fnd_x", "fix_type": "GO_UPSTAIRS", "explanation": "説明"})
