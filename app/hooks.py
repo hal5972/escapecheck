@@ -470,6 +470,20 @@ def _field_source_problem(plan: pm.Plan, key: str, field: pm.FieldValue) -> str 
     return reasons[0] if reasons else None
 
 
+def unusable_planned_shelter(plan: pm.Plan) -> str | None:
+    """計画の避難先が、前提条件 CANNOT_CLIMB で「上がれない」とされているなら、その避難先の名前を返す。
+
+    about が無い CANNOT_CLIMB は、計画の避難先を指すとみなす。避難先を変える案を承認して欄が変われば、None になる。
+    """
+    value = (plan.get("fields", {}).get("shelter") or {}).get("value")
+    if not isinstance(value, dict) or not value.get("shelter_id"):
+        return None
+    planned = value["shelter_id"]
+    if any(p.get("code") == "CANNOT_CLIMB" and p.get("about") in (planned, None, "") for p in plan.get("premises", [])):
+        return str(value.get("name") or value.get("text") or "避難先")
+    return None
+
+
 def code_issues(plan: pm.Plan, backend: Any = None) -> list[pm.Issue]:
     """コードで見つかる要確認の項目。issue_id は毎回同じにする（人の確認の印を保つため）。
 
@@ -492,6 +506,14 @@ def code_issues(plan: pm.Plan, backend: Any = None) -> list[pm.Issue]:
                     issue_id=f"chk_source_{key}", field=key, severity="誤り", acknowledged=False,
                     message=f"「{pm.FIELDS[key]}」の出典を確認できません。聞き取り直してください（{problem}）",
                 ))
+    unusable = unusable_planned_shelter(plan)
+    if unusable:
+        # 計算は上がれない避難先を除いて次の避難先で行うので「間に合う」と出るが、計画（と避難カード）の避難先は使えない
+        issues.append(pm.Issue(
+            issue_id="chk_shelter_unusable", severity="要確認", acknowledged=False,
+            message=f"計画の避難先（{unusable}）には、本人が上がれないと話しています。"
+                    "避難先を変える案を選ぶか、「本人・家族と相談する」の印を付けてください",
+        ))
     if backend is not None:
         for scenario_id, label in pm.SCENARIOS.items():
             if scenario_id == "S8" and not plan.get("premises"):
@@ -519,10 +541,14 @@ def code_issues(plan: pm.Plan, backend: Any = None) -> list[pm.Issue]:
     return issues
 
 
-def _consulted_scenarios(plan: pm.Plan) -> set[str]:
-    """画面で「本人・家族と相談する」を押した問題点のシナリオ（issue_id が consult_<finding_id> で確認済み）。"""
+def _consulted_findings(plan: pm.Plan) -> list[pm.Finding]:
+    """画面で「本人・家族と相談する」を押した問題点（issue_id が consult_<finding_id> で確認済み）。"""
     acked = {i.get("issue_id") for i in plan.get("issues", []) if i.get("acknowledged")}
-    return {f["scenario_id"] for f in plan.get("findings", []) if f"consult_{f.get('finding_id')}" in acked}
+    return [f for f in plan.get("findings", []) if f"consult_{f.get('finding_id')}" in acked]
+
+
+def _consulted_scenarios(plan: pm.Plan) -> set[str]:
+    return {f["scenario_id"] for f in _consulted_findings(plan)}
 
 
 def check_finalize(plan: pm.Plan, backend: Any = None) -> list[str]:
@@ -537,6 +563,9 @@ def check_finalize(plan: pm.Plan, backend: Any = None) -> list[str]:
             reasons.append(issue["message"])
         elif issue["issue_id"].startswith("chk_short_") and issue["issue_id"][len("chk_short_"):] in consulted:
             continue  # 問題点のカードで「本人・家族と相談する」の印が付いている
+        elif issue["issue_id"] == "chk_shelter_unusable" and any(
+                f.get("hole_type") == "CANNOT_CLIMB" for f in _consulted_findings(plan)):
+            continue  # 上がれない避難先の問題点のカードで「本人・家族と相談する」の印が付いている
         elif not existing.get(issue["issue_id"], {}).get("acknowledged"):
             reasons.append(issue["message"])
     for issue in plan.get("issues", []):

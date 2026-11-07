@@ -314,7 +314,9 @@ async def run_agent(session: PlanSession, role: str, prompt: str, timeout: float
         raise AgentFailed("Claude に接続できませんでした。少し待ってから、もう一度お試しください") from None
     session.audit.record(
         plan_id=session.plan_id, agent=role, tool="agent", decision="info",
-        result={"subtype": run.subtype, "turns": run.num_turns, "cost_usd": run.cost_usd, "ms": run.duration_ms},
+        # 費用は小数第3位まで（桁の多い小数は、ログで座標として伏せられるため）
+        result={"subtype": run.subtype, "turns": run.num_turns,
+                "cost_usd": round(run.cost_usd, 3) if run.cost_usd is not None else None, "ms": run.duration_ms},
     )
     if run.is_error and run.subtype not in ("success", "error_max_structured_output_retries"):
         log.warning("agent %s ended with %s (%s)", role, run.subtype, run.stop_reason)
