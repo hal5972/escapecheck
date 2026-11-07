@@ -732,7 +732,8 @@ def try_fix(plan: Plan, scenario_id: str, fix_type: str, target_id: str | None =
 # ---------------------------------------------------------------------------
 
 _CAR = re.compile(r"(?<!電)車(?!いす|椅子)|自動車|軽トラ|トラック|クルマ|マイカー")
-_CANNOT_CLIMB_TEXT = re.compile(r"(上が|あが|登|のぼ)れ(ない|ん)|階段が急|階段がきつ")
+#: 避難先に上がれない記載（「立ち上がれない」は介助の話なので除く）
+_CANNOT_CLIMB_TEXT = re.compile(r"(?<!立ち)(上が|あが|登|のぼ)れ(ない|ん)|階段が急|階段がきつ")
 
 BASELINE_TEMPLATES: dict[str, str] = {
     "SHELTER_NOT_TSUNAMI": "避難先の{shelter_name}は、津波の指定緊急避難場所として確認できません。",

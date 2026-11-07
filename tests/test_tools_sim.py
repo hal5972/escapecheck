@@ -556,6 +556,13 @@ class BaselineTest(SimTestCase):
         self.assertIn("CAR_EVAC", self.hole_types(make_plan({"route": "息子の車で高台へ行く"})))
         self.assertNotIn("CAR_EVAC", self.hole_types(make_plan({"mobility": "車いすで、介助が必要"})))
 
+    def test_standing_up_is_not_climbing(self):
+        # 「一人では立ち上がれない」は、避難先に上がれない（CANNOT_CLIMB）ではない
+        plan = make_plan({"mobility": "一人では立ち上がれない。介助が必要"})
+        self.assertNotIn("CANNOT_CLIMB", self.hole_types(plan))
+        plan = make_plan({"notes": "膝が悪く、タワーの階段は上がれない"})
+        self.assertIn("CANNOT_CLIMB", self.hole_types(plan))
+
     def test_baseline_does_not_read_the_talk(self):
         plan = make_plan({"time_to_leave_night": "4分", "time_to_leave_day": "3分", "walk_speed": "100mを2分",
                           "hearing_and_sight": "特になし", "mobility": "自力で歩ける"})
