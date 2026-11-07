@@ -126,6 +126,35 @@ class CheckFinalizeTest(unittest.TestCase):
         ack(plan, "consult_fnd_1")
         self.assertEqual(hooks.check_finalize(plan, backend), [])
 
+    def _plan_with_unusable_shelter(self):
+        # 計画の避難先（タワー）に「上がれない」と話している。計算は次の避難先で行うので、どのシナリオも間に合う
+        plan = make_complete_plan()
+        plan["fields"]["shelter"]["value"] = {"name": "宇佐のタワー", "shelter_id": "shel_tower"}
+        plan["premises"].append(pm.Premise(premise_id="pr_1", code="CANNOT_CLIMB", quote="宇佐のタワーまで行く",
+                                           source_id="src_utt1", about="shel_tower"))
+        return plan
+
+    def test_unusable_planned_shelter_blocks_until_decided(self):
+        # 避難カードに、本人が上がれない避難先を印刷させない（判定が「間に合う」でも、人の判断を求める）
+        plan = self._plan_with_unusable_shelter()
+        reasons = hooks.check_finalize(plan, FakeBackend())
+        self.assertTrue(any("上がれない" in r for r in reasons))
+        ack(plan, "chk_shelter_unusable")
+        self.assertEqual(hooks.check_finalize(plan, FakeBackend()), [])
+
+    def test_unusable_planned_shelter_is_resolved_by_changing_the_shelter(self):
+        plan = self._plan_with_unusable_shelter()
+        plan["fields"]["shelter"]["value"] = {"name": "タンク山", "shelter_id": "shel_hill"}  # 避難先を変える案を承認した
+        self.assertEqual(hooks.check_finalize(plan, FakeBackend()), [])
+
+    def test_unusable_planned_shelter_accepts_consult_mark_on_its_card(self):
+        plan = self._plan_with_unusable_shelter()
+        plan["findings"].append(pm.Finding(
+            finding_id="fnd_7", scenario_id="S7", hole_type="CANNOT_CLIMB", explanation_template="説明", explanation="説明",
+            result=FakeBackend().run_scenario(plan, "S7"), source_ids=[]))
+        ack(plan, "consult_fnd_7")
+        self.assertEqual(hooks.check_finalize(plan, FakeBackend()), [])
+
     def test_scenario_that_cannot_be_computed_needs_acknowledgement(self):
         plan = make_complete_plan()
         backend = FakeBackend({"S5": "cannot_compute"})

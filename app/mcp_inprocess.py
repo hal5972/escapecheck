@@ -92,7 +92,7 @@ def apply_fix(plan: pm.Plan, fix_id: str, backend: Any) -> list[str]:
     """承認済みの改善案を計画に反映する。反映できなければ理由の一覧を返す（F-11）。
 
     CHANGE_SHELTER は避難先の欄を書き換える。そのほかの改善案は欄を書き換えず、
-    sim.run_scenario が plan["approvals"] にある改善案の効き目を反映する（A との取り決め）。
+    sim.run_scenario が plan["approvals"] にある改善案の効き目を反映する。
     """
     reasons = hooks.check_apply_fix(plan, fix_id)
     if reasons:

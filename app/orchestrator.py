@@ -42,7 +42,7 @@ class InterviewResult(TypedDict):
     plan: Plan
     next_question: str | None  # 次の追加の質問（音声読み上げする文）。すべてそろえば None
     changed_fields: list[str]
-    next_field: NotRequired[str | None]  # 次の質問で聞く欄（B が追加。画面は次の発言の asked_field に返す）
+    next_field: NotRequired[str | None]  # 次の質問で聞く欄（画面は、次の発言の asked_field に返す）
 
 
 class JobStatus(TypedDict):
@@ -307,10 +307,20 @@ def get_job(job_id: str) -> JobStatus:
 
 
 def redteam_for_eval(plan: Plan) -> list[Finding]:
-    """評価用（eval/run_eval.py の --runner claude）: start_check と同じ処理を同期的に実行し、findings を返す。"""
+    """評価用（eval/run_eval.py の --runner claude）: start_check と同じ処理を同期的に実行し、findings を返す。
+
+    渡された plan も、点検の後の計画（premises・findings・fixes・sources）に置き換える。
+    評価は、危険な改善案が出なかったかを plan["fixes"] で確認するため（AC-07）。
+    """
     session = PlanSession(plan=prepare_for_check(plan), role="redteam", backend=backend())
-    run_redteam(session)
-    return session.plan["findings"]
+    try:
+        run_redteam(session)
+    finally:
+        with session.lock:
+            checked = copy.deepcopy(session.plan)
+        plan.clear()
+        plan.update(checked)
+    return plan["findings"]
 
 
 # ---------------------------------------------------------------------------
