@@ -62,7 +62,7 @@
       const queue = [];
       const issues = rec.plan.issues || [];
       for (const f of rec.plan.findings || []) {
-        const key = verdictView(worstResult(f.result)).key;
+        const key = verdictView(EC.u.findingResult(rec.plan, f)).key;
         if (key === 'short' || key === 'unknown') {
           const id = `consult_${f.finding_id}`;
           const done = issues.find((i) => i.issue_id === id && i.acknowledged);
@@ -96,35 +96,46 @@
       const filled = keys.filter((k) => ui.isFilled(plan.fields[k]));
       const noSource = filled.filter((k) => !plan.sources || !plan.sources[plan.fields[k].source_id]);
       const unconfirmed = keys.filter((k) => !ui.isFilled(plan.fields[k]));
-      const reds = (plan.findings || []).filter((f) => ['short', 'unknown'].includes(verdictView(worstResult(f.result)).key));
-      const issues = (plan.issues || []).filter((i) => !i.issue_id.startsWith('consult_'));
-      const openIssues = issues.filter((i) => !i.acknowledged);
+      const reds = (plan.findings || []).filter((f) => ['short', 'unknown'].includes(verdictView(EC.u.findingResult(plan, f)).key));
+      const allIssues = plan.issues || [];
+      // 相談することにした（確認ずみの）シナリオ
+      const consulted = reds.filter((f) => allIssues.some((i) => i.issue_id === `consult_${f.finding_id}` && i.acknowledged));
+      // 検証エージェントの指摘。コードの点検の項目（chk_ で始まる）は、上の未確認の欄・間に合わないシナリオの行に含まれる
+      const agentIssues = allIssues.filter((i) => !i.issue_id.startsWith('consult_') && !i.issue_id.startsWith('chk_'));
+      const agentOpen = agentIssues.filter((i) => !i.acknowledged);
 
       const row = (ok, text) => h('li', { class: ok ? 'is-ok' : 'is-open' },
         h('span', { class: 'mark', 'aria-hidden': 'true' }, ok ? '○' : '△'), h('span', null, text));
       listSlot.append(h('h2', null, '確認の結果'), h('ul', { class: 'check-list' },
         row(noSource.length === 0, noSource.length === 0 ? `すべての欄に出典があります（${filled.length}欄）` : `出典がない欄が${noSource.length}つあります`),
         row(unconfirmed.length === 0, unconfirmed.length === 0 ? '未確認の欄は、ありません' : `未確認の欄: ${unconfirmed.length}つ（印刷には「未確認」と出ます）`),
-        row(reds.length === 0, reds.length === 0 ? '間に合わないシナリオは、ありません' : `まだ間に合わないシナリオ: ${reds.length}つ（ご本人・ご家族・市と相談します）`),
-        row(openIssues.length === 0, issues.length ? `検証エージェントの指摘: ${issues.length}件のうち、${issues.length - openIssues.length}件を確認ずみ` : '検証エージェントの指摘は、ありません')));
+        row(consulted.length === reds.length, reds.length === 0
+          ? '間に合わないシナリオは、ありません'
+          : (consulted.length === reds.length
+            ? `間に合わないシナリオ: ${reds.length}つ（ご本人・ご家族・市と相談することにしました）`
+            : `まだ間に合わないシナリオ: ${reds.length}つ（ご本人・ご家族・市と相談します）`)),
+        row(agentOpen.length === 0, agentIssues.length ? `検証エージェントの指摘: ${agentIssues.length}件のうち、${agentIssues.length - agentOpen.length}件を確認ずみ` : '検証エージェントの指摘は、ありません')));
     }
 
     // --- 1 件ずつ確認する ---------------------------------------------------------
 
     function showItem() {
       clear(itemSlot);
+      const queue = buildQueue(); // 先に作る（コードの点検の「間に合わない」の項目に、確認ずみの印を付けるため）
       renderChecklist();
-      const queue = buildQueue();
       if (!queue.length) { finish(); return; }
       const item = queue[0];
       clear(statusSlot);
 
       if (item.type === 'consult') {
-        const v = verdictView(worstResult(item.finding.result));
-        const text = `${ui.scenarioTopic(rec.plan, item.finding)}は、${v.label}${v.detail ? `（${v.detail}）` : ''}です。ご本人・ご家族・市と相談します。`;
+        const fr = EC.u.findingResult(rec.plan, item.finding);
+        const v = verdictView(fr);
+        const text = EC.u.isBlockedShelter(rec.plan, item.finding)
+          ? '計画の避難先には、上がれません。ご本人・ご家族・市と相談します。'
+          : `${ui.scenarioTopic(rec.plan, item.finding)}は、${v.label}${v.detail ? `（${v.detail}）` : ''}です。ご本人・ご家族・市と相談します。`;
         itemSlot.append(h('div', { class: 'card item-card' },
           h('p', { class: 'strong' }, `確認 ${resolved + 1}／${resolved + queue.length}`),
-          ui.verdictBadge(worstResult(item.finding.result)),
+          ui.verdictBadge(fr),
           h('p', { class: 'explain' }, text)));
         A.say(text);
         A.setActions([{
@@ -136,13 +147,17 @@
 
       const issue = item.issue;
       const fieldLabel = issue.field && L.FIELDS[issue.field] ? EC.u.splitLabel(L.FIELDS[issue.field]).title : '確認';
+      // 欄に内容があるときは、いまの内容を見せる（検証エージェントの指摘の文は、短い定型の文のため）
+      const current = issue.field ? rec.plan.fields[issue.field] : null;
+      const filledNow = Boolean(current) && ui.isFilled(current);
       const textarea = h('textarea', { class: 'textarea', id: 'answer', rows: '3', maxlength: '2000', placeholder: 'ここに文字で入力できます' });
       const typedWrap = h('div', { hidden: true }, h('label', { class: 'field-label-text', for: 'answer' }, '文字で答える'), textarea);
       const transcript = h('div', { class: 'transcript' }, h('span', { class: 'placeholder' }, 'ここに、文字起こし（答えの文字）が出ます'));
       itemSlot.append(h('div', { class: 'card item-card' },
         h('p', { class: 'strong' }, `確認 ${resolved + 1}／${resolved + queue.length}　${fieldLabel}`),
         h('span', { class: 'chip chip-none' }, issue.severity || '要確認'),
-        h('p', { class: 'explain' }, T(issue.message))),
+        h('p', { class: 'explain' }, T(issue.message)),
+        filledNow ? h('p', null, `いまの欄の内容: ${ui.valueText(current.value, T)}`) : null),
       transcript, typedWrap,
       h('p', { class: 'mode-note' }, S.sttSupported ? S.sttNotice() : 'このブラウザや接続では、音声入力を使えません。文字で入力してください。'));
       A.say(issue.message);
@@ -153,9 +168,12 @@
       const refresh = () => {
         const talk = { id: 'answer-btn', kind: 'primary', label: '話して答える', onClick: onTalk };
         if (working) { talk.label = '欄に入れています'; talk.disabled = true; }
-        else if (listening) { talk.label = 'とめる'; talk.listening = true; }
+        else if (listening) { talk.label = '止める'; talk.listening = true; }
         else if (typedMode()) talk.label = '送る';
-        A.setActions([talk, { id: 'skip', label: '未確認のまま', disabled: working, onClick: () => { acknowledge(item.id, { resolution: 'unconfirmed' }); showItem(); } }]);
+        A.setActions([talk, {
+          id: 'skip', label: filledNow ? 'このままにする' : '未確認のまま', disabled: working,
+          onClick: () => { acknowledge(item.id, { resolution: filledNow ? 'kept' : 'unconfirmed' }); showItem(); },
+        }]);
       };
 
       const submit = async (text) => {
@@ -192,7 +210,7 @@
         }
         if (listening) { listening.stop(); return; }
         listening = S.listen({
-          onInterim: (fin, interim) => { clear(transcript); transcript.append(fin, interim ? h('span', { class: 'interim' }, interim) : null); },
+          onInterim: (fin, interim) => { clear(transcript); EC.u.add(transcript, fin, interim ? h('span', { class: 'interim' }, interim) : null); },
           onEnd: ({ text, error }) => {
             listening = null;
             if (!scope.alive) return;
@@ -293,7 +311,7 @@
 
     A.setActions([
       { id: 'print', kind: 'primary', label: '印刷する', onClick: () => window.print() },
-      { id: 'home', label: 'ホームにもどる', onClick: () => A.go('home') },
+      { id: 'home', label: 'ホームに戻る', onClick: () => A.go('home') },
     ]);
   });
 

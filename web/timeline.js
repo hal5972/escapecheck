@@ -52,7 +52,7 @@
 
     const g = svg('svg', {
       class: 'tl-svg', viewBox: `0 0 ${W} 150`, role: 'img', focusable: 'false',
-      'aria-label': `避難にかかる時間 ${ceilMin(need) ?? '不明'}分。津波が来るまで ${avail === null ? '不明' : floorMin(avail) + '分'}。${view.text}`,
+      'aria-label': `避難所要時間 ${ceilMin(need) ?? '不明'}分。津波到達時間 ${avail === null ? '不明' : floorMin(avail) + '分'}。${view.text}`,
     });
 
     // 区間の帯。すべて実際の長さで描く（津波の線をまたいでも隠さない）。数字のラベルは、あとで最前面に描く
@@ -111,9 +111,9 @@
     });
 
     const sum = h('p', { class: 'tl-sum' },
-      h('span', null, `避難にかかる時間 `),
+      h('span', null, `避難所要時間 `),
       h('strong', null, need === null ? '不明' : `${ceilMin(need)}分`),
-      h('span', null, `　津波が来るまで `),
+      h('span', null, `　津波到達時間 `),
       h('strong', null, avail === null ? '不明' : `${floorMin(avail)}分`));
 
     const note = o.footnote && segs.some((seg) => seg.key === 'climb')

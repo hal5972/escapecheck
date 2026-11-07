@@ -57,7 +57,7 @@
     const questionTag = h('span', { class: 'question-tag' }, '最初の質問');
     const questionText = h('span', { class: 'question-text' });
     const question = h('button', { type: 'button', class: 'question-box', 'aria-describedby': 'question-hint', onclick: () => say() },
-      questionTag, questionText, h('span', { class: 'question-hint', id: 'question-hint' }, 'さわると、もう一度読みます'));
+      questionTag, questionText, h('span', { class: 'question-hint', id: 'question-hint' }, '押すと、もう一度読みます'));
 
     const transcript = h('div', { class: 'transcript', id: 'transcript', 'aria-live': 'polite' });
     const statusSlot = h('div', { class: 'status-slot' });
@@ -75,7 +75,7 @@
     const phoneBody = h('div', { class: 'phone-body', hidden: !continuous },
       switchRow,
       h('p', { class: 'sub' }, '電話では、スピーカーにして使います。質問を読み上げたあと、答えを自動で聞き取ります。'));
-    const phoneToggle = h('button', { type: 'button', class: 'btn-row', 'aria-expanded': String(continuous) }, '電話で聞き取るときの設定');
+    const phoneToggle = h('button', { type: 'button', class: 'btn-row', 'aria-expanded': String(continuous) }, '電話での聞き取りの設定');
     phoneToggle.addEventListener('click', () => {
       const open = phoneToggle.getAttribute('aria-expanded') === 'true';
       phoneToggle.setAttribute('aria-expanded', open ? 'false' : 'true');
@@ -86,7 +86,7 @@
     const fieldsList = h('div', { class: 'fields-list' });
     const examplesSlot = h('div', { class: 'examples-slot' });
 
-    A.$main.append(
+    EC.u.add(A.$main,
       personBar, statusSlot, question, transcript, typedWrap, modeNote,
       S.sttSupported ? phoneSettings : null,
       premisesSlot,
@@ -109,7 +109,7 @@
         transcript.append(h('span', { class: 'placeholder' }, lastText || 'ここに、文字起こし（話した内容の文字）が出ます'));
         return;
       }
-      transcript.append(finalText, interim ? h('span', { class: 'interim' }, interim) : null);
+      EC.u.add(transcript, finalText, interim ? h('span', { class: 'interim' }, interim) : null);
     }
 
     function renderNote() {
@@ -184,7 +184,7 @@
       const talkAction = { id: 'talk', kind: 'primary', label: '話す', onClick: onTalk };
       if (working) { talkAction.label = '欄に入れています'; talkAction.disabled = true; }
       else if (retryText !== null) { talkAction.label = 'もう一度'; talkAction.onClick = () => submit(retryText); }
-      else if (listening) { talkAction.label = 'とめる'; talkAction.listening = true; }
+      else if (listening) { talkAction.label = '止める'; talkAction.listening = true; }
       else if (typedMode()) { talkAction.label = '送る'; }
       A.setActions([talkAction, { id: 'ok', kind: 'confirm', label: 'それでいい', disabled: working, onClick: () => A.go('check') }]);
     }

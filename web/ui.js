@@ -40,7 +40,7 @@
       const q = quote || s.text;
       if (q) box.append(h('p', null, '話した言葉: ', h('span', { class: 'quote' }, `「${T(q)}」`)));
     } else if (s.kind === 'map_tap') {
-      box.append(h('p', null, '地図をさわって、自宅の場所を決めました。位置は、この端末の中に保存します。'));
+      box.append(h('p', null, '地図をタップして、自宅の場所を決めました。位置は、この端末の中に保存します。'));
     } else {
       if (s.name) box.append(h('p', null, `データ: ${s.name}`));
       if (s.version) box.append(h('p', null, `版: ${s.version}`));
@@ -168,7 +168,7 @@
 
   /**
    * シナリオの結果を、地図に描く。
-   * ctx: { plan, facts, T, shelterId（比べるときの別の避難先）, oldShelterId（いまの避難先を点線で出す） }
+   * ctx: { plan, facts, T, shelterId（比べるときの別の避難先）, oldShelterId（いまの避難先を点線で出す）, shelterLabel（避難先の印の文字） }
    */
   function scenarioMap(result, ctx) {
     const plan = ctx.plan;
@@ -235,7 +235,7 @@
       points.push(supporter.location);
     }
 
-    shapes.push({ t: 'marker', kind: 'shelter', at: shelter.point, label: ctx.shelterId ? '新しい避難先' : '避難先', pos: 't' });
+    shapes.push({ t: 'marker', kind: 'shelter', at: shelter.point, label: ctx.shelterLabel || (ctx.shelterId ? '新しい避難先' : '避難先'), pos: 't' });
     shapes.push({ t: 'marker', kind: 'home', at: home, label: '自宅', pos: 'b' });
 
     map.setShapes(shapes);

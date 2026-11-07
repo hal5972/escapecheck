@@ -429,7 +429,8 @@
       const now = Date.now();
       return data.entries.map((e) => {
         const { ago_sec: ago, ...rest } = e;
-        return { ...rest, at: new Date(now - ago * 1000).toISOString() };
+        // サーバーと同じ形: args は短くした JSON の文字
+        return { ...rest, args: typeof rest.args === 'string' ? rest.args : JSON.stringify(rest.args || {}), at: new Date(now - ago * 1000).toISOString() };
       });
     },
 

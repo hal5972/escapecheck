@@ -24,7 +24,10 @@
 
   /** 点検の結果のうち、いちばん厳しいもの（余裕が最も小さい）。 */
   function worstFinding(plan) {
-    const list = (plan.findings || []).filter((f) => f.result);
+    const all = (plan.findings || []).filter((f) => f.result);
+    // 計画の避難先に上がれない問題点の時間は、別の避難先の分なので、ほかにあれば使わない
+    const usable = all.filter((f) => !EC.u.isBlockedShelter(plan, f));
+    const list = usable.length ? usable : all;
     if (!list.length) return null;
     return list.slice().sort((a, b) => {
       const ra = worstResult(a.result);
@@ -93,17 +96,17 @@
     if (findings.length) {
       const resultRows = h('tbody');
       for (const f of findings) {
-        const r = worstResult(f.result);
-        const v = verdictView(r);
+        const v = verdictView(EC.u.findingResult(plan, f));
+        const blocked = EC.u.isBlockedShelter(plan, f);
         resultRows.append(h('tr', null,
           h('th', null, EC.ui.scenarioTitle(plan, f)),
           h('td', null, `${v.mark} ${v.text}`,
             isNum(f.result.need_min) && isNum(f.result.avail_min)
-              ? h('div', null, `避難にかかる時間 ${ceilMin(f.result.need_min)}分／津波が来るまで ${floorMin(f.result.avail_min)}分`)
+              ? h('div', null, `${blocked ? `上がれる避難先（${f.result.shelter_name || '別の避難先'}）にした場合: ` : ''}避難所要時間 ${ceilMin(f.result.need_min)}分／津波到達時間 ${floorMin(f.result.avail_min)}分`)
               : null)));
       }
       body.append(h('h3', null, '点検の結果（厳しい条件でのシミュレーション）'), h('table', { class: 'sheet-table' }, resultRows));
-      const allShort = findings.every((f) => verdictView(worstResult(f.result)).key === 'short');
+      const allShort = findings.every((f) => verdictView(EC.u.findingResult(plan, f)).key === 'short');
       if (allShort) body.append(h('p', { class: 'strong' }, 'この方は、現在の条件では間に合いません。市や家族と話し合うための資料です。'));
     }
 
@@ -167,18 +170,18 @@
     const printMap = result ? EC.ui.scenarioMap(result, { plan, facts: ctx.facts, T, fixed: { width: 700, height: 300 }, plain: true }) : null;
     if (printMap) mapSlot.append(h('div', { class: 'print-map' }, printMap.el));
 
-    // 避難にかかる時間（いちばん厳しい場合）
+    // 避難所要時間（いちばん厳しい場合）
     if (worst) {
       const r = worstResult(worst.result);
       const v = verdictView(r);
       sheet.append(
-        h('p', { class: 'big-line' }, `避難にかかる時間: ${isNum(worst.result.need_min) ? `${ceilMin(worst.result.need_min)}分` : '不明'}`),
-        h('p', { class: 'big-line' }, `津波が来るまで: ${isNum(worst.result.avail_min) ? `${floorMin(worst.result.avail_min)}分` : '不明'}`),
+        h('p', { class: 'big-line' }, `避難所要時間: ${isNum(worst.result.need_min) ? `${ceilMin(worst.result.need_min)}分` : '不明'}`),
+        h('p', { class: 'big-line' }, `津波到達時間: ${isNum(worst.result.avail_min) ? `${floorMin(worst.result.avail_min)}分` : '不明'}`),
         h('div', { class: `verdict verdict-${v.key}` },
           h('span', { class: 'mark', 'aria-hidden': 'true' }, v.mark),
           h('span', { class: 'vtext' }, v.text)),
         h('p', { class: 'sub' }, `いちばん厳しい場合の時間です。条件: ${EC.ui.scenarioTitle(plan, worst)}`));
-      const open = (plan.findings || []).filter((f) => ['short', 'unknown'].includes(verdictView(worstResult(f.result)).key));
+      const open = (plan.findings || []).filter((f) => ['short', 'unknown'].includes(verdictView(EC.u.findingResult(plan, f)).key));
       if (open.length) {
         sheet.append(h('p', { class: 'strong' }, '間に合わない場合があります。家族や市と相談してください。'));
       }
