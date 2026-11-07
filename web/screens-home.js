@@ -230,15 +230,14 @@
 
     A.$main.append(
       h('h1', null, '新しい人'),
-      A.noticePrivacy(),
-      h('label', { class: 'field-label-text', for: 'name-person' }, 'お名前（苗字だけ）'),
-      personInput,
-      h('p', { class: 'sub' }, 'この端末にだけ保存します。サーバーと Claude には、仮名（Aさん）で送ります。'),
-      h('label', { class: 'field-label-text', for: 'name-supporter' }, '避難支援者のお名前（苗字だけ）'),
-      supporterInput,
-      h('h2', null, '自宅の場所'),
       h('p', null, '地図をさわって、自宅の場所を決めてください。指でなぞると、地図が動きます。'),
-      map.el, map.credit, factsSlot);
+      map.el, map.credit, factsSlot,
+      h('h2', null, 'お名前（なくてもよい）'),
+      h('p', { class: 'sub' }, '実在の人の名前は入れないでください。この端末にだけ保存します。サーバーと Claude には、仮名（Aさん）で送ります。'),
+      h('label', { class: 'field-label-text', for: 'name-person' }, '本人（苗字だけ）'),
+      personInput,
+      h('label', { class: 'field-label-text', for: 'name-supporter' }, '避難支援者（苗字だけ）'),
+      supporterInput);
 
     const enable = () => {
       A.setActions([{ label: 'ここに決める', kind: 'primary', id: 'decide', disabled: !pick, onClick: decide }]);

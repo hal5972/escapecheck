@@ -55,22 +55,22 @@
       'aria-label': `避難にかかる時間 ${ceilMin(need) ?? '不明'}分。津波が来るまで ${avail === null ? '不明' : floorMin(avail) + '分'}。${view.text}`,
     });
 
-    // 区間の帯
+    // 区間の帯（数字のラベルは、あとで最前面に描く）
+    const labels = [];
     let acc = 0;
     segs.forEach((seg) => {
       const x = xOf(acc);
       const w = seg.minutes * k;
       g.appendChild(svg('rect', { x: x.toFixed(1), y: BAR_Y, width: w.toFixed(1), height: BAR_H, fill: FILL[seg.key] || FILL.walk, stroke: '#12161c', 'stroke-width': 2 }));
-      if (w >= 46) {
-        g.appendChild(svg('text', { class: 'tl-num', x: (x + w / 2).toFixed(1), y: BAR_Y + 30, 'text-anchor': 'middle' }, `${Math.round(seg.minutes)}`));
-      }
+      labels.push({ x, w, text: `${Math.round(seg.minutes)}` });
       acc += seg.minutes;
     });
 
     // 余裕（緑）か不足（赤い斜線）
+    let xLine = null;
     if (avail !== null) {
       const xEnd = xOf(drawn);
-      const xLine = xOf(avail);
+      xLine = xOf(avail);
       if (drawn > avail) {
         // 津波が来たあとの区間: 線の右にはみ出す部分を赤い斜線で覆う
         g.appendChild(svg('rect', { x: xLine.toFixed(1), y: BAR_Y, width: (xEnd - xLine).toFixed(1), height: BAR_H, fill: 'url(#ec-pat-short)', stroke: '#9b1111', 'stroke-width': 3 }));
@@ -89,15 +89,17 @@
       // 余裕・不足の文字
       const note = svg('text', { class: `tl-note tl-note-${view.key}`, y: 128 });
       note.textContent = `${view.mark} ${view.detail || view.label}`;
-      if (view.key === 'short') {
-        note.setAttribute('x', (W - PAD).toFixed(1));
-        note.setAttribute('text-anchor', 'end');
-      } else {
-        note.setAttribute('x', Math.min(Math.max(xLine, 170), W - PAD).toFixed(1));
-        note.setAttribute('text-anchor', 'end');
-      }
+      note.setAttribute('x', (view.key === 'short' ? W - PAD : Math.min(Math.max(xLine, 170), W - PAD)).toFixed(1));
+      note.setAttribute('text-anchor', 'end');
       g.appendChild(note);
     }
+
+    // 区間の分の数字。線をまたぐ区間は、線より左（見える側）の中央に置く。幅が足りないときは出さない
+    labels.forEach((l) => {
+      const right = xLine !== null ? Math.min(l.x + l.w, xLine) : l.x + l.w;
+      const visibleW = right - l.x;
+      if (visibleW >= 34) g.appendChild(svg('text', { class: 'tl-num', x: (l.x + visibleW / 2).toFixed(1), y: BAR_Y + 30, 'text-anchor': 'middle' }, l.text));
+    });
 
     // 文字の一覧
     const legend = h('ul', { class: 'tl-legend' });

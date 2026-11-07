@@ -47,34 +47,38 @@
   .sheet-body, .sheet-body[hidden] { display: block !important; }
 
   h2, h3 { break-after: avoid; }
-  .sheet-title { font-size: 16pt; margin: 0 0 4mm; }
-  .sheet h3 { font-size: 12pt; margin: 5mm 0 2mm; }
+  .sheet-title { font-size: 15pt; margin: 0 0 3mm; }
+  .sheet h3 { font-size: 11pt; margin: 3mm 0 1.5mm; }
   .sub { color: #333; }
 
-  /* 1 枚目: 表 */
-  .sheet-table { width: 100%; border-collapse: collapse; margin: 0 0 3mm; font-size: 10pt; }
-  .sheet-table th, .sheet-table td { border: 1px solid #000; padding: 1.5mm 2mm; text-align: left; vertical-align: top; }
-  .sheet-table th { width: 32%; background: #eee; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .sheet-table tr { break-inside: avoid; }
-  .chip { font-size: 8.5pt; padding: 0 2mm; border-width: 1px; margin-top: 0.5mm; background: #fff; color: #000; border-color: #000; }
-  .chip-data { border-width: 2px; padding: 0 1.5mm; }
-  .sheet-foot { margin-top: 4mm; font-size: 9pt; }
+  /* 1 枚目: 表（項目・内容・出典の 3 列） */
+  .screen-only { display: none !important; }
+  .sheet-table { display: table; width: 100%; border-collapse: collapse; margin: 0 0 3mm; font-size: 9pt; line-height: 1.3; }
+  .sheet-table tbody { display: table-row-group; }
+  .sheet-table tr { display: table-row; margin: 0; border: 0; border-radius: 0; overflow: visible; background: #fff; break-inside: avoid; }
+  .sheet-table th, .sheet-table td { display: table-cell; border: 1px solid #000; padding: 0.7mm 1.5mm; text-align: left; vertical-align: top; }
+  .sheet-table th { width: 30%; background: #eee; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .sheet-table td.src-cell { width: 22%; padding-top: 1mm; }
+  .sheet-table td.src-cell:empty { display: table-cell; }
+  .sheet-table td .chip { font-size: 8.5pt; padding: 0 1.5mm; border-width: 1px; margin: 0; background: #fff; color: #000; border-color: #000; }
+  .sheet-table td .chip-data { border-width: 2px; padding: 0 1mm; }
+  .sheet-foot { margin-top: 3mm; font-size: 8.5pt; }
   .sheet-foot p { margin: 0 0 1.5mm; }
 
   /* 2 枚目: 避難カード（大きな文字） */
   .sheet-card { font-size: 16pt; }
   .card-banner {
-    font-size: 32pt;
-    padding: 4mm;
-    margin: 0 0 4mm;
+    font-size: 28pt;
+    padding: 3mm;
+    margin: 0 0 3mm;
     color: #fff;
     background: #8b0000;
     border-radius: 3mm;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
-  .card-name { font-size: 26pt; margin: 0 0 3mm; }
-  .sheet-card .big-line { font-size: 20pt; line-height: 1.4; margin: 0 0 2mm; font-weight: 700; }
+  .card-name { font-size: 24pt; margin: 0 0 2mm; }
+  .sheet-card .big-line { font-size: 18pt; line-height: 1.35; margin: 0 0 1.5mm; font-weight: 700; }
   .sheet-card .sub { font-size: 12pt; }
   .sheet-card .strong { font-size: 16pt; }
 

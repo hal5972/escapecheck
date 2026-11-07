@@ -54,7 +54,7 @@
 
   function run() {
     if (EC.map && EC.map.resizeAll) EC.map.resizeAll();
-    const report = { screen: window.location.hash, smallText: [], smallButtons: [], mainButtons: [], lowContrast: [] };
+    const report = { screen: window.location.hash, smallText: [], smallButtons: [], mainButtons: [], lowContrast: [], overflow: [] };
     const seen = new Set();
 
     // 文字の大きさと色
@@ -84,11 +84,19 @@
       if (h < MIN_BUTTON - 0.6) report.smallButtons.push({ text: (el.textContent || el.getAttribute('aria-label') || el.tagName).trim().slice(0, 24), px: Math.round(h) });
     });
 
+    // 横にはみ出す部品が無いか（画面の幅 360px でも、横にスクロールさせない）
+    const limit = document.documentElement.clientWidth + 1;
+    document.querySelectorAll('#main *, #actions *, #topbar *').forEach((el) => {
+      if (!visible(el) || el.closest('svg') || el.closest('.print-map')) return;
+      const r = el.getBoundingClientRect();
+      if (r.right > limit && report.overflow.length < 5) report.overflow.push({ tag: el.tagName.toLowerCase(), cls: el.getAttribute('class') || '', right: Math.round(r.right) });
+    });
+
     // 下の大きなボタンは 2 つまで
     const mains = [...document.querySelectorAll('#actions .btn')].filter(visible);
     report.mainButtons = mains.map((b) => b.textContent.trim());
     report.mainButtonsOk = mains.length <= MAX_MAIN_BUTTONS;
-    report.ok = !report.smallText.length && !report.smallButtons.length && !report.lowContrast.length && report.mainButtonsOk;
+    report.ok = !report.smallText.length && !report.smallButtons.length && !report.lowContrast.length && !report.overflow.length && report.mainButtonsOk;
     return report;
   }
 
@@ -131,7 +139,7 @@
 
     const bad = results.filter((r) => !r.ok);
     window.__auditReport = results;
-    return { checked: results.length, ng: bad.length, problems: bad.map((r) => ({ name: r.name, smallText: r.smallText, smallButtons: r.smallButtons, lowContrast: r.lowContrast, mainButtons: r.mainButtonsOk ? undefined : r.mainButtons })) };
+    return { checked: results.length, ng: bad.length, problems: bad.map((r) => ({ name: r.name, smallText: r.smallText, smallButtons: r.smallButtons, lowContrast: r.lowContrast, overflow: r.overflow, mainButtons: r.mainButtonsOk ? undefined : r.mainButtons })) };
   }
 
   EC.audit = { run, runAll };

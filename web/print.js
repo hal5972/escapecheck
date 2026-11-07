@@ -37,6 +37,13 @@
     })[0];
   }
 
+  /** 印刷する項目の名前。避難開始時間は日中・夜間を区別する。そのほかは、括弧の中の例を省く。 */
+  function printLabel(key) {
+    const parts = EC.u.splitLabel(L.FIELDS[key] || key);
+    const keep = key.startsWith('time_to_leave') || key === 'shelter';
+    return `${parts.title}${keep && parts.hint ? `（${parts.hint}）` : ''}`;
+  }
+
   function shelterName(plan, T) {
     const f = plan.fields && plan.fields.shelter;
     return EC.ui.isFilled(f) ? EC.ui.valueText(f.value, T) : '';
@@ -50,23 +57,22 @@
     const plan = rec.plan;
     const T = ctx.T;
     const rows = [];
-    rows.push(['お名前', `${personName(rec)}${rec.sample ? '（デモ用の架空の人物）' : ''}`, null]);
-    rows.push(['地区', plan.area_label || '', null]);
-    rows.push(['作成日', formatDate(plan.updated || new Date().toISOString()), null]);
+    rows.push(['お名前', `${personName(rec)}${rec.sample ? '（デモ用の架空の人物）' : ''}`]);
+    rows.push(['地区', plan.area_label || '']);
+    rows.push(['作成日', formatDate(plan.updated || new Date().toISOString())]);
 
     const tbody = h('tbody');
-    for (const [label, value] of rows) tbody.append(h('tr', null, h('th', null, label), h('td', null, value)));
+    for (const [label, value] of rows) tbody.append(h('tr', null, h('th', null, label), h('td', { colspan: '2' }, value)));
 
     for (const key of Object.keys(L.FIELDS)) {
       const f = plan.fields && plan.fields[key];
       const filled = EC.ui.isFilled(f);
-      const parts = EC.u.splitLabel(L.FIELDS[key]);
       let text = '未確認';
       if (filled) text = key === 'supporters' && (plan.supporters || []).length ? EC.ui.supporterText(plan, T) : EC.ui.valueText(f.value, T);
-      const label = parts.title + (L.FIELD_HELP[key] ? `（${L.FIELD_HELP[key]}）` : '');
       tbody.append(h('tr', null,
-        h('th', null, label),
-        h('td', null, text, filled ? h('div', null, EC.ui.chip(EC.ui.sourceInfo(plan, f.source_id))) : null)));
+        h('th', null, printLabel(key)),
+        h('td', null, text),
+        h('td', { class: 'src-cell' }, filled ? EC.ui.chip(EC.ui.sourceInfo(plan, f.source_id)) : null)));
     }
 
     // 画面では閉じておく（印刷では、print.css が開く）。押すと開く
@@ -79,7 +85,7 @@
     });
     const sheet = h('section', { class: 'sheet sheet-form' },
       h('h2', { class: 'sheet-title' }, '1枚目: 個別避難計画（市に出す様式の項目）'),
-      h('p', { class: 'sub' }, 'A4・1枚。市の様式に合わせた項目です。'),
+      h('p', { class: 'sub screen-only' }, 'A4・1枚。市の様式に合わせた項目です。'),
       toggle, body);
 
     // 点検の結果
@@ -124,7 +130,7 @@
     const datasets = Object.values(plan.sources || {}).filter((s) => s.kind === 'dataset');
     const foot = h('div', { class: 'sheet-foot' },
       h('p', null, SAFETY),
-      datasets.length ? h('p', null, `データの出典: ${datasets.map((s) => `${s.label}${s.version ? `（${s.version}）` : ''}`).join('、')}`) : null,
+      datasets.length ? h('p', null, `データの出典: ${datasets.map((d) => `${d.label}${d.version && !d.label.includes(d.version) ? `（${d.version}）` : ''}`).join('、')}`) : null,
       h('p', null, '地図: 地理院タイル、津波浸水想定: 高知県（ハザードマップポータルサイト）'),
       rec.sample ? h('p', null, 'この計画は、デモ用の架空の人物のサンプルです。実在の人物とは関係ありません。') : null);
     body.append(foot);
@@ -141,7 +147,7 @@
     const sheet = h('section', { class: 'sheet sheet-card' },
       h('div', { class: 'card-banner' }, '揺れたら、すぐ避難'),
       h('h2', { class: 'sheet-title card-name' }, `${callName(rec)}の避難カード`),
-      h('p', { class: 'sub' }, '2枚目: 本人用。A4・1枚。冷蔵庫などに貼ります。'));
+      h('p', { class: 'sub screen-only' }, '2枚目: 本人用。A4・1枚。冷蔵庫などに貼ります。'));
 
     const sName = shelterName(plan, T);
     const shelterField = plan.fields && plan.fields.shelter && plan.fields.shelter.value;
@@ -158,19 +164,20 @@
     const screenMap = result ? EC.ui.scenarioMap(result, { plan, facts: ctx.facts, T, height: 260, plain: true }) : null;
     if (screenMap) mapSlot.append(h('div', { class: 'map-screen' }, screenMap.el));
     // 印刷用は、大きさを固定した別の地図にする（画面の幅の地図を引き伸ばすと、文字が小さくなるため）
-    const printMap = result ? EC.ui.scenarioMap(result, { plan, facts: ctx.facts, T, fixed: { width: 700, height: 340 }, plain: true }) : null;
+    const printMap = result ? EC.ui.scenarioMap(result, { plan, facts: ctx.facts, T, fixed: { width: 700, height: 300 }, plain: true }) : null;
     if (printMap) mapSlot.append(h('div', { class: 'print-map' }, printMap.el));
 
-    // 避難にかかる時間
+    // 避難にかかる時間（いちばん厳しい場合）
     if (worst) {
       const r = worstResult(worst.result);
       const v = verdictView(r);
       sheet.append(
-        h('p', { class: 'big-line' }, `いちばん厳しい場合: ${EC.ui.scenarioTitle(plan, worst)}`),
-        h('p', { class: 'big-line' }, `避難にかかる時間 ${isNum(worst.result.need_min) ? `${ceilMin(worst.result.need_min)}分` : '不明'}　津波が来るまで ${isNum(worst.result.avail_min) ? `${floorMin(worst.result.avail_min)}分` : '不明'}`),
+        h('p', { class: 'big-line' }, `避難にかかる時間: ${isNum(worst.result.need_min) ? `${ceilMin(worst.result.need_min)}分` : '不明'}`),
+        h('p', { class: 'big-line' }, `津波が来るまで: ${isNum(worst.result.avail_min) ? `${floorMin(worst.result.avail_min)}分` : '不明'}`),
         h('div', { class: `verdict verdict-${v.key}` },
           h('span', { class: 'mark', 'aria-hidden': 'true' }, v.mark),
-          h('span', { class: 'vtext' }, v.text)));
+          h('span', { class: 'vtext' }, v.text)),
+        h('p', { class: 'sub' }, `いちばん厳しい場合の時間です。条件: ${EC.ui.scenarioTitle(plan, worst)}`));
       const open = (plan.findings || []).filter((f) => ['short', 'unknown'].includes(verdictView(worstResult(f.result)).key));
       if (open.length) {
         sheet.append(h('p', { class: 'strong' }, '間に合わない場合があります。家族や市と相談してください。'));

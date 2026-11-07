@@ -129,13 +129,21 @@
       }));
     }
 
+    // 文字の幅の見積もり（全角は 24、半角は 13）。ラベルが地図からはみ出さないように、位置を補正する
+    const textWidth = (text) => [...String(text)].reduce((w, c) => w + (c.charCodeAt(0) > 255 ? 24 : 13), 0);
+
     function labelNode(text, x, y, pos) {
-      const anchor = pos === 'l' ? 'end' : pos === 't' || pos === 'b' ? 'middle' : 'start';
+      const width = textWidth(text);
+      let where = pos;
+      if (where === 'r' && x + 26 + width > W - 4) where = 'l';
+      else if (where === 'l' && x - 26 - width < 4) where = 'r';
+      const anchor = where === 'l' ? 'end' : where === 't' || where === 'b' ? 'middle' : 'start';
       let lx = x + 26;
       let ly = y + 8;
-      if (pos === 'l') lx = x - 26;
-      if (pos === 't') { lx = x; ly = y - 28; }
-      if (pos === 'b') { lx = x; ly = y + 46; }
+      if (where === 'l') lx = x - 26;
+      if (where === 't') { lx = x; ly = y - 28; }
+      if (where === 'b') { lx = x; ly = y + 46; }
+      if (where === 't' || where === 'b') lx = Math.min(Math.max(lx, width / 2 + 4), W - width / 2 - 4);
       return svg('text', { class: 'maplabel', x: lx, y: ly, 'text-anchor': anchor }, text);
     }
 

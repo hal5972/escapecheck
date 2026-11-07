@@ -237,10 +237,14 @@
     map.setShapes(shapes);
     map.fit(points, { x: 44, y: 64 });
 
-    const key = h('p', { class: 'map-key' }, '● 自宅　▲ 避難先',
-      supporter ? '　◆ 避難支援者の家' : null,
-      stalled ? '　× 津波に追いつかれる所（赤い点線は、間に合わない区間）' : null);
-    wrap.append(key, map.credit);
+    const item = (mark, text) => h('span', { class: 'key-item' }, h('span', { class: 'key-mark', 'aria-hidden': 'true' }, mark), text);
+    const key = h('p', { class: 'map-key' },
+      item('●', '自宅'), item('▲', '避難先'),
+      supporter ? item('◆', '避難支援者の家') : null,
+      stalled ? item('×', '津波に追いつかれる所') : null);
+    wrap.append(key);
+    if (stalled) wrap.append(h('p', { class: 'sub' }, '赤い点線は、間に合わない区間です。'));
+    wrap.append(map.credit);
     return { el: wrap, map };
   }
 
@@ -268,8 +272,12 @@
       h('p', null, `浸水深（津波で水が来たときの深さ）: ${facts.inundation_rank || na}`),
       h('p', null, `津波到達時間（浸水が30cmになるまで）: ${isNum(facts.arrival_min) ? `${EC.u.floorMin(facts.arrival_min)}分` : na}`));
     if (facts.arrival_version) box.append(h('p', { class: 'sub' }, `予測の版: ${facts.arrival_version}`));
-    box.append(h('p', null, `標高: ${isNum(facts.elevation_m) ? `${facts.elevation_m}m` : na}`));
-    for (const note of facts.notes || []) box.append(h('p', { class: 'sub' }, note));
+    // 標高が取得できないときは、理由の文（notes）に標高のことが書かれていれば、同じ内容を 2 回出さない
+    const notes = facts.notes || [];
+    if (isNum(facts.elevation_m) || !notes.some((n) => /標高/.test(n))) {
+      box.append(h('p', null, `標高: ${isNum(facts.elevation_m) ? `${facts.elevation_m}m` : na}`));
+    }
+    for (const note of notes) box.append(h('p', { class: 'sub' }, note));
     return box;
   }
 

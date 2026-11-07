@@ -578,3 +578,16 @@ label.field-label-text { display: block; font-weight: 700; margin: 12px 0 6px; }
 .examples-slot { margin: 12px 0; }
 .status-slot:empty, .premises-slot:empty, .improved-slot:empty, .progress-slot:empty,
 .summary-slot:empty, .facts-slot:empty, .intro-slot:empty { display: none; }
+
+.map-key { display: flex; flex-wrap: wrap; gap: 2px 16px; }
+.key-item { white-space: nowrap; }
+.key-mark { margin-right: 4px; }
+
+/* 画面の幅が狭いので、様式の表は、1 行を 1 枚のカードのように縦に並べる（印刷では、print.css が表に戻す） */
+.sheet-table, .sheet-table tbody, .sheet-table tr, .sheet-table th, .sheet-table td { display: block; width: auto; }
+.sheet-table tr { margin: 0 0 8px; border: 2px solid var(--line); border-radius: 10px; overflow: hidden; background: #fff; }
+.sheet-table th, .sheet-table td { border: 0; padding: 6px 10px; }
+.sheet-table th { width: auto; background: #eef0f4; }
+.sheet-table td.src-cell { padding-top: 0; }
+.sheet-table td.src-cell:empty { display: none; }
+.sheet-table td.src-cell .chip { margin: 0; }
