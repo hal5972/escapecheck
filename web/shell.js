@@ -50,15 +50,11 @@
   // --- 読み上げ（U-03。止めるボタンは、読み上げている間だけ上に出す） -----------------
 
   function say(rawText) {
-    if (!state.settings.tts || !S.ttsSupported || !rawText) return Promise.resolve(false);
-    // ネットワークの声のときは、読む文が外部に送られるので、本名に戻さずに読む
-    return S.speak(S.usesRemoteVoice() ? rawText : T(rawText));
-  }
-
-  /** 決まった質問の読み上げ。音声ファイル（audio/questions/<欄のキー>.wav）があれば再生し、無ければ読み上げる。 */
-  function sayClip(key, rawText) {
     if (!state.settings.tts || !rawText) return Promise.resolve(false);
-    return S.speakQuestion(key, S.usesRemoteVoice() ? rawText : T(rawText));
+    const shown = T(rawText);
+    // ネットワークの声のときは、読む文が外部に送られるので、本名に戻さずに読む。
+    // 合成音声のファイルは端末の中の物なので、画面に表示する文（本名に戻した文）で探す
+    return S.speak(S.usesRemoteVoice() ? rawText : shown, { clipText: shown });
   }
 
   S.onSpeakingChange((speaking) => { $stop.hidden = !speaking; });
@@ -234,7 +230,7 @@
   window.addEventListener('hashchange', render);
 
   EC.app = {
-    state, $main, $actions, T, say, sayClip, announce, go, setBack, setActions, setBanner, newScope,
+    state, $main, $actions, T, say, announce, go, setBack, setActions, setBanner, newScope,
     save, openRecord, loadSessionRecord, mergeGeometry, ensureFacts, personLabel, auditLink,
     noticePrivacy, noticeSafety, statusBox, errorBox, errorText,
     register, render, parseHash,

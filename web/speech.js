@@ -3,8 +3,8 @@
  * - 音声入力が使えないブラウザや接続では、利用できない旨を返し、画面は文字の入力欄を出す（E1）
  * - 音声認識を使うときは、音声が Google のサーバーに送られることを画面に出す（R-04。文言は sttNotice）
  * - 音声読み上げは ja-JP、速度 0.9。端末の中の声を優先する（ネットワークの声は、読む文が外部に送られるため）
- * - 読み上げに渡す文だけを、読み仮名に置き換える（readings.json。画面の表示は漢字のまま）
- * - 決まった質問は、音声ファイル（audio/questions/<欄のキー>.wav。initial・done を含む）があれば再生し、無ければ読み上げる
+ * - 読み上げに渡す文だけを、読み仮名に置き換える（readings.json の readings。画面の表示は漢字のまま）
+ * - 画面に表示する文と同じ文が audio/manifest.json の items にあれば、合成音声のファイル（audio/<file>）を再生し、無ければ読み上げる
  */
 (function () {
   'use strict';
@@ -31,29 +31,38 @@
   const listeners = new Set();
 
   // --- 読み仮名の置き換え ---------------------------------------------------
-  // 読み上げに渡す文だけを置き換える。一覧は readings.json（読み込めないときは、下の予備を使う）
+  // 読み上げに渡す文だけを置き換える（画面の表示は漢字のまま）。一覧は readings.json の readings（text の書き方を reading の読みに）。
+  // 合成音声のファイルを作るスクリプトも、同じファイルを読む。読み込めないときは、下の予備を使う
 
-  const FALLBACK_READINGS = [{ text: '何分', reading: 'なんぷん' }, { text: '間に合', reading: 'まにあ' }];
-  let readings = FALLBACK_READINGS;
+  const FALLBACK_READINGS = { '何分': 'なんぷん', '間に合': 'まにあ' };
 
-  /** 一覧を整える。書き方と読みが文字のものだけを使い、長い書き方から順に置き換える。 */
-  function cleanReadings(list) {
-    return (Array.isArray(list) ? list : [])
-      .filter((r) => r && typeof r.text === 'string' && r.text && typeof r.reading === 'string' && r.reading)
-      .sort((a, b) => b.text.length - a.text.length);
+  /**
+   * 一覧を整える。{"readings": [{ "text": 書き方, "reading": 読み }]} の形を読む（{"書き方": "読み"} の形も受ける）。
+   * 書き方と読みが文字のものだけを使い、長い書き方から順に置き換える。
+   */
+  function sortReadings(data) {
+    let pairs = [];
+    if (data && Array.isArray(data.readings)) {
+      pairs = data.readings.filter((r) => r && typeof r.text === 'string' && typeof r.reading === 'string').map((r) => [r.text, r.reading]);
+    } else if (data && typeof data === 'object' && !Array.isArray(data)) {
+      pairs = Object.entries(data).filter(([, reading]) => typeof reading === 'string');
+    }
+    return pairs.filter(([word]) => word).sort((a, b) => b[0].length - a[0].length);
   }
+
+  let readings = sortReadings(FALLBACK_READINGS);
 
   if (typeof fetch === 'function') {
     fetch('readings.json')
       .then((res) => (res.ok ? res.json() : null))
-      .then((data) => { const list = data ? cleanReadings(data.readings) : []; if (list.length) readings = list; })
+      .then((data) => { const list = sortReadings(data); if (list.length) readings = list; })
       .catch(() => { /* 読み込めないときは、予備の一覧を使う */ });
   }
 
   /** 読み上げる文の、読み仮名への置き換え。 */
   function applyReadings(text) {
     let out = String(text || '');
-    for (const r of readings) out = out.split(r.text).join(r.reading);
+    for (const [word, reading] of readings) out = out.split(word).join(reading);
     return out;
   }
 
@@ -83,13 +92,76 @@
   function cancel() {
     token += 1;
     if (synth) synth.cancel();
-    endClip(null); // 音声ファイルの再生中なら、止める（止められたときは null を返す）
+    endClip(null); // 合成音声のファイルの再生中なら、止める（止められたときは null を返す）
     setSpeaking(false);
   }
 
-  /** 読み上げる。読み終わる（または止められる）と解決する。読み切ったときだけ true。 */
-  function speak(text, opts) {
-    const o = opts || {};
+  // --- 合成音声のファイル ----------------------------------------------------
+  // audio/manifest.json の items（画面に表示する文 → { file, ... }）に、読み上げる文と同じ文があれば、audio/<file> を再生する。
+  // 無いとき（manifest.json が無いときも）は、ブラウザの読み上げで読む。ファイルは、合成音声のスクリプトで作る
+
+  const CLIP_DIR = 'audio/';
+  let clipItems = null; // 画面に表示する文 → { file, ... }
+
+  let clipLoaded = false;
+  const clipReady = (typeof fetch === 'function'
+    ? fetch(`${CLIP_DIR}manifest.json`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => { if (data && data.items && typeof data.items === 'object' && !Array.isArray(data.items)) clipItems = data.items; })
+      .catch(() => { /* 音声ファイルが無いときは、読み上げる */ })
+    : Promise.resolve()
+  ).then(() => { clipLoaded = true; });
+
+  /** 画面に表示する文に合う音声ファイルの名前。無いとき、名前が安全でないときは null。 */
+  function clipFileFor(shownText) {
+    if (!clipItems || !Object.prototype.hasOwnProperty.call(clipItems, shownText)) return null;
+    const item = clipItems[shownText];
+    const file = item && typeof item.file === 'string' ? item.file : '';
+    return /^[A-Za-z0-9_-][A-Za-z0-9_.-]*$/.test(file) && !file.includes('..') ? file : null;
+  }
+
+  let clipAudio = null;
+  let clipResolve = null;
+
+  function endClip(result) {
+    const done = clipResolve;
+    clipResolve = null;
+    if (clipAudio) {
+      clipAudio.onplaying = null;
+      clipAudio.onended = null;
+      clipAudio.onerror = null;
+      try { clipAudio.pause(); } catch (e) { /* すでに止まっている */ }
+      clipAudio = null;
+    }
+    if (done) done(result);
+  }
+
+  /** 音声ファイルを再生する。最後まで再生したら true、再生できないときは false、止められたときは null。 */
+  function playClip(file) {
+    if (typeof Audio === 'undefined') return Promise.resolve(false);
+    cancel();
+    const mine = ++token;
+    return new Promise((resolve) => {
+      const audio = new Audio(`${CLIP_DIR}${file}`);
+      clipAudio = audio;
+      clipResolve = resolve;
+      audio.onplaying = () => { if (mine === token) setSpeaking(true); };
+      audio.onended = () => { setSpeaking(false); endClip(true); };
+      audio.onerror = () => { setSpeaking(false); endClip(false); };
+      const p = audio.play();
+      if (p && p.catch) {
+        p.catch(() => {
+          // 自動再生が許されないとき・ファイルが読めないとき: 読み上げに切り替える
+          if (clipAudio !== audio) return; // すでに終わった（別の再生に替わった）
+          setSpeaking(false);
+          endClip(false);
+        });
+      }
+    });
+  }
+
+  /** ブラウザの読み上げ。読み終わる（または止められる）と解決する。読み切ったときだけ true。 */
+  function speakWithVoice(text, o) {
     return new Promise((resolve) => {
       const parts = chunks(applyReadings(text || ''));
       if (!synth || !parts.length) {
@@ -120,59 +192,24 @@
     });
   }
 
-  // --- 決まった質問の音声ファイル ---------------------------------------------
-  // audio/questions/<欄のキー>.wav（initial.wav・done.wav を含む）があれば再生する。無いときは、読み上げる。
-
-  const CLIP_DIR = 'audio/questions/';
-  const clipKnown = new Map(); // 欄のキー → 音声ファイルがあるか（true・false）。一度無いと分かれば、もう探さない
-  let clipAudio = null;
-  let clipResolve = null;
-
-  function endClip(result) {
-    const done = clipResolve;
-    clipResolve = null;
-    if (clipAudio) {
-      clipAudio.onplaying = null;
-      clipAudio.onended = null;
-      clipAudio.onerror = null;
-      try { clipAudio.pause(); } catch (e) { /* すでに止まっている */ }
-      clipAudio = null;
-    }
-    if (done) done(result);
-  }
-
-  /** 音声ファイルを再生する。最後まで再生したら true、ファイルが無い・再生できないときは false、止められたときは null。 */
-  function playClip(key) {
-    if (typeof Audio === 'undefined' || !/^[a-z0-9_]+$/i.test(key || '') || clipKnown.get(key) === false) return Promise.resolve(false);
-    cancel();
-    const mine = ++token;
-    return new Promise((resolve) => {
-      const audio = new Audio(`${CLIP_DIR}${key}.wav`);
-      clipAudio = audio;
-      clipResolve = resolve;
-      let started = false;
-      audio.onplaying = () => { started = true; clipKnown.set(key, true); if (mine === token) setSpeaking(true); };
-      audio.onended = () => { setSpeaking(false); endClip(true); };
-      audio.onerror = () => { if (!started) clipKnown.set(key, false); setSpeaking(false); endClip(false); };
-      const p = audio.play();
-      if (p && p.catch) {
-        p.catch((err) => {
-          // 自動再生が許されないときは、ファイルの有無が分からないので、覚えない
-          if (!err || err.name !== 'NotAllowedError') clipKnown.set(key, false);
-          if (clipAudio !== audio) return; // すでに終わった（別の再生に替わった）
-          setSpeaking(false);
-          endClip(false);
-        });
+  /**
+   * 読み上げる。読み終わる（または止められる）と解決する。読み切ったときだけ true。
+   * opts: { clipText（画面に表示する文。音声ファイルを探す文。省略すると text）, rate }
+   * 音声ファイルがあれば再生し、無い（再生できない）ときは、ブラウザの読み上げで読む。止められたときは、読み上げに切り替えない。
+   */
+  async function speak(text, opts) {
+    const o = opts || {};
+    const shown = typeof o.clipText === 'string' ? o.clipText : String(text || '');
+    if (shown) {
+      if (!clipLoaded) await Promise.race([clipReady, new Promise((resolve) => setTimeout(resolve, 1500))]); // 起動の直後は、一覧を待つ
+      const file = clipFileFor(shown);
+      if (file) {
+        const played = await playClip(file);
+        if (played === true) return true;
+        if (played === null) return false; // 止められた
       }
-    });
-  }
-
-  /** 決まった質問を読む。音声ファイルがあれば再生し、無ければ読み上げる。 */
-  async function speakQuestion(key, text, opts) {
-    const played = await playClip(key);
-    if (played === true) return true;
-    if (played === null) return false; // 止められた。読み上げには切り替えない
-    return speak(text, opts);
+    }
+    return speakWithVoice(text, o);
   }
 
   // --- 音声入力 ------------------------------------------------------------
@@ -269,7 +306,6 @@
     sttSupported,
     ttsSupported: Boolean(synth),
     speak,
-    speakQuestion,
     applyReadings,
     cancel,
     listen,
