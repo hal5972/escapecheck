@@ -1,4 +1,4 @@
-"""結合の約束（tools/plan_model.py）のテスト。"""
+"""インターフェース仕様（tools/plan_model.py）のテスト。"""
 
 import json
 import unittest
@@ -23,7 +23,7 @@ class NewPlanTest(unittest.TestCase):
 class RegisterSourceTest(unittest.TestCase):
     def test_registers_and_returns_id(self):
         plan = pm.new_plan("Aさん", "宇佐")
-        sid = pm.register_source(plan, pm.Source(kind="utterance", label="民生委員の話", text="杖ついちゅう"))
+        sid = pm.register_source(plan, pm.Source(kind="utterance", label="民生委員の発言", text="杖ついちゅう"))
         self.assertIn(sid, plan["sources"])
         self.assertEqual(plan["sources"][sid]["text"], "杖ついちゅう")
 
@@ -38,8 +38,8 @@ class ForClaudeTest(unittest.TestCase):
         plan = pm.new_plan("Aさん", "宇佐")
         plan["home"] = pm.Point(lat=33.4, lon=133.4)
         plan["supporters"].append(
-            pm.Supporter(supporter_id="sup_b", alias="Bさん", relation="隣の人",
-                          location=pm.Point(lat=33.4, lon=133.4), source_id="src_x")
+            pm.Supporter(supporter_id="sup_b", alias="Bさん", relation="隣人",
+                         location=pm.Point(lat=33.4, lon=133.4), source_id="src_x")
         )
         view = pm.for_claude(plan)
         self.assertNotIn("home", view)
@@ -53,8 +53,12 @@ class VocabularyTest(unittest.TestCase):
         self.assertEqual(list(pm.SCENARIOS), [f"S{i}" for i in range(1, 9)])
 
     def test_premise_codes_are_hole_types(self):
-        # 話の中だけにある前提は、評価の穴の種類としても数えられる
+        # 聞き取りの中だけにある前提条件は、評価の問題点の種類としても数える
         self.assertTrue(set(pm.PREMISE_CODES) - {"ROAD_RISK"} <= set(pm.HOLE_TYPES))
+
+    def test_every_verdict_has_a_label(self):
+        # 判定は色だけでなく文字でも表示する
+        self.assertEqual(set(pm.VERDICT_LABELS), {"ok", "tight", "short", "cannot_compute"})
 
 
 if __name__ == "__main__":

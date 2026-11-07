@@ -1,4 +1,4 @@
-# 改行の決まり。シェルのスクリプトと git のフックは LF でないと bash で動かない
+# 改行コードの設定。シェルスクリプトと git のフックは LF でないと bash で動作しない
 * text=auto
 *.sh text eol=lf
 .githooks/* text eol=lf

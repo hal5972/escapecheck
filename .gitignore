@@ -7,10 +7,10 @@ __pycache__/
 *.pyc
 .venv/
 
-# 落とした元のデータ（大きい。再配布しない）
+# ダウンロードした元データ（容量が大きい。再配布しない）
 data/raw/
 
-# 動画・音声の素材（リポジトリに入れない）
+# 動画・音声の素材（リポジトリに含めない）
 video/
 *.mp4
 *.mov
@@ -18,10 +18,10 @@ video/
 *.wav
 *.webm
 
-# 動かすとできる物
+# 実行時に生成されるファイル
 app/logs/
 eval/runs/
 
-# Claude Code の個人の設定と、セッションごとの作業フォルダ
+# Claude Code の個人設定と、セッションごとの worktree
 .claude/settings.local.json
 .claude/worktrees/
