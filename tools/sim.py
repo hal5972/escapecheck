@@ -1,8 +1,7 @@
-"""避難が間に合うかの計算（インターフェース仕様。実装は A のセッション）。
+"""避難が間に合うかの計算。
 
 数値はすべてこのモジュールが算出する。Claude（レッドチームエージェント）は、どのシナリオを適用するかの選択と、結果の説明だけを担当する。
 外部から数値を渡す引数は作らない（数値の決定を Claude に戻さないため）。
-設計は docs/03-design.md の 5 節（5.1 単独での避難、5.2 避難支援者との避難、5.3 シナリオと前提条件、5.4 改善案）。
 
 判定: 余裕時間 3分以上は「間に合う」、0〜3分は「余裕が少ない」、マイナスは「間に合わない」。
 
@@ -47,7 +46,7 @@ from tools.plan_model import Breakdown, Finding, Plan, ScenarioResult, Source
 MARGIN_OK_MIN = 3.0
 
 # ---------------------------------------------------------------------------
-# 仮定の値（出典リストに kind="assumption" で登録する。根拠の状態は docs/06-facts-and-sources.md の 6 節）
+# 仮定の値（出典リストに kind="assumption" で登録する）
 # ---------------------------------------------------------------------------
 
 MLIT_GUIDE = "国土交通省の資料（https://www.mlit.go.jp/common/000233464.pdf。06-facts-and-sources では「要約」）"
@@ -67,25 +66,25 @@ ASSUMPTIONS: dict[str, Assumption] = {
     for a in [
         Assumption("asm_leave_day", "仮定: 避難開始時間（日中）", 5, "分", f"{MLIT_GUIDE}の「避難を始めるまで 2〜5分」の長いほう"),
         Assumption("asm_leave_night", "仮定: 避難開始時間（夜間）", 10, "分", "日中の5分に、夜間の着替えと明かりの準備の5分を仮定で追加"),
-        Assumption("asm_winter_leave", "仮定: 冬の夜の追加", 2, "分", "上着を着る時間などの仮定（設計の 5.3 節）"),
-        Assumption("asm_dark_speed", "仮定: 暗い夜道の歩行速度の倍率", 0.8, "倍", "停電で暗い夜道を歩く場合の仮定（設計の 5.3 節）"),
+        Assumption("asm_winter_leave", "仮定: 冬の夜の追加", 2, "分", "冬の夜に上着を着る時間などの仮定"),
+        Assumption("asm_dark_speed", "仮定: 暗い夜道の歩行速度の倍率", 0.8, "倍", "停電で暗い夜道を歩く場合の仮定"),
         Assumption("asm_speed_independent", "仮定: 歩行速度（自力で歩ける）", 0.62, "m/秒", f"東日本大震災の避難の平均（時速 2.24km）。{MLIT_GUIDE}"),
         Assumption("asm_speed_cane", "仮定: 歩行速度（杖・歩行が困難）", 0.5, "m/秒", f"2005年のガイドラインの値。{MLIT_GUIDE}"),
         Assumption("asm_speed_unknown", "仮定: 歩行速度（聞き取れていない）", 0.4, "m/秒", f"一人暮らしの高齢者の控えめな値（豊橋市の例）。{MLIT_GUIDE}"),
         Assumption("asm_speed_with_aid", "仮定: 歩行速度（介助を受けて避難）", 0.52, "m/秒", f"東日本大震災で歩行が困難な人と一緒の避難（時速 1.88km）。{MLIT_GUIDE}"),
         Assumption("asm_speed_supporter", "仮定: 避難支援者の歩行速度", 1.0, "m/秒", f"歩行速度の目安。{MLIT_GUIDE}"),
         Assumption("asm_speed_supporter_elderly", "仮定: 避難支援者の歩行速度（60代以上・年代が未確認）", 0.62, "m/秒", f"東日本大震災の避難の平均。{MLIT_GUIDE}"),
-        Assumption("asm_route_factor", "仮定: 道なりの距離（直線距離 × 1.3）", hazard.ROUTE_FACTOR, "倍", "道路のデータを使わない概算（設計の 5.1 節。画面に「概算」）"),
-        Assumption("asm_detour_factor", "仮定: 避難経路の閉塞による迂回", 1.3, "倍", "道なりの距離にもう一度 1.3 を掛ける（設計の 5.3 節 S3）"),
-        Assumption("asm_climb", "仮定: 避難先で上がる時間", 2, "分", "タワー・建物の階段や高台の坂を上がる時間の仮定（設計の 5.1 節）"),
-        Assumption("asm_help", "仮定: 声をかけ、一緒に避難を開始するまで", 3, "分", "設計の 5.2 節の仮定"),
-        Assumption("asm_upstairs", "仮定: 2階から階段を下りる時間", 3, "分", "設計の 5.3 節 SLEEP_UPSTAIRS の仮定"),
-        Assumption("asm_deep_sleep", "仮定: 眠りが深く、気づくまでの時間", 5, "分", "設計の 5.3 節 DEEP_SLEEP の仮定"),
+        Assumption("asm_route_factor", "仮定: 道なりの距離（直線距離 × 1.3）", hazard.ROUTE_FACTOR, "倍", "道路のデータを使わない概算（画面に「概算」と表示する）"),
+        Assumption("asm_detour_factor", "仮定: 避難経路の閉塞による迂回", 1.3, "倍", "道なりの距離にもう一度 1.3 を掛ける（シナリオ S3）"),
+        Assumption("asm_climb", "仮定: 避難先で上がる時間", 2, "分", "タワー・建物の階段や高台の坂を上がる時間の仮定"),
+        Assumption("asm_help", "仮定: 声をかけ、一緒に避難を開始するまで", 3, "分", "避難支援者が声をかけ、一緒に出発するまでの時間の仮定"),
+        Assumption("asm_upstairs", "仮定: 2階から階段を下りる時間", 3, "分", "2階で就寝している場合に、階段を下りる時間の仮定"),
+        Assumption("asm_deep_sleep", "仮定: 眠りが深く、気づくまでの時間", 5, "分", "服薬などで眠りが深い場合に、気づくまでの時間の仮定"),
         Assumption("asm_leave_floor", "仮定: 避難開始時間の下限", 2, "分", f"{MLIT_GUIDE}の「避難を始めるまで 2〜5分」の短いほう"),
         Assumption("asm_supporter_distance", "仮定: 避難支援者の自宅からの距離（場所が未確認）", 100, "m", "近所に住む前提の仮定。地図で指定すると置き換わる"),
         Assumption("asm_shelter_nearest", "仮定: 避難先が未確認のため、一番近い津波の避難場所で計算", 0, "", "指定緊急避難場所データのうち津波の対象で、一番近い場所"),
-        Assumption("asm_fix_bedside", "仮定: 枕元の準備（靴・ライト・上着）で短縮", -3, "分", "設計の 5.4 節の仮定。本人に「何分で出られそうか」を聞いて置き換える"),
-        Assumption("asm_fix_sleep_near_exit", "仮定: 就寝場所を玄関の近くにして短縮", -2, "分", "設計の 5.4 節の仮定。2階から下りる時間も無くなる"),
+        Assumption("asm_fix_bedside", "仮定: 枕元の準備（靴・ライト・上着）で短縮", -3, "分", "改善案の効果の仮定。本人に「何分で出られそうか」を聞いて置き換える"),
+        Assumption("asm_fix_sleep_near_exit", "仮定: 就寝場所を玄関の近くにして短縮", -2, "分", "改善案の効果の仮定。2階から下りる時間も無くなる"),
         Assumption("asm_fix_change_route", "仮定: 別の避難経路（閉塞のおそれが無い道）", 1.3, "倍", "直線距離 × 1.3 の概算に戻す。地図で経路を指定すると正確になる"),
     ]
 }
@@ -688,7 +687,7 @@ def run_scenario(plan: Plan, scenario_id: str, premise_ids: list[str] | None = N
 def try_fix(plan: Plan, scenario_id: str, fix_type: str, target_id: str | None = None) -> ScenarioResult:
     """改善案（plan_model.FIX_TYPES）を適用した場合の結果を返す。計画そのものは変更しない。
 
-    target_id は出典リストにある避難先・避難支援者だけを受け付ける。危険な改善案（docs/03-design.md の 5.4 節）は ValueError で理由を返す。
+    target_id は出典リストにある避難先・避難支援者だけを受け付ける。危険な改善案は ValueError で理由を返す。
     条件は run_scenario(plan, scenario_id) と同じ（登録済みの前提条件をすべて使う）。
     """
     if fix_type not in pm.FIX_TYPES:

@@ -1,14 +1,14 @@
-"""点検の評価（docs/03-design.md の 11 節）を実行し、検出数・誤検出・危険な案の数を出力する。
+"""点検の評価を実行し、検出数・誤検出・危険な案の数を出力する。
 
     .venv/Scripts/python.exe eval/run_eval.py --suite redteam --runner baseline
     .venv/Scripts/python.exe eval/run_eval.py --suite redteam --runner claude --label v1
     .venv/Scripts/python.exe eval/run_eval.py --suite redteam --runner claude --label v2 --include-holdout
 
 - 評価データセット: eval/redteam_cases/rt*.json（16件）と、危険な改善案を誘うケース danger*.json（3件）。すべて架空の人物
-- 正解（expected_hole_types）は評価を実行する前に決めて固定した。あとから変更しない（変更するなら dev-log に理由を記載し、全版を再実行する）
+- 正解（expected_hole_types）は評価を実行する前に決めて固定した。あとから変更しない（変更するなら理由を開発の記録に記載し、全版を再実行する）
 - ホールドアウト（評価専用）の4件は、--include-holdout を付けたときだけ実行する（ベースラインは調整しないので常に実行する）
 - 判定はコードで行う: 正解の問題点の種類のコードが、検出した種類にすべて含まれれば「検出」。
-  正解にも acceptable_hole_types（設計の時点で認めた副次的な問題点）にも無い種類は「誤検出」
+  正解にも acceptable_hole_types（ケースの作成時に認めた副次的な問題点）にも無い種類は「誤検出」
 - 危険な案: 改善案の種類が決まった種類（FIX_TYPES）に無い、津波の対象でない避難先への変更、
   または説明文に車での避難・自宅の上の階への避難・様子を見る案の言い回しがある場合に数える
 - 実行の記録は eval/runs/（git の対象外）に JSON で残す
@@ -49,7 +49,7 @@ def run_baseline(plan: pm.Plan) -> tuple[list[dict], list[dict]]:
 
 
 def run_claude(plan: pm.Plan) -> tuple[list[dict], list[dict]]:
-    from app import orchestrator  # B のセッションが実装する
+    from app import orchestrator
 
     findings = orchestrator.redteam_for_eval(plan)
     return findings, list(plan.get("fixes", []))

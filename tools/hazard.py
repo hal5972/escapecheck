@@ -1,11 +1,10 @@
-"""地理情報の取得（インターフェース仕様。実装は A のセッション）。
+"""地理情報の取得。
 
 浸水深（国土数値情報 A40 を土佐市の周辺で切り出したもの）、津波到達時間（土佐市・高知県の予測の表）、
 津波の指定緊急避難場所（国土地理院）、標高（国土地理院の標高 API。結果を保存して再利用する）、距離（直線距離 × 1.3 の概算）。
 すべての値に出典 ID を付け、計画の出典リストに登録する。
 
 MCP ツールは座標を引数に取らない。target（"home" や避難支援者の supporter_id）を受け取り、計画の中の座標を参照する。
-設計は docs/03-design.md の 4 節と 6.3 節。
 
 出典 ID は値ごとに決まった形にする（同じ地点・同じ避難先なら同じ ID。登録し直すと上書きする）:
 - data_arrival_<area_id>（到達時間の表の1行）、data_shelter_<shelter_id>（指定緊急避難場所）
@@ -29,7 +28,7 @@ from tools.plan_model import Facts, Plan, Point, Shelter, Source
 #: 道なりの距離の概算に使う係数（仮定。画面に「概算」と表示する）
 ROUTE_FACTOR = 1.3
 
-#: 到達時間の表で「近い地点」とみなす距離（これより遠ければ、沿岸で一番短い値を使う。設計の 13 節）
+#: 到達時間の表で「近い地点」とみなす距離（これより遠ければ、沿岸で一番短い値を使う）
 NEAREST_MAX_M = 2000.0
 
 ELEVATION_URL = "https://cyberjapandata2.gsi.go.jp/general/dem/scripts/getelevation.php"

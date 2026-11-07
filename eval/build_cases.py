@@ -3,7 +3,7 @@
     .venv/Scripts/python.exe eval/build_cases.py          # 作成して確認の表を出す
     .venv/Scripts/python.exe eval/build_cases.py --check  # 既存のファイルを確認するだけ
 
-決まり（docs/03-design.md の 11 節）:
+決まり:
 - 話・様式の内容と、正解（仕込んだ問題点の種類）は case_specs.py で先に決めて固定した。このスクリプトは正解を変えない
 - 架空の自宅の位置だけを、計算で選ぶ: 津波浸水想定区域（A40）の中で、仕込んだ問題点が計算（sim）の上でも成り立ち、
   ほかの問題点（副次的な問題点）ができるだけ生じない地点
@@ -240,7 +240,7 @@ def main() -> int:
             acceptable = sorted((set(truth) | set(spec.get("acceptable", []))) - set(spec.get("expected", [])))
             if "expected" in spec:
                 case["acceptable_hole_types"] = acceptable
-                case["acceptable_reasons"] = {k: truth.get(k, "設計の時点で認めた副次的な問題点") for k in acceptable}
+                case["acceptable_reasons"] = {k: truth.get(k, "ケースの作成時に認めた副次的な問題点") for k in acceptable}
             path.write_text(json.dumps(case, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
         print(f"| {spec['case_id']} | {', '.join(spec.get('expected', [])) or '（危険な案）'} | "
               f"{', '.join(sorted(truth))} | {', '.join(case.get('acceptable_hole_types', [])) or '—'} |")
