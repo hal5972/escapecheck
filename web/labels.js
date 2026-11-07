@@ -77,6 +77,7 @@
       BEDSIDE_PREP: '枕元に靴・ライト・上着を用意する',
       SLEEP_NEAR_EXIT: '就寝場所を玄関の近くにする',
       CHANGE_ROUTE: '避難経路を変更する',
+      ALERT_DEVICE: '光や振動で知らせる機器を枕元に置く',
     },
 
     VERDICT_LABELS: {
