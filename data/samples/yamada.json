@@ -6,7 +6,7 @@
   "person": {"display_name": "山田ハル", "age": 84, "description": "宇佐町で一人暮らし。杖をついて歩く。夜は1階の奥の部屋で寝る。息子は高知市に住む。隣の西村さん（70代）と仲が良い"},
   "alias": "Aさん",
   "area_label": "宇佐",
-  "home": {"lat": 33.4475, "lon": 133.4366},
+  "home": {"lat": 33.44829, "lon": 133.43587},
   "talk": [
     {"id": "t1", "speaker": "minsei", "text": "山田さんは84歳で、一人暮らしよ。杖ついちゅうき、歩くのはゆっくりで、100メートル歩くのに3分くらいかかる。"},
     {"id": "t2", "speaker": "minsei", "text": "夜は1階の奥の部屋で寝ゆう。昼やったら、5分あったら玄関を出られるろう。"},
@@ -26,7 +26,7 @@
   },
   "supporters": [
     {"supporter_id": "sup_b", "alias": "Bさん", "relation": "隣人", "age_band": "70代", "available_day": true, "available_night": true,
-     "location": {"lat": 33.44795, "lon": 133.4366}, "from": "t3"}
+     "location": {"lat": 33.44874, "lon": 133.43587}, "from": "t3"}
   ],
   "demo_notes": [
     "話の中だけにある前提条件: t5「膝が悪うて、タワーの階段はよう上がらん」（CANNOT_CLIMB、対象は宇佐津波避難タワー）",

@@ -699,10 +699,10 @@ def try_fix(plan: Plan, scenario_id: str, fix_type: str, target_id: str | None =
         record = data.shelter_by_id(str(target_id)) if target_id else None
         if record is None:
             raise ValueError("避難先の ID が指定緊急避難場所のデータにありません。hazard.find_shelters で取得した shelter_id を指定してください")
-        if hazard.shelter_source_id(record.shelter_id) not in plan.get("sources", {}):
-            raise ValueError("出典リストに無い避難先です。hazard.find_shelters で取得した避難先だけを指定できます")
         if not record.tsunami_ok:
             raise ValueError(f"{record.name}は津波の指定緊急避難場所ではないため、避難先にできません")
+        if hazard.shelter_source_id(record.shelter_id) not in plan.get("sources", {}):
+            raise ValueError("出典リストに無い避難先です。hazard.find_shelters で取得した避難先だけを指定できます")
         _, planned = hazard.match_shelter((_field(plan, "shelter") or {}).get("value"), data) if _field(plan, "shelter") else (None, None)
         all_premises = _Cond(scenario_id=scenario_id, premises=list(plan.get("premises", [])))
         if record.shelter_id in _excluded_shelters(plan, all_premises, planned, data):
@@ -717,7 +717,11 @@ def try_fix(plan: Plan, scenario_id: str, fix_type: str, target_id: str | None =
     before = _evaluate(plan, cond, data)
     cond.apply_fix(fix_type, target_id)
     after = _evaluate(plan, cond, data)
-    if after.get("supporter_verdict") == "short" and before.get("supporter_verdict") != "short":
+    # S-03: 避難支援者が間に合わなくなる案は出さない。
+    # 新しく避難支援者を呼ぶ案（ADD_CALLER）と、改善案の前は間に合っていた（ok・tight）避難支援者が「間に合わない」になる案を止める。
+    # 改善案の前が計算できなかった計画（避難先が津波の対象外など）は、避難支援者の状態が分からないので止めない（結果に表示する）
+    newly_at_risk = before.get("supporter_verdict") in ("ok", "tight") or fix_type == "ADD_CALLER"
+    if after.get("supporter_verdict") == "short" and newly_at_risk:
         alias = after.get("supporter_alias", "避難支援者")
         raise ValueError(f"この案では、避難支援者（{alias}）が間に合わなくなるため、出せません")
     return after

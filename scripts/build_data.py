@@ -196,9 +196,31 @@ def build_a40() -> dict:
     return {"type": "FeatureCollection", "metadata": {**A40_INFO, "feature_count": len(features)}, "features": features}
 
 
+def build_sample_plans() -> list[str]:
+    """data/samples/<名前>.json（ケースファイル）から、画面とサーバーがそのまま読める計画 <名前>.plan.json を作る。"""
+    sys.path.insert(0, str(ROOT))
+    from tools import casefile
+
+    written = []
+    for path in sorted((ROOT / "data" / "samples").glob("*.json")):
+        if path.stem.endswith(".plan"):
+            continue
+        case = casefile.load_case(path)
+        plan = casefile.build_plan(case)
+        out = path.with_name(f"{path.stem}.plan.json")
+        payload = {"fictional": True, "note": case.get("note", ""), "title": case.get("title", ""),
+                   "person": case.get("person", {}), "talk": case.get("talk", []), "plan": plan}
+        out.write_text(json.dumps(payload, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+        written.append(out.name)
+    return written
+
+
 def main() -> int:
     for stream in (sys.stdout, sys.stderr):
         stream.reconfigure(encoding="utf-8")
+    if "--samples" in sys.argv:
+        print("data/samples: " + ", ".join(build_sample_plans()))
+        return 0
     missing = [p for p in (SHELTER_CSV, A40_ZIP) if not p.is_file()]
     if missing:
         print("元データがありません（data/raw/ に置いてください）: " + ", ".join(str(p.relative_to(ROOT)) for p in missing))

@@ -95,6 +95,7 @@ class ArrivalPick:
 def arrival_at(point: tuple[float, float], data: datasets.Dataset, earliest: bool = False) -> ArrivalPick | None:
     """自宅の位置から版ごとに一番近い地点の値を取り、そのうち短いほうを使う。表が空なら None。
 
+    範囲の行（radius_m がある行。帯の縁など）は、その半径の中にある地点にだけ使い、範囲の中なら一番近い地点の値より優先して短いほうを使う。
     earliest が True のとき（S6）、表のうち土佐市の沿岸で一番短い値を使う（安全側の値）。
     """
     areas = data.confirmed_areas()
@@ -103,17 +104,18 @@ def arrival_at(point: tuple[float, float], data: datasets.Dataset, earliest: boo
     shortest = min(areas, key=lambda a: (a.minutes_30cm, a.area_id))
     if earliest:
         return ArrivalPick(shortest.minutes_30cm, shortest, (shortest,), fallback=False, earliest=True)
-    nearest_by_version: dict[str, tuple[float, datasets.ArrivalArea]] = {}
-    for area in areas:
-        d = geo.distance_m(point, area.point)
-        if d > NEAREST_MAX_M:
-            continue
-        best = nearest_by_version.get(area.version)
-        if best is None or (d, area.area_id) < (best[0], best[1].area_id):
-            nearest_by_version[area.version] = (d, area)
-    if not nearest_by_version:
+    chosen_by_version: dict[str, datasets.ArrivalArea] = {}
+    for version in sorted({a.version for a in areas}):
+        in_version = [a for a in areas if a.version == version]
+        covering = [a for a in in_version if a.radius_m is not None and geo.distance_m(point, a.point) <= a.radius_m]
+        points = [(geo.distance_m(point, a.point), a.area_id, a) for a in in_version if a.radius_m is None]
+        points = [p for p in points if p[0] <= NEAREST_MAX_M]
+        options = covering + ([min(points)[2]] if points else [])
+        if options:
+            chosen_by_version[version] = min(options, key=lambda a: (a.minutes_30cm, a.area_id))
+    if not chosen_by_version:
         return ArrivalPick(shortest.minutes_30cm, shortest, (shortest,), fallback=True, earliest=False)
-    candidates = tuple(sorted((a for _, a in nearest_by_version.values()), key=lambda a: (a.minutes_30cm, a.version)))
+    candidates = tuple(sorted(chosen_by_version.values(), key=lambda a: (a.minutes_30cm, a.version)))
     chosen = candidates[0]
     return ArrivalPick(chosen.minutes_30cm, chosen, candidates, fallback=False, earliest=False)
 

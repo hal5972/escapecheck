@@ -94,6 +94,37 @@ class GetFactsTest(HazardTestCase):
         self.assertTrue(any("版" in n for n in facts["notes"]))
 
 
+class ArrivalZoneTest(unittest.TestCase):
+    """帯の縁（海に面した所）は、半径つきの行で表す。範囲の中だけで使い、外では一番近い地点の値を使う。"""
+
+    def zone_dataset(self):
+        from test_tools_helpers import south
+
+        zone = datasets.ArrivalArea(
+            area_id="shore", label="テストの海岸の縁", lat=south(150)[0], lon=south(150)[1], minutes_30cm=10,
+            version="V2012", source_url="https://example.invalid/2012.pdf", page=1, status="確認済", radius_m=80,
+        )
+        return make_dataset(near_minutes=20, extra_areas=[zone])
+
+    def test_inside_zone_uses_zone_value(self):
+        from test_tools_helpers import south
+
+        data = self.zone_dataset()
+        self.assertEqual(hazard.arrival_at(south(100), data).minutes, 10)
+        self.assertEqual(hazard.arrival_at(south(200), data).minutes, 10)
+
+    def test_outside_zone_uses_nearest_point(self):
+        from test_tools_helpers import south
+
+        data = self.zone_dataset()
+        # 縁の中心から 150m 離れた自宅（範囲の外）は、縁の中心の方が近くても、地点の値（20分）を使う
+        self.assertEqual(hazard.arrival_at(north(0), data).minutes, 20)
+        self.assertEqual(hazard.arrival_at(south(20), data).minutes, 20)
+
+    def test_earliest_includes_zones(self):
+        self.assertEqual(hazard.arrival_at(north(0), self.zone_dataset(), earliest=True).minutes, 10)
+
+
 class FindSheltersTest(HazardTestCase):
     def test_only_tsunami_sites_sorted_by_distance(self):
         plan = make_plan()

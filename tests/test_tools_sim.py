@@ -344,6 +344,33 @@ class TryFixTest(SimTestCase):
         with self.assertRaisesRegex(ValueError, "津波"):
             sim.try_fix(plan, "S8", "CHANGE_SHELTER", "P")
 
+    def test_change_shelter_to_non_tsunami_site_explains_tsunami(self):
+        # 出典が登録されていなくても、理由は「津波の対象ではない」と返す（エージェントが理由を読んで修正できるように）
+        with self.assertRaisesRegex(ValueError, "津波"):
+            sim.try_fix(make_plan(), "S8", "CHANGE_SHELTER", "P")
+
+    def test_change_shelter_allowed_when_plan_was_not_computable(self):
+        # 計画の避難先が津波の対象外（計算できない）とき、避難先を変える案は、避難支援者の結果が初めて出ても拒否しない
+        neighbor = supporter("sup_b", "Bさん", 240)
+        plan = make_plan(shelter={"shelter_id": "P", "name": "テスト公園"}, supporters=[neighbor])
+        add_premise(plan, "CANNOT_HEAR", "耳が遠うて、放送は聞こえん")
+        hazard.find_shelters(plan, "home", limit=3)
+        self.assertEqual(sim.run_scenario(plan, "S1")["verdict"], "cannot_compute")
+        result = sim.try_fix(plan, "S1", "CHANGE_SHELTER", "A")
+        self.assertEqual(result["shelter_name"], "テスト避難タワー")
+        self.assertEqual(result["supporter_verdict"], "short")
+
+    def test_change_shelter_rejected_when_it_puts_supporter_at_risk(self):
+        # 改善案の前は間に合っていた避難支援者が、遠い避難先に変えると間に合わなくなる → 拒否
+        neighbor = supporter("sup_b", "Bさん", 40)
+        plan = make_plan(supporters=[neighbor])
+        add_premise(plan, "CANNOT_HEAR", "耳が遠うて、放送は聞こえん")
+        hazard.find_shelters(plan, "home", limit=3)
+        with datasets.override(make_dataset(near_minutes=30)):
+            self.assertNotEqual(sim.run_scenario(plan, "S8")["supporter_verdict"], "short")
+            with self.assertRaisesRegex(ValueError, "避難支援者"):
+                sim.try_fix(plan, "S8", "CHANGE_SHELTER", "C")
+
     def test_change_shelter_requires_registered_source(self):
         with self.assertRaises(ValueError):
             sim.try_fix(make_plan(), "S8", "CHANGE_SHELTER", "B")

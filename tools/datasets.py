@@ -43,6 +43,8 @@ class ArrivalArea:
     status: str
     source_name: str = ""
     note: str = ""
+    #: 範囲の行（帯の縁など）: この半径の中の地点にだけ使う。None は代表の地点（一番近い地点として使う）
+    radius_m: float | None = None
 
     @property
     def point(self) -> tuple[float, float]:
@@ -141,6 +143,7 @@ def _load_arrival(path: Path = ARRIVAL_PATH) -> tuple[list[ArrivalArea], dict]:
             status=row.get("status", ""),
             source_name=row.get("source_name", ""),
             note=row.get("note", ""),
+            radius_m=float(row["radius_m"]) if row.get("radius_m") is not None else None,
         )
         for row in raw.get("areas", [])
         if row.get("lat") is not None and row.get("lon") is not None
