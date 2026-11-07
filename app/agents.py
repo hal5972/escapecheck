@@ -2,7 +2,7 @@
 
 | エージェント | モデル | MCP ツール | Skills |
 |---|---|---|---|
-| 聞き取りエージェント | claude-sonnet-5-5 | plan.get_plan・set_fields・set_supporter、hazard.get_facts・find_shelters | kobetsu-plan-form、tosa-ben、yasashii-kotoba |
+| 聞き取りエージェント | claude-sonnet-5-5 | plan.get_plan・set_fields・set_supporter、hazard.get_facts・find_shelters | kobetsu-plan-form、tosa-ben |
 | レッドチームエージェント | claude-opus-5-5 | plan.get_plan・get_sources・add_premise・add_finding・propose_fix、sim.run_scenario・try_fix、hazard.find_shelters | red-team-scenarios、tosa-ben、yasashii-kotoba |
 | 検証エージェント | claude-sonnet-5-5（レッドチームと別のセッション・別のモデル） | plan.get_plan・get_sources（読み取りだけ） | kobetsu-plan-form |
 
@@ -46,7 +46,7 @@ log = logging.getLogger("escapecheck.agents")
 MODELS = {"interview": config.MODEL_INTERVIEW, "redteam": config.MODEL_REDTEAM, "verify": config.MODEL_VERIFY}
 EFFORT = {"interview": "low", "redteam": "medium", "verify": "low"}
 SKILLS = {
-    "interview": ["kobetsu-plan-form", "tosa-ben", "yasashii-kotoba"],
+    "interview": ["kobetsu-plan-form", "tosa-ben"],  # 質問の文は決まった文なので、やさしい言葉の Skill は使わない
     "redteam": ["red-team-scenarios", "tosa-ben", "yasashii-kotoba"],
     "verify": ["kobetsu-plan-form"],
 }
@@ -130,9 +130,7 @@ SYSTEM_PROMPTS = {
    昼・夜に来られるか（available_day・available_night）は、話から分かるときだけ入れます。
    話した避難先の名前があれば hazard.find_shelters で近くの津波避難場所を調べ、同じものがあるときだけ shelter_id を入れます。
 3. 推測で補いません。分からない欄は書き込まず、未確認のままにします。
-4. yasashii-kotoba の Skill に従って、次の追加の質問を1つだけ考え、指定の JSON で答えます。
-   next_field には、未確認の欄のうち「未確認の欄（質問の順序）」で最初の欄のキーを入れ、next_question にはその欄を聞く質問を1文で入れます。
-   未確認の欄が無ければ、両方を null にします。
+4. 書き込みが終わったら、書き込んだ欄の数を一言で伝えて終えます。追加の質問は考えません（決まった質問の文を、コードが選びます）。
 """ + COMMON_RULES,
     "redteam": """あなたは「逃げ道の点検屋」のレッドチームエージェントです。個別避難計画の弱点を、厳しい条件のシナリオであえて探します。
 
@@ -158,17 +156,9 @@ SYSTEM_PROMPTS = {
 """ + COMMON_RULES,
 }
 
+#: 構造化出力（JSON）で答えるエージェント。聞き取りエージェントは欄に書き込むだけで、答えの JSON は無い
+#: （追加の質問は、コードが確認済みの決まった文 orchestrator.QUESTION_TEMPLATES から選ぶ）
 OUTPUT_SCHEMAS: dict[str, dict[str, Any]] = {
-    "interview": {
-        "type": "object",
-        "properties": {
-            "next_field": {"type": ["string", "null"], "enum": [*pm.FIELDS, None]},
-            "next_question": {"type": ["string", "null"]},
-            "unclear_fields": {"type": "array", "items": {"type": "string"}},
-        },
-        "required": ["next_field", "next_question"],
-        "additionalProperties": False,
-    },
     "verify": {
         "type": "object",
         "properties": {
@@ -353,7 +343,7 @@ def interview_prompt(plan: pm.Plan, source_id: str, utterance: str, speaker: str
     ]
     if asked_field in pm.FIELDS:
         lines.append(f"この発言は「{pm.FIELDS[asked_field]}」（{asked_field}）を聞いた質問への答えです。")
-    lines.append("未確認の欄（質問の順序）: " + (", ".join(missing) if missing else "なし"))
+    lines.append("未確認の欄: " + (", ".join(missing) if missing else "なし"))
     return "\n".join(lines)
 
 
