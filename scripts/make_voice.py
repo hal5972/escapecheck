@@ -6,9 +6,9 @@
   python scripts/make_voice.py lines <台本.md> --voice <声の ID> --out <フォルダ>  # 台本の1行を1つの音声に（01.wav…）
   --dry-run を付けると、送る文を表示するだけで、API は呼ばない。--limit 1 で、最初の1件だけを作る（声の試し）
 
-- 合成音声に送るのは、読み（ひらがな）の文だけにする。漢字は読み誤りがあるため。外来語はカタカナでよい。
-  漢字・数字・英字が残っている読みがあれば、作らずに止める。ひらがなでは聞き取りにくい語は、《津波到達時間》のように
-  《》で囲むと、漢字のまま送る（《》の印は外して送る）
+- 合成音声に送るのは、台本の読みの文。読みは漢字かな交じりで書き、読み誤りが分かっている語（何分、間に合う、地名など。
+  画面の読み上げと同じ web/readings.json の語）だけを、かなで書く。一覧の語が漢字のまま残っていれば、作らずに止める
+  （ひらがなだけの読みは、聞き取りにくい語があった）
 - 台本は Markdown の表で、見出しに「表示の文」と「読み」の列を持つ。表示の文は画面と字幕に出す文、読みは合成音声に送る文。
   「#」の列があれば、その番号を音声のファイル名にする。「確認」の列に「要確認」とある行は、音声を作らない。
   アプリの決まった文の台本は scripts/voice_app.md。アプリの文が台本に無ければ、作らずに止める
@@ -43,6 +43,7 @@ DEFAULT_FORMAT = "wav_24000"  # 44.1kHz の WAV は上位の契約が必要
 DEFAULT_STABILITY = 0.5  # ElevenLabs のサイトの既定と同じ（依頼者が試した設定）
 DEFAULT_SIMILARITY = 0.75
 APP_SCRIPT = ROOT / "scripts" / "voice_app.md"
+READINGS = ROOT / "web" / "readings.json"
 MANIFEST = "manifest.json"
 
 #: 画面の決まった文（web/ の文と同じにする。違うと、画面は合成音声を使わず、ブラウザの読み上げで読む）
@@ -51,10 +52,6 @@ SCREEN_TEXTS = [
     "聞き取りは、ひととおり終わりました。「それでいい」を押すと、点検します。",  # 聞き取りの終わり
 ]
 
-#: 読みに残っていてはいけない文字（漢字、数字、英字）
-NOT_KANA = re.compile(r"[㐀-䶿一-鿿豈-﫿々〆0-9０-９A-Za-zＡ-Ｚａ-ｚ]")
-#: 読みの中で、漢字のまま送る部分（ひらがなでは聞き取りにくかった語。例:《津波到達時間》）
-AS_WRITTEN = re.compile(r"《([^《》]+)》")
 
 
 class VoiceError(RuntimeError):
@@ -118,22 +115,29 @@ def read_script(path: Path) -> list[Line]:
     return rows
 
 
-def check_speech(speech: str) -> None:
-    """読みに漢字・数字・英字が残っていれば止める（読み誤りを防ぐため、送る文はひらがなとカタカナだけにする）。
+def load_readings(path: Path | None = None) -> dict[str, str]:
+    """読み誤りが分かっている語（書き方 → 読み）。画面の読み上げと同じ web/readings.json を読む。
 
-    《》で囲んだ部分は、漢字のまま送ると決めた語なので、確かめない。
+    形は {"readings": [{"text": "書き方", "reading": "読み"}, ...]}（画面の web/speech.js と同じ）。
     """
-    rest = AS_WRITTEN.sub("", speech)
-    if "《" in rest or "》" in rest:
-        raise VoiceError(f"読みの《》の対応が正しくありません: {speech}")
-    bad = "".join(sorted(set(NOT_KANA.findall(rest))))
-    if bad:
-        raise VoiceError(f"読みに漢字・数字・英字が残っています（{bad}）: {speech}")
+    path = path or READINGS
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        items = data["readings"]
+        out = {i["text"]: i["reading"] for i in items}
+    except (OSError, ValueError, KeyError, TypeError) as e:
+        raise VoiceError(f"{path.name} を読めません（読み誤りが分かっている語の一覧）: {e}") from None
+    if not all(isinstance(k, str) and k and isinstance(v, str) and v for k, v in out.items()):
+        raise VoiceError(f"{path.name} の形が正しくありません")
+    return out
 
 
-def to_send(speech: str) -> str:
-    """合成音声に送る文（《》の印を外す）。"""
-    return AS_WRITTEN.sub(r"\1", speech)
+def check_speech(speech: str, readings: dict[str, str]) -> None:
+    """読み誤りが分かっている語が、漢字のまま読みに残っていれば止める（その語は、かなで書く）。"""
+    found = [w for w in sorted(readings, key=len, reverse=True) if w in speech]
+    if found:
+        hint = "、".join(f"{w} → {readings[w]}" for w in found)
+        raise VoiceError(f"読みに、読み誤りが分かっている語が残っています（{hint}）: {speech}")
 
 
 def question_templates(path: Path | None = None) -> dict[str, str]:
@@ -284,15 +288,17 @@ def synthesizer(*, voice: str, model: str, speed: float | None, seed: int | None
 
 
 def generate(items: list[tuple[str, str, str]], out_dir: Path, synth: Callable[[str], bytes] | None, *,
-             meta: dict[str, str], force: bool = False, dry_run: bool = False) -> int:
+             meta: dict[str, str], force: bool = False, dry_run: bool = False,
+             readings: dict[str, str] | None = None) -> int:
     """items は（表示の文, 読み, ファイル名）の一覧。作った数を返す。
 
-    読みに漢字・数字・英字が残っていれば、1件も作らずに止める。
+    読みに、読み誤りが分かっている語が漢字のまま残っていれば、1件も作らずに止める。
     manifest.json に、表示の文 → ファイル名・読み・声の設定を記録する。
     同じ読み・声の設定の音声がすでにあれば、作り直さない（force のときは作り直す）。
     """
+    readings = load_readings() if readings is None else readings
     for _, speech, _ in items:
-        check_speech(speech)
+        check_speech(speech, readings)
     manifest_path = out_dir / MANIFEST
     manifest = {"items": {}}
     if manifest_path.exists():
@@ -307,7 +313,7 @@ def generate(items: list[tuple[str, str, str]], out_dir: Path, synth: Callable[[
         if dry_run:
             continue
         out_dir.mkdir(parents=True, exist_ok=True)
-        (out_dir / name).write_bytes(synth(to_send(speech)))
+        (out_dir / name).write_bytes(synth(speech))
         entries[text] = entry
         manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=1), encoding="utf-8")
         made += 1

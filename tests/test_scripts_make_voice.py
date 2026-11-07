@@ -88,31 +88,41 @@ class ScriptTest(unittest.TestCase):
 
 
 class SpeechCheckTest(unittest.TestCase):
-    def test_kana_and_punctuation_are_accepted(self):
-        for speech in ("ひゃくメートルあるくのに、なんぷんくらいかかりますか。", "「それでいい」をおすと、てんけんします。"):
-            mv.check_speech(speech)
+    READINGS = {"何分": "なんぷん", "間に合": "まにあ", "宇佐": "うさ"}
 
-    def test_kanji_digits_and_latin_letters_are_rejected(self):
-        for speech in ("なん分", "100めーとる", "１０めーとる", "Claudeがみつけます", "ひとびと々"):
-            with self.subTest(speech=speech), self.assertRaises(mv.VoiceError):
-                mv.check_speech(speech)
+    def test_kanji_text_without_known_misreadings_is_accepted(self):
+        for speech in ("津波到達時間と、避難先は、国と県のデータを使います。", "100メートル歩くのに、なんぷんくらいかかりますか。",
+                       "ひゃくメートルあるくのに、なんぷんくらいかかりますか。"):
+            mv.check_speech(speech, self.READINGS)
 
-    def test_words_in_double_angle_brackets_are_sent_as_written(self):
-        speech = "《津波到達時間》と、ひなんさきは、くにのデータをつかいます。"
-        mv.check_speech(speech)
-        self.assertEqual(mv.to_send(speech), "津波到達時間と、ひなんさきは、くにのデータをつかいます。")
-        for bad in ("《津波》到達じかん", "《津波到達時間と", "津波到達時間》と", "《》なし"):
-            with self.subTest(speech=bad), self.assertRaises(mv.VoiceError):
-                mv.check_speech(bad)
+    def test_known_misreadings_left_in_kanji_are_rejected_with_the_reading(self):
+        for speech in ("家を出るまで何分くらいですか。", "まだ間に合います。", "宇佐の海"):
+            with self.subTest(speech=speech), self.assertRaises(mv.VoiceError) as ctx:
+                mv.check_speech(speech, self.READINGS)
+            self.assertIn("→", str(ctx.exception))
+
+    def test_the_screen_readings_file_is_used(self):
+        readings = mv.load_readings()
+        self.assertEqual(readings.get("何分"), "なんぷん")
+        self.assertEqual(readings.get("間に合"), "まにあ")
+
+    def test_a_broken_readings_file_is_reported(self):
+        with tempfile.TemporaryDirectory() as d:
+            for text in ("[]", '{"readings": [{"text": "何分"}]}', '{"readings": [{"text": "", "reading": "x"}]}', "{"):
+                with self.subTest(text=text), self.assertRaises(mv.VoiceError):
+                    mv.load_readings(write(d, text, "readings.json"))
+            with self.assertRaises(mv.VoiceError):
+                mv.load_readings(Path(d) / "none.json")
 
 
 class AppScriptTest(unittest.TestCase):
-    def test_every_app_text_has_a_kana_reading_in_the_app_script(self):
+    def test_every_app_text_has_a_reading_in_the_app_script(self):
         items = mv.app_items(mv.APP_SCRIPT, ".wav")
         self.assertEqual([text for text, _, _ in items], mv.app_texts())
+        readings = mv.load_readings()
         for text, speech, _ in items:
             with self.subTest(text=text):
-                mv.check_speech(speech)
+                mv.check_speech(speech, readings)
 
     def test_a_text_missing_from_the_script_stops_the_run(self):
         with tempfile.TemporaryDirectory() as d:
@@ -170,7 +180,7 @@ class GenerateTest(unittest.TestCase):
             items[1] = ("間に合います。", "まにあいますよ。", "b.wav")
             self.assertEqual(mv.generate(items, out, synth, meta=dict(meta, voice="v2")), 1)
 
-    def test_the_marks_are_removed_before_sending(self):
+    def test_a_kanji_reading_is_sent_as_written(self):
         sent = []
 
         def synth(speech):
@@ -178,18 +188,16 @@ class GenerateTest(unittest.TestCase):
             return b"RIFF"
 
         with tempfile.TemporaryDirectory() as d, mock.patch("sys.stdout", io.StringIO()):
-            items = [("津波到達時間と避難先", "《津波到達時間》と、ひなんさき", "a.wav")]
+            items = [("津波到達時間と避難先", "津波到達時間と、避難先は", "a.wav")]
             self.assertEqual(mv.generate(items, Path(d), synth, meta={}), 1)
-            manifest = json.loads((Path(d) / "manifest.json").read_text(encoding="utf-8"))
-        self.assertEqual(sent, ["津波到達時間と、ひなんさき"])
-        self.assertEqual(manifest["items"]["津波到達時間と避難先"]["speech"], "《津波到達時間》と、ひなんさき")
+        self.assertEqual(sent, ["津波到達時間と、避難先は"])
 
-    def test_a_reading_with_kanji_stops_before_any_audio_is_made(self):
+    def test_a_known_misreading_stops_before_any_audio_is_made(self):
         def synth(speech):
             raise AssertionError("音声を作ってはいけない")
 
         with tempfile.TemporaryDirectory() as d, mock.patch("sys.stdout", io.StringIO()):
-            items = [("文", "ぶん", "a.wav"), ("何分", "何ぷん", "b.wav")]
+            items = [("文", "文です", "a.wav"), ("何分", "何分くらいですか", "b.wav")]
             with self.assertRaises(mv.VoiceError):
                 mv.generate(items, Path(d), synth, meta={})
             self.assertEqual(list(Path(d).iterdir()), [])
