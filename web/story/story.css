@@ -9,7 +9,7 @@
 :root { --total: 11.5s; }
 
 .sub { font-weight: 500; }
-.mono { font-family: ui-monospace, "Cascadia Mono", Consolas, Menlo, monospace; font-weight: 600; }
+.mono { font-family: var(--font); font-weight: 600; }
 
 /* --- カード（出る順） -------------------------------------------------------- */
 
