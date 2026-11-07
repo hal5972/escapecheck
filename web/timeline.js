@@ -30,10 +30,31 @@
     return label.replace(/直線距離\s*×\s*1\.3\s*の概算、?/, '').replace('、）', '）');
   }
 
+  // 判定の印（丸に記号）。画面の判定の札と同じ形・同じ色。色は CSS の変数と同じ値（README の色の一覧）
+  const DOT = { ok: ['#1b7d46', '#ffffff'], tight: ['#f4b400', '#2e2100'], short: ['#c62a1f', '#ffffff'], unknown: ['#5d667b', '#ffffff'] };
+  const GLYPH = {
+    ok: 'M-5.5 0.5L-1.8 4.2L5.8 -4',
+    short: 'M-4.6 -4.6L4.6 4.6M4.6 -4.6L-4.6 4.6',
+    tight: 'M0 -6.8V1.2',
+    unknown: 'M-3.6 -3.2A3.6 3.6 0 1 1 1.6 0.2C0.4 0.9 0 1.5 0 2.6',
+  };
+
+  function verdictDot(key, cx, cy) {
+    const [fill, ink] = DOT[key] || DOT.unknown;
+    const g = svg('g', { transform: `translate(${cx.toFixed(1)} ${cy})`, 'aria-hidden': 'true' });
+    g.appendChild(svg('circle', { r: 13, fill }));
+    g.appendChild(svg('path', { d: GLYPH[key] || GLYPH.unknown, fill: 'none', stroke: ink, 'stroke-width': 3, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
+    if (key === 'tight' || key === 'unknown') g.appendChild(svg('circle', { cy: 6.4, r: 1.8, fill: ink }));
+    return g;
+  }
+
+  /** 文字の幅の見積もり（SVG の文字の位置を決めるだけに使う）。半角は 0.55 倍、全角は 1 倍。 */
+  const textWidth = (str, size) => [...String(str)].reduce((sum, c) => sum + (c.charCodeAt(0) < 256 ? 0.55 : 1) * size, 0);
+
   /** 一覧の記号（小さな四角）。タイムラインと同じ模様を使う。 */
   function swatch(fill) {
     return svg('svg', { class: 'tl-swatch', width: 36, height: 28, viewBox: '0 0 36 28', 'aria-hidden': 'true', focusable: 'false' },
-      svg('rect', { x: 1.5, y: 1.5, width: 33, height: 25, rx: 4, fill, stroke: '#12161c', 'stroke-width': 2 }));
+      svg('rect', { x: 1.5, y: 1.5, width: 33, height: 25, rx: 4, fill, stroke: '#0d1b36', 'stroke-width': 2 }));
   }
 
   /**
@@ -63,7 +84,7 @@
     segs.forEach((seg) => {
       const x = xOf(acc);
       const w = seg.minutes * k;
-      g.appendChild(svg('rect', { x: x.toFixed(1), y: BAR_Y, width: w.toFixed(1), height: BAR_H, fill: FILL[seg.key] || FILL.walk, stroke: '#12161c', 'stroke-width': 2 }));
+      g.appendChild(svg('rect', { x: x.toFixed(1), y: BAR_Y, width: w.toFixed(1), height: BAR_H, fill: FILL[seg.key] || FILL.walk, stroke: '#0d1b36', 'stroke-width': 2 }));
       labels.push({ x, w, text: `${Math.round(seg.minutes)}` });
       acc += seg.minutes;
     });
@@ -75,32 +96,37 @@
       let lineBottom = BAR_Y + BAR_H + 10;
       if (drawn > avail) {
         // 津波が来たあとの区間: 赤い太い枠で囲み、下に赤い斜線の帯を付ける（区間の模様は隠さない）
-        g.appendChild(svg('rect', { x: xLine.toFixed(1), y: BAR_Y - 3, width: (xEnd - xLine).toFixed(1), height: BAR_H + 6, fill: 'none', stroke: '#9b1111', 'stroke-width': 4 }));
-        g.appendChild(svg('rect', { x: xLine.toFixed(1), y: BAR_Y + BAR_H + 9, width: (xEnd - xLine).toFixed(1), height: 14, fill: 'url(#ec-pat-short)', stroke: '#9b1111', 'stroke-width': 2 }));
+        g.appendChild(svg('rect', { x: xLine.toFixed(1), y: BAR_Y - 3, width: (xEnd - xLine).toFixed(1), height: BAR_H + 6, fill: 'none', stroke: '#a31d14', 'stroke-width': 4 }));
+        g.appendChild(svg('rect', { x: xLine.toFixed(1), y: BAR_Y + BAR_H + 9, width: (xEnd - xLine).toFixed(1), height: 14, fill: 'url(#ec-pat-short)', stroke: '#a31d14', 'stroke-width': 2 }));
         lineBottom = BAR_Y + BAR_H + 26;
       } else {
         const gap = xLine - xEnd;
         if (gap > 0.5) {
-          g.appendChild(svg('rect', { x: xEnd.toFixed(1), y: BAR_Y, width: gap.toFixed(1), height: BAR_H, fill: view.key === 'tight' ? 'url(#ec-pat-tight)' : 'url(#ec-pat-margin)', stroke: view.key === 'tight' ? '#5e3c00' : '#0e5a2a', 'stroke-width': 3 }));
+          g.appendChild(svg('rect', { x: xEnd.toFixed(1), y: BAR_Y, width: gap.toFixed(1), height: BAR_H, fill: view.key === 'tight' ? 'url(#ec-pat-tight)' : 'url(#ec-pat-margin)', stroke: view.key === 'tight' ? '#8a6400' : '#1b7d46', 'stroke-width': 3 }));
         }
       }
 
       // 津波到達時間の縦の線と名前
       const labelX = Math.min(Math.max(xLine, PAD + 76), W - PAD - 76);
-      g.appendChild(svg('line', { x1: xLine.toFixed(1), x2: xLine.toFixed(1), y1: 34, y2: lineBottom, stroke: '#12161c', 'stroke-width': 4 }));
+      g.appendChild(svg('line', { x1: xLine.toFixed(1), x2: xLine.toFixed(1), y1: 34, y2: lineBottom, stroke: '#0d1b36', 'stroke-width': 4 }));
       g.appendChild(svg('text', { class: 'tl-line-label', x: labelX.toFixed(1), y: 26, 'text-anchor': 'middle' }, `津波 ${floorMin(avail)}分`));
 
-      // 余裕・不足の文字
-      const note = svg('text', { class: `tl-note tl-note-${view.key}`, y: 140 });
-      note.textContent = `${view.mark} ${view.detail || view.label}`;
-      note.setAttribute('x', (view.key === 'short' ? W - PAD : Math.min(Math.max(xLine, 170), W - PAD)).toFixed(1));
-      note.setAttribute('text-anchor', 'end');
+      // 余裕・不足の文字。前に、判定の札と同じ印（丸に記号）を付ける
+      const noteText = view.detail || view.label;
+      const noteX = view.key === 'short' ? W - PAD : Math.min(Math.max(xLine, 170), W - PAD);
+      const note = svg('text', { class: `tl-note tl-note-${view.key}`, x: noteX.toFixed(1), y: 140, 'text-anchor': 'end' });
+      note.textContent = noteText;
+      g.appendChild(verdictDot(view.key, noteX - textWidth(noteText, 26) - 22, 131));
       g.appendChild(note);
     }
 
-    // 区間の分の数字。幅が足りないときは出さない
+    // 区間の分の数字。模様の上でも読めるよう、白い札の上に出す。幅が足りないときは出さない
     labels.forEach((l) => {
-      if (l.w >= 34) g.appendChild(svg('text', { class: 'tl-num', x: (l.x + l.w / 2).toFixed(1), y: BAR_Y + 30, 'text-anchor': 'middle' }, l.text));
+      const pw = l.text.length * 15 + 14;
+      if (l.w < pw + 2) return;
+      const cx = l.x + l.w / 2;
+      g.appendChild(svg('rect', { x: (cx - pw / 2).toFixed(1), y: BAR_Y + 7, width: pw.toFixed(1), height: 30, rx: 8, fill: '#ffffff', stroke: '#0d1b36', 'stroke-width': 1.5 }));
+      g.appendChild(svg('text', { class: 'tl-num', x: cx.toFixed(1), y: BAR_Y + 30, 'text-anchor': 'middle' }, l.text));
     });
 
     // 文字の一覧
@@ -119,6 +145,7 @@
       h('strong', null, avail === null ? '不明' : `${floorMin(avail)}分`));
 
     const notes = [];
+    if (o.footnote) notes.push('時間は、すべて、揺れ始めてからの分数です。');
     if (o.footnote && segs.some((seg) => seg.key === 'climb')) notes.push('「上がる」は、避難先の階段や坂を上がる時間です。');
     if (o.footnote && segs.some((seg) => /直線距離\s*×\s*1\.3\s*の概算/.test(seg.label || ''))) notes.push('移動の距離は、直線距離 × 1.3 の概算です。');
     const note = notes.length ? h('p', { class: 'sub tl-foot' }, notes.join('')) : null;

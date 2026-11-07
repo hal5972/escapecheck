@@ -133,7 +133,7 @@
   function verdictBadge(result) {
     const v = verdictView(result);
     return h('div', { class: `verdict verdict-${v.key}` },
-      h('span', { class: 'mark', 'aria-hidden': 'true' }, v.mark),
+      h('span', { class: 'mark', 'aria-hidden': 'true' }, EC.verdictIcon(v.key, 26), h('span', { class: 'mark-char' }, v.mark)),
       h('span', null, h('span', { class: 'vtext' }, v.label), v.detail ? h('span', { class: 'vdetail' }, v.detail) : null));
   }
 
@@ -310,9 +310,11 @@
         resolve(value);
       };
       const cancel = h('button', { type: 'button', class: 'btn', onclick: () => close(false) }, opts.cancelLabel || 'やめる');
-      const ok = h('button', { type: 'button', class: 'btn btn-primary', onclick: () => close(true) }, opts.okLabel || 'はい');
+      // 元に戻せない操作（消すなど）は、danger を付けて、止める色（赤）のボタンにする
+      const ok = h('button', { type: 'button', class: `btn ${opts.danger ? 'btn-danger' : 'btn-primary'}`, onclick: () => close(true) }, opts.okLabel || 'はい');
       clear(overlay);
-      overlay.append(h('div', { class: 'dialog', role: 'alertdialog', 'aria-modal': 'true', 'aria-label': opts.message },
+      overlay.append(h('div', { class: 'dialog', role: 'alertdialog', 'aria-modal': 'true', 'aria-label': opts.title || opts.message },
+        opts.title ? h('h2', { class: 'dialog-title' }, opts.title) : null,
         h('p', null, opts.message), cancel, ok));
       overlay.hidden = false;
       cancel.focus();

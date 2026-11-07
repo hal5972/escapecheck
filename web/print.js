@@ -81,7 +81,7 @@
 
     // 画面では閉じておく（印刷では、print.css が開く）。押すと開く
     const body = h('div', { class: 'sheet-body', hidden: true }, h('table', { class: 'sheet-table' }, tbody));
-    const toggle = h('button', { type: 'button', class: 'btn-row sheet-toggle', 'aria-expanded': 'false' }, '市に出す様式の中身を見る');
+    const toggle = h('button', { type: 'button', class: 'btn-row sheet-toggle', 'aria-expanded': 'false' }, '様式の中身を見る（A4・1枚）');
     toggle.addEventListener('click', () => {
       const open = toggle.getAttribute('aria-expanded') === 'true';
       toggle.setAttribute('aria-expanded', open ? 'false' : 'true');
@@ -89,7 +89,6 @@
     });
     const sheet = h('section', { class: 'sheet sheet-form' },
       h('h2', { class: 'sheet-title' }, '1枚目: 個別避難計画（市に出す様式の項目）'),
-      h('p', { class: 'sub screen-only' }, 'A4・1枚。市の様式に合わせた項目です。'),
       toggle, body);
 
     // 点検の結果
@@ -149,7 +148,7 @@
     const plan = rec.plan;
     const T = ctx.T;
     const sheet = h('section', { class: 'sheet sheet-card' },
-      h('div', { class: 'card-banner' }, '揺れたら、すぐ避難'),
+      h('div', { class: 'card-banner' }, EC.icon('triangle', { size: 36 }), h('span', null, '揺れたら、すぐ避難')),
       h('h2', { class: 'sheet-title card-name' }, `${callName(rec)}の避難カード`),
       h('p', { class: 'sub screen-only' }, '2枚目: 本人用。A4・1枚。冷蔵庫などに貼ります。'));
 
@@ -183,8 +182,8 @@
         h('p', { class: 'big-line' }, `避難所要時間: ${isNum(worst.result.need_min) ? `${ceilMin(worst.result.need_min)}分` : '不明'}`),
         h('p', { class: 'big-line' }, `津波到達時間: ${isNum(worst.result.avail_min) ? `${floorMin(worst.result.avail_min)}分` : '不明'}`),
         h('div', { class: `verdict verdict-${v.key}` },
-          h('span', { class: 'mark', 'aria-hidden': 'true' }, v.mark),
-          h('span', { class: 'vtext' }, v.text)),
+          h('span', { class: 'mark', 'aria-hidden': 'true' }, EC.verdictIcon(v.key, 26), h('span', { class: 'mark-char' }, v.mark)),
+          h('span', null, h('span', { class: 'vtext' }, v.label), v.detail ? h('span', { class: 'vdetail' }, v.detail) : null)),
         h('p', { class: 'sub' }, `いちばん厳しい場合の時間です。条件: ${EC.ui.scenarioTitle(plan, worst)}`));
       const open = (plan.findings || []).filter((f) => ['short', 'unknown'].includes(verdictView(EC.u.findingResult(plan, f)).key));
       if (open.length) {
@@ -200,7 +199,11 @@
       sheet.append(h('p', { class: 'big-line' }, 'まだ点検していません。'));
     }
 
-    const callers = (plan.supporters || []).map((s) => T(s.alias)).join('、');
+    // 本名が分からない避難支援者（仮名のまま）は、続柄を添える
+    const callers = (plan.supporters || []).map((s) => {
+      const name = T(s.alias);
+      return name === s.alias && s.relation ? `${name}（${s.relation}）` : name;
+    }).join('、');
     sheet.append(h('p', { class: 'big-line' }, `声をかける人: ${callers || '未確認'}`));
     sheet.append(h('p', { class: 'notice notice-safety' }, SAFETY));
     if (rec.sample) sheet.append(h('p', { class: 'sub' }, 'デモ用の架空の人物のサンプルです。'));

@@ -82,19 +82,29 @@
     return '';
   }
 
+  /** 理由の文に出てくる欄の英語のキー（mobility など）を、画面の欄の名前にする。 */
+  const FIELD_KEYS = Object.keys(L.FIELDS).sort((a, b) => b.length - a.length);
+  function plain(text) {
+    let out = String(text);
+    for (const key of FIELD_KEYS) out = out.replace(new RegExp(`\\b${key}\\b`, 'g'), splitLabel(L.FIELDS[key]).title);
+    // 説明文の数値の差し込み（{need_min} などのプレースホルダー）は、変数の名前を出さずに言い換える
+    out = out.replace(/数値は\s*\{\w+\}\s*などの?プレースホルダーで書いてください/g, '数値は、コードが計算した値が入る形で書いてください');
+    return out.replace(/\{\w+\}/g, '（値）');
+  }
+
   /** 1 件。止めた記録は、印（×）と文字（止めた）を付け、色だけで伝えない。 */
   function entryNode(entry, T) {
     const kind = kindOf(entry);
     const deny = kind === 'stop';
     const who = AGENTS[entry.agent] || (entry.agent ? String(entry.agent) : '');
     const what = TOOLS[entry.tool] || (entry.tool ? String(entry.tool) : '');
-    return h('div', { class: `audit-entry${deny ? ' is-deny' : ''}` },
+    return h('div', { class: `audit-entry${deny ? ' is-deny' : ''}${kind === 'fail' ? ' is-fail' : ''}` },
       h('p', { class: 'audit-head' },
-        h('span', { class: 'mark', 'aria-hidden': 'true' }, deny ? '×' : (kind === 'fail' ? '△' : '○')),
+        h('span', { class: 'mark', 'aria-hidden': 'true' }, EC.icon(deny ? 'cross' : (kind === 'fail' ? 'exclam' : 'check'), { size: 20, stroke: 3 })),
         h('span', null, DECISIONS[kind]),
         h('span', { class: 'audit-time' }, clock(entry.at))),
       h('p', null, `${who}　${what}${targetText(entry)}`),
-      (deny || kind === 'fail') && entry.reason ? h('p', { class: 'audit-reason' }, T(String(entry.reason))) : null);
+      (deny || kind === 'fail') && entry.reason ? h('p', { class: 'audit-reason' }, T(plain(entry.reason))) : null);
   }
 
   A.register('audit', ({ params, scope }) => {
@@ -117,18 +127,23 @@
 
     EC.u.add(A.$main,
       h('h1', null, '記録'),
-      h('p', { class: 'lead' }, 'AI が計画に書き込もうとしたとき、プログラムのコード（フック）が確認した記録（監査ログ）です。'),
-      h('p', null, '出典のない書き込み、原文にない引用、説明文に直接書いた数値、承認のない変更は、コードが止めます。止めた理由は AI に返り、AI が直して、書き込み直します。'),
+      h('p', { class: 'lead' }, 'AI が計画に書き込もうとしたとき、プログラムが確認した記録です。'),
       EC.api.getMode() === 'mock' ? h('p', { class: 'sub' }, 'これは、サンプルの記録です。サーバーに接続すると、実際の記録を出します。') : null,
-      statusSlot, summarySlot, switchRow, listSlot, A.noticeSafety());
+      statusSlot, summarySlot, switchRow, listSlot,
+      h('div', { class: 'card' },
+        h('p', { class: 'strong' }, '止める書き込み'),
+        h('p', null, '出典のない書き込み、原文にない引用、説明文に直接書いた数値、承認のない変更は、プログラムのコード（フック）が止めます。止めた理由は AI に返り、AI が直して、書き込み直します。この記録を、監査ログといいます。')),
+      A.noticeSafety());
 
     function render() {
       clear(summarySlot);
       clear(listSlot);
       const denies = entries.filter((e) => kindOf(e) === 'stop');
-      summarySlot.append(h('div', { class: 'card' },
-        h('p', { class: 'strong' }, `プログラムが止めたもの: ${denies.length}件`),
-        h('p', { class: 'sub' }, `記録の全体: ${entries.length}件`)));
+      summarySlot.append(h('div', { class: 'card audit-summary' },
+        h('span', { class: 'audit-big', 'aria-hidden': 'true' }, String(denies.length)),
+        h('div', null,
+          h('p', { class: 'strong' }, `プログラムが止めたもの: ${denies.length}件`),
+          h('p', { class: 'sub' }, `記録の全体: ${entries.length}件`))));
       // 新しい順。同じ秒の記録は、あとから書かれたものを先に出す
       const shown = (showAll ? entries : denies).map((e, i) => ({ e, i }))
         .sort((a, b) => ((Date.parse(b.e.at) || 0) - (Date.parse(a.e.at) || 0)) || (b.i - a.i))
@@ -146,7 +161,7 @@
 
     async function load() {
       clear(statusSlot);
-      statusSlot.append(A.statusBox('記録を読み込んでいます'));
+      statusSlot.append(A.statusBox('記録を読み込んでいます', 'busy'));
       A.setActions([{ id: 'reload', kind: 'primary', label: '読み込んでいます', disabled: true }]);
       try {
         entries = await api.audit(rec.plan.plan_id);
@@ -158,7 +173,7 @@
         clear(statusSlot);
         statusSlot.append(A.errorBox(A.errorText(e)));
       }
-      A.setActions([{ id: 'reload', kind: 'primary', label: '記録を読み込み直す', onClick: load }]);
+      A.setActions([{ id: 'reload', kind: 'primary', icon: 'swap', label: '記録を読み込み直す', onClick: load }]);
     }
 
     load();

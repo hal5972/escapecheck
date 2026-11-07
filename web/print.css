@@ -17,7 +17,7 @@
   }
 
   /* 画面の操作の部品は印刷しない */
-  .topbar, .banner, .actions, .overlay, .btn, .btn-row, .map-zoom, .switch-row,
+  .topbar, .stepper, .banner, .actions, .overlay, .btn, .btn-row, .map-zoom, .switch-row,
   .sheet-toggle, .map-screen, .defs-hidden { display: none !important; }
 
   .app {
@@ -99,8 +99,13 @@
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
-  .verdict .mark { font-size: 24pt; }
+  /* 白黒で印刷しても分かるよう、判定の印は、文字（○△×？）にする */
+  .verdict .mark { width: auto; height: auto; background: none; color: #000; border-radius: 0; font-size: 24pt; }
+  .verdict .mark .ic { display: none; }
+  .verdict .mark .mark-char { display: inline; }
+  .card-banner .ic { display: none; }
   .verdict .vtext { font-size: 20pt; }
+  .verdict .vdetail { display: block; font-size: 16pt; }
   .verdict-ok { background: #dff0e4; }
   .verdict-tight { background: #fff1c9; }
   .verdict-short { background: #fde8e6; }

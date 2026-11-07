@@ -5,13 +5,38 @@
   'use strict';
   const EC = (window.EC = window.EC || {});
   const A = EC.app;
-  const { h, clear, uid, floorMin, isNum, formatClock } = EC.u;
+  const { h, svg, clear, uid, floorMin, isNum, formatClock } = EC.u;
   const store = EC.store;
   const api = EC.api;
 
   // 土佐市の宇佐を初めに映す
   const DEFAULT_CENTER = { lat: 33.4508, lon: 133.4354 };
   const DEFAULT_AREA = '宇佐';
+
+  /** ホーム・合言葉の先頭: ロゴ、名前、説明。藍の背景で、下は波の形で本文につなぐ。 */
+  function hero(lead) {
+    return h('section', { class: 'hero' },
+      h('div', { class: 'hero-top' }, EC.brandMark({ size: 64, onDark: true }), h('span', { class: 'hero-tag' }, '試作版')),
+      h('h1', null, '逃げ道の点検屋'),
+      h('p', null, lead),
+      svg('svg', { class: 'hero-wave', viewBox: '0 0 390 28', preserveAspectRatio: 'none', 'aria-hidden': 'true', focusable: 'false' },
+        svg('path', { d: 'M0 12C70 -2 130 -2 200 12S320 26 390 8V28H0Z' })));
+  }
+
+  /** 下の 2 つのボタンの説明（印は、ボタンと同じ。塗りは主なボタン、枠は、もう 1 つのボタン）。 */
+  function chooseRow(icon, title, text, primary) {
+    return h('div', { class: `choose-row${primary ? ' is-primary' : ''}` },
+      h('span', { class: 'choose-ic', 'aria-hidden': 'true' }, EC.icon(icon, { size: 24 })),
+      h('p', null, h('span', { class: 'strong' }, title), h('br'), text));
+  }
+
+  /** 流れ（話す → 点検 → 改善）。何をするアプリかを、ひと目で見せる。 */
+  function flow(overlap) {
+    const step = (icon, label) => h('div', { class: 'flow-step' }, h('span', { class: 'flow-ic' }, EC.icon(icon, { size: 30 })), label);
+    const arrow = () => h('span', { class: 'flow-arrow', 'aria-hidden': 'true' }, EC.icon('chevron-right', { size: 24 }));
+    // overlap: 藍の面の下端に重ねて浮かせる（前の計画が先に並ぶときは、重ねない）
+    return h('div', { class: `flow${overlap ? '' : ' is-flat'}` }, step('mic', '話す'), arrow(), step('clipboard', '点検'), arrow(), step('trend', '改善'));
+  }
 
   // ---------------------------------------------------------------------------
   // 合言葉（F-01）
@@ -25,12 +50,11 @@
     });
     const msg = h('div', { id: 'login-msg', 'aria-live': 'polite' });
     A.$main.append(
-      h('h1', null, '逃げ道の点検屋'),
-      h('p', { class: 'lead' }, '話して計画を作り、点検して、改善します。'),
-      A.noticePrivacy(),
+      hero('ひとりで逃げにくい方の、津波の個別避難計画を、民生委員が話して作ります。点検して、改善します。'),
       h('label', { class: 'field-label-text', for: 'passphrase' }, '合言葉'),
       input,
-      msg);
+      msg,
+      A.noticePrivacy());
 
     let busy = false;
     const submit = async () => {
@@ -48,12 +72,12 @@
       } catch (e) {
         msg.append(A.errorBox(A.errorText(e)));
         busy = false;
-        A.setActions([{ label: '次へ', kind: 'primary', id: 'login', onClick: submit }]);
+        A.setActions([{ label: '次へ', kind: 'primary', id: 'login', trailing: 'chevron-right', onClick: submit }]);
         input.focus();
       }
       return buttons;
     };
-    A.setActions([{ label: '次へ', kind: 'primary', id: 'login', onClick: submit }]);
+    A.setActions([{ label: '次へ', kind: 'primary', id: 'login', trailing: 'chevron-right', onClick: submit }]);
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
     if (!window.matchMedia || !window.matchMedia('(pointer: coarse)').matches) input.focus();
 
@@ -76,6 +100,12 @@
     return `聞き取り中（${filled}欄）`;
   }
 
+  /** 「11/8」の形の日付（時刻は出さない）。 */
+  function shortDate(iso) {
+    const d = iso ? new Date(iso) : new Date();
+    return Number.isNaN(d.getTime()) ? '' : `${d.getMonth() + 1}/${d.getDate()}`;
+  }
+
   function openRecord(rec) {
     A.openRecord(rec);
     const plan = rec.plan;
@@ -84,13 +114,12 @@
 
   A.register('home', () => {
     A.setBack(null);
-    A.$main.append(
-      h('h1', null, '逃げ道の点検屋'),
-      h('p', { class: 'lead' }, '話して個別避難計画を作り、厳しい条件で点検して、改善します。下の大きなボタンから、選んでください。'),
-      A.noticePrivacy());
-
     const all = store.listPlans();
     const plans = all.slice(0, 5); // 新しい順に 5 件まで
+    // 誰の（ひとりで逃げにくい方）、何を（津波の個別避難計画）、誰が・どうする（民生委員が話して作り、点検して、改善する）を、はじめに言う
+    A.$main.append(hero('ひとりで逃げにくい方の、津波の個別避難計画を、民生委員が話して作ります。厳しい条件で点検して、間に合わないところを改善します。'));
+
+    // 保存した計画があるときは、続きをする入口を、はじめの説明より先に出す
     if (plans.length) {
       A.$main.append(h('h2', null, '前の計画'));
       for (const rec of plans) {
@@ -98,13 +127,17 @@
         const person = names.find((n) => n.role === 'person');
         const title = (person && person.call) || rec.title || rec.plan.alias;
         const row = h('div', { class: 'saved-row' },
-          h('button', { type: 'button', class: 'btn-row saved-open', onclick: () => openRecord(rec) },
-            h('span', { class: 'field-title' }, `${title}${rec.sample ? '（架空の人物）' : ''}`),
-            h('span', { class: 'field-hint' }, `${recStatus(rec)}　${formatClock(rec.updated)}`)),
+          h('button', { type: 'button', class: 'btn-row nav-row saved-open', onclick: () => openRecord(rec) },
+            EC.icon('person', { size: 26 }),
+            h('span', { class: 'row-text' },
+              h('span', { class: 'field-title' }, title),
+              rec.sample ? h('span', { class: 'field-hint' }, '架空の人物') : null,
+              h('span', { class: 'field-hint' }, `${recStatus(rec)}　${shortDate(rec.updated)}`))),
           h('button', {
-            type: 'button', class: 'btn-row saved-delete',
+            type: 'button', class: 'btn-row saved-delete', 'aria-label': `${title}の計画を消す`,
             onclick: async () => {
               const ok = await EC.ui.confirmDialog({
+                title: '計画の削除', danger: true,
                 message: `${title}の計画を、この端末から消します。元には戻せません。`,
                 okLabel: '消す', cancelLabel: 'やめる',
               });
@@ -114,11 +147,19 @@
                 A.go('home');
               }
             },
-          }, '消す'));
+          }, EC.icon('trash', { size: 28 })));
         A.$main.append(row);
       }
       A.$main.append(h('p', { class: 'sub' }, `計画は、この端末の中だけに保存されています。${all.length > plans.length ? `（ほかに${all.length - plans.length}件）` : ''}`));
     }
+
+    A.$main.append(
+      flow(!plans.length),
+      h('div', { class: 'card choose-card' },
+        h('p', { class: 'strong' }, 'どちらから始めますか'),
+        chooseRow('play', 'サンプルデータで試す', 'デモ用の架空の人物で、話すところから試せます。', true),
+        chooseRow('plus', '新しい計画を作る', '自宅の場所を地図で決めてから、話します。', false)),
+      A.noticePrivacy());
 
     // 「はじめに」のアニメーション（別のセッションが作成する）があるときだけ、案内を出す
     const introSlot = h('div', { class: 'intro-slot' });
@@ -128,8 +169,8 @@
     }).catch(() => { /* ページが無いときは出さない */ });
 
     A.setActions([
-      { label: 'サンプルデータで試す', kind: 'primary', id: 'samples', onClick: () => A.go('samples') },
-      { label: '新しい計画を作る', id: 'new', onClick: () => A.go('new') },
+      { label: 'サンプルデータで試す', kind: 'primary', id: 'samples', icon: 'play', onClick: () => A.go('samples') },
+      { label: '新しい計画を作る', id: 'new', icon: 'plus', onClick: () => A.go('new') },
     ]);
   });
 
@@ -148,9 +189,11 @@
     EC.mock.samples.list().then((items) => {
       if (!scope.alive) return;
       for (const item of items) {
-        list.append(h('button', { type: 'button', class: 'btn-row', onclick: () => A.go('sample', { id: item.id }) },
-          h('span', { class: 'field-title' }, `${item.title}（架空の人物）`),
-          h('span', { class: 'field-hint' }, item.summary)));
+        list.append(h('button', { type: 'button', class: 'btn-row nav-row', onclick: () => A.go('sample', { id: item.id }) },
+          EC.icon('person', { size: 26 }),
+          h('span', { class: 'row-text' },
+            h('span', { class: 'field-title' }, `${item.title}（架空の人物）`),
+            h('span', { class: 'field-hint' }, item.summary))));
       }
     }).catch(() => {
       list.append(A.errorBox('サンプルデータを読み込めませんでした。'));
@@ -191,8 +234,8 @@
         h('p', null, 'どこから試しますか。'),
         h('p', { class: 'sub' }, '「話す手順から」は、話した内容が欄に入るところから。「途中から」は、聞き取りが終わった計画を点検するところからです。'));
       A.setActions([
-        { label: '話す手順から', kind: 'primary', id: 'from-start', onClick: () => start('start') },
-        { label: '途中から（点検する）', id: 'from-talked', onClick: () => start('talked') },
+        { label: '話す手順から', kind: 'primary', id: 'from-start', icon: 'mic', onClick: () => start('start') },
+        { label: '途中から（点検する）', id: 'from-talked', icon: 'clipboard', onClick: () => start('talked') },
       ]);
     });
   });
@@ -210,7 +253,8 @@
     const pickHint = h('p', { class: 'strong', id: 'pick-hint' }, '地図をタップすると、下の「ここに決める」を押せるようになります。');
 
     const map = EC.map.create({
-      interactive: true, height: 340, center: DEFAULT_CENTER, zoom: 16, label: '自宅の場所を決める地図',
+      // 地図の下の拡大・縮小のボタンが、下のボタンの帯に隠れないよう、画面の高さに合わせる（最大 340px）
+      interactive: true, height: Math.max(240, Math.min(340, Math.round((A.$main.clientHeight || 600) - 250))), center: DEFAULT_CENTER, zoom: 16, label: '自宅の場所を決める地図',
       onTap(point) {
         pick = point;
         pickHint.hidden = true;
@@ -223,7 +267,7 @@
 
     const loadFacts = async (point) => {
       clear(factsSlot);
-      factsSlot.append(A.statusBox('地図で調べています'));
+      factsSlot.append(A.statusBox('地図で調べています', 'busy'));
       const probe = EC.mock.newPlan('Aさん', DEFAULT_AREA, point);
       const res = await api.facts(probe);
       if (!scope.alive || pick !== point) return;
@@ -243,7 +287,7 @@
       supporterInput);
 
     const enable = () => {
-      A.setActions([{ label: 'ここに決める', kind: 'primary', id: 'decide', disabled: !pick, onClick: decide }]);
+      A.setActions([{ label: 'ここに決める', kind: 'primary', id: 'decide', icon: 'pin', disabled: !pick, onClick: decide }]);
     };
 
     const decide = () => {
