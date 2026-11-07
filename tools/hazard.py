@@ -95,7 +95,7 @@ class ArrivalPick:
 def arrival_at(point: tuple[float, float], data: datasets.Dataset, earliest: bool = False) -> ArrivalPick | None:
     """自宅の位置から版ごとに一番近い地点の値を取り、そのうち短いほうを使う。表が空なら None。
 
-    範囲の行（radius_m がある行。帯の縁など）は、その半径の中にある地点にだけ使い、範囲の中なら一番近い地点の値より優先して短いほうを使う。
+    範囲の行（radius_m がある行。海に面した縁など）は、その半径の中にある地点にだけ使い、範囲の中なら一番近い地点の値より優先して短いほうを使う。
     earliest が True のとき（S6）、表のうち土佐市の沿岸で一番短い値を使う（安全側の値）。
     """
     areas = data.confirmed_areas()

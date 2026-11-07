@@ -43,7 +43,7 @@ class ArrivalArea:
     status: str
     source_name: str = ""
     note: str = ""
-    #: 範囲の行（帯の縁など）: この半径の中の地点にだけ使う。None は代表の地点（一番近い地点として使う）
+    #: 範囲の行（海に面した縁など）: この半径の中の地点にだけ使う。None は代表の地点（一番近い地点として使う）
     radius_m: float | None = None
 
     @property
