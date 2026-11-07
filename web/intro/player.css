@@ -7,11 +7,17 @@
  */
 
 :root {
-  --navy: #0e2b52;
-  --blue: #0a4a98;
-  --focus: #ffb300;
-  --page: #0a1428;
-  --font: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Yu Gothic", "Meiryo", "Noto Sans JP", sans-serif;
+  /* 色と書体は、アプリ（../style.css）と同じ。色の一覧は ../README.md の「色の一覧」 */
+  --ai-950: #0d1b36;
+  --ai-900: #13294f;
+  --ai-700: #21478a;
+  --ai-200: #cfdcf3;
+  --paper: #ffffff;
+  --ink: #141c2e;
+  --short-deep: #a31d14;
+  --page: var(--ai-950);
+  --focus: #ffffff;
+  --font: "BIZ UDPGothic", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic UI", "Meiryo", sans-serif;
   --controls-h: 6.4rem;
 }
 
@@ -84,11 +90,11 @@ body {
   font-size: 3.1cqw;
   font-weight: 700;
   line-height: 1.5;
-  color: var(--navy);
-  background: #fff;
-  border: 0.12em solid var(--navy);
+  color: var(--ai-900);
+  background: var(--paper);
+  border: 0.12em solid var(--ai-700);
   border-radius: 0.45em;
-  box-shadow: 0 0.18em 0 rgba(10, 20, 40, 0.28);
+  box-shadow: 0 0.18em 0 rgba(13, 27, 54, 0.28);
   opacity: 0;
 }
 .cap-note {
@@ -99,7 +105,7 @@ body {
   font-size: 1.75cqw;
   font-weight: 500;
   line-height: 1.5;
-  color: var(--navy);
+  color: var(--ink);
   background: rgba(255, 255, 255, 0.94);
   border-radius: 0.4em;
   opacity: 0;
@@ -143,8 +149,8 @@ body {
   font: inherit;
   font-weight: 700;
   line-height: 1.2;
-  color: var(--navy);
-  background: #fff;
+  color: var(--ai-900);
+  background: var(--paper);
   border: 3px solid #fff;
   border-radius: 14px;
   cursor: pointer;
@@ -160,7 +166,7 @@ body {
   min-width: 6.5rem;
   text-align: center;
   font-variant-numeric: tabular-nums;
-  color: #d6e2f5;
+  color: var(--ai-200);
 }
 
 /* --- 画面録画用（?rec）: ボタンを隠し、枠を画面いっぱいに表示する ------------------------ */
@@ -179,7 +185,9 @@ body.rec .controls { display: none; }
     left: 16px; right: 16px; top: 12px; width: auto; margin: 0; max-width: none;
     font-size: 1.05rem; color: #fff; background: none; border: 0; box-shadow: none; padding: 0;
   }
-  body:not(.rec) .cap-note { top: 5.6rem; font-size: 0.85rem; font-weight: 500; color: #d6e2f5; }
+  body:not(.rec) .cap-note { top: 5.6rem; font-size: 0.85rem; font-weight: 500; color: var(--ai-200); }
+  /* 暗い地の上では、強調の赤を明るい赤（アプリの「赤の線」の色）にする */
+  body:not(.rec) .cap strong { color: #eba39e; }
 }
 
 @media (prefers-reduced-motion: reduce) {

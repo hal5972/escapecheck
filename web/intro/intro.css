@@ -28,18 +28,18 @@
 
 /* --- 家の色（<use> に渡す） ---------------------------------------------------- */
 
-.wall-f { fill: var(--wf, #f6f1e7); }
-.wall-s { fill: var(--ws, #d9d0bd); }
-.wall-g { fill: var(--wg, #ebe3d2); }
-.roof { fill: var(--rf, #56626f); }
-.roof-s { fill: var(--rs, #46515c); }
-.eave { fill: rgba(0, 0, 0, 0.16); }
-.door { fill: #7b5b3b; }
-.win { fill: var(--win, #bde1f1); }
-.hv1 { --wf: #f6f1e7; --ws: #d8cfbc; --wg: #e8dfcd; --rf: #53606e; --rs: #444f5b; }
-.hv2 { --wf: #efe3cf; --ws: #d2c3a8; --wg: #e2d4ba; --rf: #94503f; --rs: #7d4132; }
-.hv3 { --wf: #e9eef0; --ws: #c9d2d6; --wg: #dbe3e6; --rf: #3f4b57; --rs: #323d47; }
-.hv4 { --wf: #f4ead4; --ws: #d9c9a3; --wg: #e8dcc0; --rf: #6f594a; --rs: #5c493c; }
+.wall-f { fill: var(--wf, #ffffff); }
+.wall-s { fill: var(--ws, #d3d9e6); }
+.wall-g { fill: var(--wg, #e8ecf4); }
+.roof { fill: var(--rf, #21478a); }
+.roof-s { fill: var(--rs, #1a3768); }
+.eave { fill: rgba(13, 27, 54, 0.16); }
+.door { fill: #1a3768; }
+.win { fill: var(--win, #cfdcf3); }
+.hv1 { --wf: #ffffff; --ws: #d3d9e6; --wg: #e8ecf4; --rf: #21478a; --rs: #1a3768; }
+.hv2 { --wf: #f0f4fb; --ws: #cfdcf3; --wg: #e3ebf8; --rf: #5d667b; --rs: #38425a; }
+.hv3 { --wf: #e3ebf8; --ws: #a9c0e6; --wg: #cfdcf3; --rf: #2d5ca8; --rs: #21478a; }
+.hv4 { --wf: #fff3c4; --ws: #ffe9a3; --wg: #ffffff; --rf: #13294f; --rs: #0d1b36; }
 symbol { overflow: visible; }
 
 /* --- ① 宇佐の海辺の町 -------------------------------------------------------- */
@@ -127,7 +127,7 @@ symbol { overflow: visible; }
 
 .cap-1 { left: 4cqw; top: 3.2cqw; max-width: 66cqw; animation: cap-in 0.8s ease-out calc(var(--t1) + 0.6s) both, cap-out 0.5s ease-in calc(var(--t2) - 0.4s) forwards; }
 .cap-2 { left: 4cqw; top: 3.2cqw; max-width: 62cqw; animation: cap-in 0.8s ease-out calc(var(--t2) + 0.9s) both, cap-out 0.5s ease-in calc(var(--t3) - 0.6s) forwards; }
-.cap-2 strong { color: #a81f17; }
+.cap-2 strong { color: var(--short-deep); }
 .note-2 { left: 4cqw; top: 17.5cqw; max-width: 62cqw; font-size: 2.05cqw; animation: cap-in 0.8s ease-out calc(var(--t2) + 1.3s) both, cap-out 0.5s ease-in calc(var(--t3) - 0.6s) forwards; }
 .cap-3 { left: 4cqw; top: 3.2cqw; max-width: 66cqw; animation: cap-in 0.8s ease-out calc(var(--t3) + 0.7s) both, cap-out 0.5s ease-in calc(var(--t4) - 0.5s) forwards; }
 
