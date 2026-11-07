@@ -316,10 +316,20 @@ def get_job(job_id: str) -> JobStatus:
 
 
 def redteam_for_eval(plan: Plan) -> list[Finding]:
-    """評価用（eval/run_eval.py の --runner claude）: start_check と同じ処理を同期的に実行し、findings を返す。"""
+    """評価用（eval/run_eval.py の --runner claude）: start_check と同じ処理を同期的に実行し、findings を返す。
+
+    渡された plan も、点検の後の計画（premises・findings・fixes・sources）に置き換える。
+    評価は、危険な改善案が出なかったかを plan["fixes"] で確認するため（AC-07）。
+    """
     session = PlanSession(plan=prepare_for_check(plan), role="redteam", backend=backend())
-    run_redteam(session)
-    return session.plan["findings"]
+    try:
+        run_redteam(session)
+    finally:
+        with session.lock:
+            checked = copy.deepcopy(session.plan)
+        plan.clear()
+        plan.update(checked)
+    return plan["findings"]
 
 
 # ---------------------------------------------------------------------------

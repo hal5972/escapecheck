@@ -261,6 +261,21 @@ class FlowTest(ServerTestCase):
         self.assertIn("点検の計算ができませんでした", session.events[-1])
         self.assertFalse(any("見つかりませんでした" in e for e in session.events))
 
+    def test_redteam_for_eval_returns_findings_and_writes_fixes_back(self):
+        # 評価（eval/run_eval.py）は、渡した plan の fixes で危険な改善案を確認する（AC-07）
+        plan = sample_plan()
+        utterance = UTTERANCE
+        from tools import plan_model as pm
+
+        pm.register_source(plan, pm.Source(kind="utterance", label="発言", text=utterance, speaker="minsei"), "src_e")
+        plan["fields"]["shelter"] = pm.FieldValue(value={"name": "避難タワー", "shelter_id": "shel_stub_tower"},
+                                                  status="filled", source_id="src_e", quote="避難先は避難タワーにしちゅう")
+        findings = orchestrator.redteam_for_eval(plan)
+        self.assertEqual(len(findings), 1)
+        self.assertEqual(plan["findings"], findings)
+        self.assertEqual(len(plan["fixes"]), 1)
+        self.assertEqual(plan["status"], "checked")
+
     def test_approve_unknown_fix_is_400(self):
         token = self.login()
         status, _, data = self.request("POST", "/api/approve", {"plan": sample_plan(), "fix_id": "fix_none"}, token=token)
