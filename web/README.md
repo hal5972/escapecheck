@@ -2,7 +2,7 @@
 
 逃げ道の点検屋の画面。HTML・CSS・JavaScript だけで作成した（ライブラリとビルドツールは使わない）。担当は C のセッション。`web/intro/`（はじめに）と `web/story/`（仕組みの説明）は D のセッションが作成する。
 
-画面の文言は [docs/glossary.md](../docs/glossary.md) に従う。画面への表示は `textContent` で行い、`innerHTML` は使わない。インラインの `<script>`・`style` 属性も使わない（CSP のため）。
+画面の文言は、プロジェクトの用語集と文章のルールに従う。画面への表示は `textContent` で行い、`innerHTML` は使わない。インラインの `<script>`・`style` 属性も使わない（CSP のため）。
 
 ## 起動と確認
 
@@ -33,7 +33,7 @@
 
 `id` は `yamada`（山田さん）、`okabayashi`（岡林さん夫婦）、`takemura`（竹村さん）。`stage` は `start`（話す手順から）、`talked`（聞き取りのあと）、`checked`（点検のあと）、`improved`（改善のあと）。`goto` は `talk`・`check`・`fix`・`verify`・`print`。
 
-## 画面の流れ（docs/03-design.md の 7.1 節）
+## 画面の流れ
 
 合言葉 → ホーム →（新しい人: 自宅の場所を地図で決める／サンプルデータ）→ 話す → 点検 → 改善 → 点検（もう一度）→ 確認 → 印刷
 
