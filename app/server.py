@@ -205,8 +205,26 @@ class Handler(BaseHTTPRequestHandler):
         body = json.dumps(data, ensure_ascii=False, default=str).encode("utf-8")
         self._send(status, body, "application/json; charset=utf-8", extra=extra)
 
+    def _drain_body(self) -> None:
+        """読んでいない本文を読み捨てる。読まずに接続を閉じると、相手に応答が届かないことがある（Windows）。"""
+        if getattr(self, "_body_read", True):
+            return
+        self._body_read = True
+        try:
+            remaining = int(self.headers.get("Content-Length") or "0")
+        except ValueError:
+            return
+        if remaining > 4 * config.MAX_REQUEST_BYTES:
+            return
+        while remaining > 0:
+            chunk = self.rfile.read(min(65536, remaining))
+            if not chunk:
+                break
+            remaining -= len(chunk)
+
     def _error(self, status: int, message: str, **extra: Any) -> None:
-        # 本文を読まずに断ることがあるので、エラーのときは接続を閉じる（残った本文を次の要求として読まないため）
+        # エラーのときは接続を閉じる（読まなかった本文を、次の要求として読まないため）
+        self._drain_body()
         headers = {"Connection": "close"}
         if status == 429:
             headers["Retry-After"] = "60"
@@ -251,13 +269,14 @@ class Handler(BaseHTTPRequestHandler):
         except ValueError:
             raise ApiError(400, "Content-Length が正しくありません") from None
         if length > config.MAX_REQUEST_BYTES:
-            raise ApiError(413, "送るデータが大きすぎます（256KB まで）")
+            raise ApiError(413, "送るデータが大きすぎます（256KB まで）")  # 本文は _error が読み捨てる
         if length <= 0:
             raise ApiError(400, "送るデータがありません")
+        raw = self.rfile.read(length)
+        self._body_read = True
         content_type = (self.headers.get("Content-Type") or "").split(";")[0].strip().lower()
         if content_type != "application/json":
             raise ApiError(415, "Content-Type を application/json にしてください")
-        raw = self.rfile.read(length)
         try:
             data = json.loads(raw.decode("utf-8"))
         except (UnicodeDecodeError, json.JSONDecodeError):
@@ -267,6 +286,7 @@ class Handler(BaseHTTPRequestHandler):
         return data
 
     def _dispatch(self, method: str) -> None:
+        self._body_read = method not in ("POST", "PUT", "DELETE", "OPTIONS")
         try:
             if not self._host_ok():
                 raise ApiError(421, "この住所（Host）からは使えません")
