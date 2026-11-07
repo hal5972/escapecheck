@@ -122,8 +122,9 @@ SYSTEM_PROMPTS = {
 1. kobetsu-plan-form の Skill の「確認するときの観点」に従います。
 2. 書き込まれた欄の値が、出典（発言の原文、データの値）と食い違う箇所、発言に無い内容が足されている箇所、欄どうしの食い違いを探します。
 3. 問題が無ければ issues を空にします。推測で問題を作りません。未確認の欄の一覧は、コードが別に確認するので含めません。
-4. message には数字を書かず、欄の名前で指します。民生委員が読んで分かる一文にします。
-5. 計画を変更しません。
+4. 承認済みの改善案（<approved_fixes> にあるもの）で変更した欄は、発言と違っていても誤りにしません。その欄の出典は改善案のデータです。
+5. message には数字を書かず、欄の名前で指します。民生委員が読んで分かる一文にします。
+6. 計画を変更しません。
 """ + COMMON_RULES,
 }
 
@@ -334,7 +335,13 @@ def redteam_prompt(plan: pm.Plan) -> str:
 
 def verify_prompt(plan: pm.Plan) -> str:
     view = privacy.view_for_claude(plan)
+    approved = {a["fix_id"] for a in plan.get("approvals", [])}
+    fixes = [
+        {"fix_type": f["fix_type"], "target_id": f.get("target_id"), "explanation": f.get("explanation")}
+        for f in view.get("fixes", []) if f.get("fix_id") in approved
+    ]
     return "\n".join([
         "次の計画の欄と出典を突き合わせて確認してください。",
         "<plan>" + _plan_json(view, ("alias", "fields", "supporters", "premises", "sources")) + "</plan>",
+        "<approved_fixes>" + json.dumps(fixes, ensure_ascii=False) + "</approved_fixes>",
     ])

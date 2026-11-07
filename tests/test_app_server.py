@@ -122,6 +122,11 @@ class AuthTest(ServerTestCase):
         self.assertEqual(self.request("POST", "/api/logout", {}, token=token)[0], 200)
         self.assertEqual(self.request("GET", "/api/audit", token=token)[0], 401)
 
+    def test_port_in_use_is_not_shared(self):
+        # Windows の SO_REUSEADDR で、使用中のポートに重ねて待ち受けない（要求の横取りを防ぐ）
+        with self.assertRaises(OSError):
+            server.make_server("127.0.0.1", self.port, self.state)
+
     def test_repeated_failures_are_rate_limited(self):
         state = server.AppState(PASS, {"127.0.0.1"})
         for _ in range(server.LOGIN_FAILURE_LIMIT):

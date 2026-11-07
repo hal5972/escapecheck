@@ -462,6 +462,14 @@ class Handler(BaseHTTPRequestHandler):
 
 class QuietThreadingHTTPServer(ThreadingHTTPServer):
     daemon_threads = True
+    # Windows の SO_REUSEADDR は、使用中のポートに重ねて待ち受けられてしまう（別のプログラムに要求を横取りされる）。
+    # Windows では使わず、SO_EXCLUSIVEADDRUSE で、このポートをほかのプログラムが使えないようにする
+    allow_reuse_address = sys.platform != "win32"
+
+    def server_bind(self) -> None:
+        if sys.platform == "win32" and hasattr(socket, "SO_EXCLUSIVEADDRUSE"):
+            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+        super().server_bind()
 
     def handle_error(self, request: Any, client_address: Any) -> None:
         # 相手が先に接続を切ったときのエラーは記録しない（ほかは、キーを伏せて記録する）
@@ -530,7 +538,11 @@ def main(argv: list[str] | None = None) -> int:
         if address:
             hosts.add(address)
         bind = "0.0.0.0"
-    server = make_server(bind, args.port, AppState(passphrase, hosts))
+    try:
+        server = make_server(bind, args.port, AppState(passphrase, hosts))
+    except OSError:
+        print(f"ポート {args.port} はほかのプログラムが使っています。--port で別の番号を指定してください。", flush=True)
+        return 1
 
     print("逃げ道の点検屋のサーバーを起動しました。")
     print(f"  開く: http://localhost:{args.port}/")
@@ -543,7 +555,7 @@ def main(argv: list[str] | None = None) -> int:
         print("  注意: Claude の API キーが環境変数にありません。聞き取り・点検・検証は動きません。")
     if os.environ.get("ESCAPECHECK_STUB_TOOLS") == "1":
         print("  注意: 計算はテスト用の仮の値です。画面や印刷物の数値を、実際の判断に使わないでください。")
-    print("  止める: Ctrl+C")
+    print("  止める: Ctrl+C", flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
