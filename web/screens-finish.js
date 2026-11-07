@@ -113,7 +113,7 @@
 
       if (item.type === 'consult') {
         const v = verdictView(worstResult(item.finding.result));
-        const text = `${ui.scenarioTitle(rec.plan, item.finding)}は、${v.label}${v.detail ? `（${v.detail}）` : ''}です。ご本人・ご家族・市と相談します。`;
+        const text = `${ui.scenarioTopic(rec.plan, item.finding)}は、${v.label}${v.detail ? `（${v.detail}）` : ''}です。ご本人・ご家族・市と相談します。`;
         itemSlot.append(h('div', { class: 'card item-card' },
           h('p', { class: 'strong' }, `残りの確認 ${queue.length}件`),
           ui.verdictBadge(worstResult(item.finding.result)),
@@ -128,7 +128,7 @@
 
       const issue = item.issue;
       const fieldLabel = issue.field && L.FIELDS[issue.field] ? EC.u.splitLabel(L.FIELDS[issue.field]).title : '確認';
-      const textarea = h('textarea', { class: 'textarea', id: 'answer', rows: '3', placeholder: 'ここに文字で入力できます' });
+      const textarea = h('textarea', { class: 'textarea', id: 'answer', rows: '3', maxlength: '2000', placeholder: 'ここに文字で入力できます' });
       const typedWrap = h('div', { hidden: true }, h('label', { class: 'field-label-text', for: 'answer' }, '文字で答える'), textarea);
       const transcript = h('div', { class: 'transcript' }, h('span', { class: 'placeholder' }, 'ここに、答えが文字で出ます'));
       itemSlot.append(h('div', { class: 'card item-card' },
@@ -156,7 +156,7 @@
         statusSlot.append(A.statusBox('答えを、欄に入れています'));
         refresh();
         try {
-          const res = await api.interview(rec.plan, pseudonymize(text, rec.names), 'minsei');
+          const res = await api.interview(rec.plan, pseudonymize(String(text).slice(0, 2000), rec.names), 'minsei');
           if (!scope.alive) return;
           const issues = rec.plan.issues;
           rec.plan = A.mergeGeometry(res.plan, rec.plan);

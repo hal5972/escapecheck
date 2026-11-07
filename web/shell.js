@@ -125,6 +125,12 @@
   }
 
   function openRecord(rec) {
+    // サンプルの計画は、同じ人について 1 件だけ残す（試すたびに一覧が増えないように）
+    if (rec.sample) {
+      for (const old of store.listPlans()) {
+        if (old.sample === rec.sample && old.id !== rec.id) store.deletePlan(old.id);
+      }
+    }
     state.rec = rec;
     state.facts = null;
     save();

@@ -257,6 +257,12 @@
     return L.SCENARIOS[finding.scenario_id] || finding.scenario_id;
   }
 
+  /** 「◯◯は、間に合わない」のように、文の主語に使うシナリオの呼び方。S8 は、前提条件の名前に「場合」を付ける。 */
+  function scenarioTopic(plan, finding) {
+    const title = scenarioTitle(plan, finding);
+    return finding.scenario_id === 'S8' ? `${title}場合` : title;
+  }
+
   // ---------------------------------------------------------------------------
   // 場所の事実（浸水深・津波到達時間・標高）。取得できない値は「取得できませんでした」と出す（E4）
   // ---------------------------------------------------------------------------
@@ -307,6 +313,6 @@
 
   EC.ui = {
     sourceInfo, chip, sourceDetail, valueText, isFilled, fieldRow, supporterText,
-    verdictBadge, findShelter, stallRatio, scenarioMap, confirmDialog, distanceText, factsPanel, scenarioTitle,
+    verdictBadge, findShelter, stallRatio, scenarioMap, confirmDialog, distanceText, factsPanel, scenarioTitle, scenarioTopic,
   };
 })();

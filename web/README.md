@@ -1,0 +1,122 @@
+# 画面（web/）
+
+逃げ道の点検屋の画面。HTML・CSS・JavaScript だけで作成した（ライブラリとビルドツールは使わない）。担当は C のセッション。`web/intro/`（はじめに）と `web/story/`（仕組みの説明）は D のセッションが作成する。
+
+画面の文言は [docs/glossary.md](../docs/glossary.md) に従う。画面への表示は `textContent` で行い、`innerHTML` は使わない。インラインの `<script>`・`style` 属性も使わない（CSP のため）。
+
+## 起動と確認
+
+### サーバーなし（サンプルデータで動かす）
+
+サーバー（B のセッション）ができるまでは、`web/mock/` のサンプルデータ（架空の人物）の JSON で動かす。
+
+```bash
+.venv/Scripts/python.exe -m http.server 8765 --bind 127.0.0.1 --directory web
+```
+
+ブラウザ（Chrome。スマートフォンの画面サイズ）で `http://localhost:8765/` を開く。`/api/login` に接続できないときは、自動でサンプルデータの動作になり、画面の上に「試験用: サーバー未接続」と表示する。このとき、合言葉は空でなければ何でもよい。`?mock=1` を付けると、サーバーを試さずにサンプルデータで動く。
+
+### サーバー（`app/server.py`）と動かす
+
+サーバーが `web/` を `/` で配信し、`/api/...` に答えれば、同じ画面がサーバーで動く（サンプルデータの表示は消える）。
+
+## 試験・撮影用の URL
+
+| URL | 動作 |
+|---|---|
+| `/?mock=1&autologin=1` | 合言葉を省いて、サンプルデータで開く |
+| `#/sample?id=yamada&stage=checked` | 山田さんの、点検が終わった状態の「点検」の画面を開く |
+| `#/sample?id=yamada&stage=checked&goto=fix` | 同じ状態から「改善案」の画面を開く |
+| `#/sample?id=yamada&stage=improved&goto=print` | 改善が終わった状態から「印刷」の画面を開く |
+| `?audit=1`（コンソールで `await ECAudit.runAll()`） | 主な 11 画面を順に開いて、文字の大きさ・ボタンの高さ・コントラスト・横のはみ出しを確認する（結果が空なら問題なし） |
+
+`id` は `yamada`（山田さん）、`okabayashi`（岡林さん夫婦）、`takemura`（竹村さん）。`stage` は `start`（話す手順から）、`talked`（聞き取りのあと）、`checked`（点検のあと）、`improved`（改善のあと）。`goto` は `talk`・`check`・`fix`・`verify`・`print`。
+
+## 画面の流れ（docs/03-design.md の 7.1 節）
+
+合言葉 → ホーム →（新しい人: 自宅の場所を地図で決める／サンプルデータ）→ 話す → 点検 → 改善 → 点検（もう一度）→ 確認 → 印刷
+
+- 下の大きなボタンは、1 画面で 2 つまで（話す・それでいい など）。「戻る」は画面の上に常に表示する。一覧の行と、「読み上げを止める」は、ボタンの数に含めない（高さは 64px 以上にしている）
+- 判定は色だけで伝えない。「○ 間に合う（◯分の余裕）」「△ 余裕が少ない」「× 間に合わない（◯分不足）」の印と文字を付け、タイムラインは区間ごとに模様を変えている
+- 音声入力が使えないブラウザや接続では、文字の入力欄を出す（E1）。失敗したときは「もう一度」を出し、入力した欄は消えない（E3）
+- 取得できない値は「取得できませんでした」と出し、画面は崩れない（E4）。すべてのシナリオで間に合わないときは、その旨と、印刷できることを出す（E5）
+
+## ファイル
+
+| ファイル | 内容 |
+|---|---|
+| `index.html` | 画面の枠。模様の定義（タイムライン用） |
+| `style.css`、`print.css` | 画面のスタイル（U-01: 本文 24px 以上、ボタン 64px 以上）、印刷のスタイル（A4 で 2 枚） |
+| `labels.js` | 表示名の一覧。`tools/plan_model.py` の `FIELDS`・`SCENARIOS`・`FIX_TYPES` などと同じ内容にする |
+| `util.js` | DOM の作成（`textContent` のみ）、分の表示（安全側に丸める）、判定の表示、名前の置き換え |
+| `store.js` | 端末の保存（計画・点検の前後の版・本名。`localStorage`） |
+| `speech.js` | 音声入力（Web Speech API）と音声読み上げ（`speechSynthesis`）。R-04 の表示文もここにある |
+| `map.js` | 地理院タイルを並べた地図、津波浸水想定のタイル（半透明）、自宅・避難先・経路の SVG。出典の表示 |
+| `timeline.js` | タイムライン（避難を始めるまで｜歩く｜上がる｜余裕または不足） |
+| `ui.js` | 出典のラベルと内容、項目の行、判定の表示、避難経路の地図、場所の事実、確認の表示 |
+| `api.js`、`mock-api.js` | API の呼び出し。サーバーが無いときは、`mock/` の JSON で答える |
+| `shell.js` | 画面の切り替え、下のボタン、読み上げ、保存 |
+| `screens-home.js`、`screens-talk.js`、`screens-check.js`、`screens-finish.js` | 各画面（合言葉・ホーム・サンプル・新しい人／話す／点検・改善／確認・印刷） |
+| `print.js` | 印刷用の 2 枚（市の様式、本人用の避難カード） |
+| `audit.js` | 試験用。U-01 などの確認 |
+| `mock/` | サンプルデータ（山田さん、岡林さん夫婦、竹村さん。すべて架空の人物）。数値は画面の動作の確認用のサンプルの値で、コードで算出した値ではない |
+
+## API の約束（サーバーとの接続）
+
+`api.js` の先頭にも同じ内容を記載している。計画（plan）は `tools/plan_model.py` の形で、自宅などの座標を含む。本名と電話番号は、計画にも送信する文字にも含めない（端末の中だけ。送信前に仮名に置き換える）。
+
+| メソッドとパス | 送るもの | 受け取るもの |
+|---|---|---|
+| `POST /api/login` | `{ passphrase }` | `{ token }`。以後の API には `Authorization: Bearer` を付ける。401 なら合言葉の画面にもどる |
+| `POST /api/interview` | `{ plan, utterance, speaker }` | `{ plan, next_question, changed_fields }` |
+| `POST /api/check` | `{ plan }` | `{ job_id }` |
+| `GET /api/jobs/{id}` | | `{ job_id, state, events, plan, error }`（1.2 秒ごとに問い合わせる） |
+| `POST /api/approve` | `{ plan, fix_id, by }` | `{ plan }`（計画そのものでもよい） |
+| `POST /api/verify` | `{ plan }` | `{ issues }`（配列でもよい） |
+| `POST /api/finalize` | `{ plan }` | `{ ok, reasons, plan }`。**設計の 8 節に無い。** サーバーに無い（404・405・501）ときは、未解決の項目が残っていないかを画面で確認する |
+| `POST /api/facts` | `{ plan, target: "home" }` | `{ facts, shelters, sources }`。**設計の 8 節は `GET /api/facts?target=home` だが、GET では計画（座標）を送れないため POST にした。** 失敗したときは、地図は点と線だけにする |
+
+画面が前提にしている計画の形:
+
+- `plan.home`、`plan.supporters[].location`（地図に描く）、`plan.fields.shelter.value` は `{ shelter_id, name, kind, distance_m, distance_method }`。避難先の位置は `facts.shelters[].point`
+- `findings[].explanation` と `fixes[].explanation` は、コードがプレースホルダーを埋めた文。無いときだけ、画面が `explanation_template` の `{need_min}` `{avail_min}` `{margin_min}` `{shelter_name}` `{saved_min}` を、結果の値で置き換える
+- 分の表示は安全側に丸める（不足は切り上げ、余裕は切り捨て）。画面では計算しない
+- `fixes[].fix_type` は `FIX_TYPES` にあるものだけ表示する（S-03 の二重の防止）。いまの避難先への「避難先を変更する」は出さない
+- 判定が `cannot_compute` のときは、`reason_code`（`NO_ARRIVAL_TIME`・`NO_SHELTER`・`NO_HOME`・`NO_WALK_SPEED`・`NO_SUPPORTER`）を文にする。ほかの値は「必要な値が足りません」と表示する
+
+### CSP（B のセッションが設定するヘッダー）
+
+画面は、次の CSP で動く。
+
+```
+default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' https://cyberjapandata.gsi.go.jp https://disaportaldata.gsi.go.jp; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+```
+
+`img-src` の 2 つは、地理院タイル（淡色地図）と、津波浸水想定のタイル（高知県）。地図の出典の表示（「地理院タイル」とタイル一覧へのリンク、「津波浸水想定: 高知県（ハザードマップポータルサイト）」）を、地図の下に付けている。
+
+## 要件との対応
+
+| 要件 | 画面での対応 |
+|---|---|
+| U-01〜U-05 | 24px 以上・64px 以上・2 ボタン・戻る・読み上げ（止める）・待機中の言葉。`audit.js` で確認 |
+| S-04 | 計画を扱う画面と印刷物に「この計画は話し合いのたたき台です…」を表示 |
+| S-05 | 点検のカードに、使った仮定と出典（「仮定」のラベル）を表示 |
+| S-06 | 津波到達時間と、予測の版を、点検の画面に表示（サーバーの値） |
+| R-01 | 合言葉の画面とホームに表示 |
+| R-02 | 本名は端末の中だけ。送信前に仮名（Aさん）へ置き換え、表示と印刷のときに戻す。読み上げの声がネットワークの声のときは、本名に戻さず読む |
+| R-04 | 音声入力を使うとき「音声は、文字起こしのため Google のサーバーに送信されます」を表示（Safari 系は Apple） |
+| R-05 | 「前の計画」の「消す」で、端末から削除 |
+| X-03 | すべての文字を `textContent` で表示。入力の長さの上限はサーバー側（2,000 字） |
+
+## 確認の結果と、残った課題
+
+確認した環境: Chrome（アプリ内のブラウザ）、幅 360px と 390px。サンプルデータで、全画面の動作と `audit.js`（11 画面で問題なし）、印刷（headless の Chrome で A4・2 枚）を確認した。
+
+残った課題:
+
+- 音声入力と「続けて聞く」（F-23）は、実際の声での確認が未実施（開発の環境では、マイクの許可と音声の入力ができなかった）。文字の入力欄は確認済み
+- iPhone の Safari と Android の Chrome での確認が未実施（E-01）
+- 実際のプリンターでの印刷は未確認（PDF の出力まで）
+- 経路は直線（距離は直線距離×1.3 の概算）。経路の再設定（F-19）と、土佐弁での返答（F-20）は未実装
+- サンプルの計画は、いまは `mock/` の JSON から作る。サーバー側の `data/samples/` の計画を使うときは、`EC.mock.samples.build` を差し替える
+- 音声読み上げは、端末に日本語の声が無いと動かない（画面の表示は動く）

@@ -129,26 +129,26 @@
       }));
     }
 
-    // 文字の幅の見積もり（全角は 24、半角は 13）。ラベルが地図からはみ出さないように、位置を補正する
+    // 文字の幅の見積もり（全角は 24、半角は 13）
     const textWidth = (text) => [...String(text)].reduce((w, c) => w + (c.charCodeAt(0) > 255 ? 24 : 13), 0);
 
-    function labelNode(text, x, y, pos) {
+    /** ラベルを置く位置の候補 where（r・l・t・b）から、文字の位置と、占める四角を求める。 */
+    function labelBox(text, p, where) {
       const width = textWidth(text);
-      let where = pos;
-      if (where === 'r' && x + 26 + width > W - 4) where = 'l';
-      else if (where === 'l' && x - 26 - width < 4) where = 'r';
-      const anchor = where === 'l' ? 'end' : where === 't' || where === 'b' ? 'middle' : 'start';
-      let lx = x + 26;
-      let ly = y + 8;
-      if (where === 'l') lx = x - 26;
-      if (where === 't') { lx = x; ly = y - 28; }
-      if (where === 'b') { lx = x; ly = y + 46; }
-      if (where === 't' || where === 'b') lx = Math.min(Math.max(lx, width / 2 + 4), W - width / 2 - 4);
-      return svg('text', { class: 'maplabel', x: lx, y: ly, 'text-anchor': anchor }, text);
+      let lx = p.x + 26;
+      let ly = p.y + 8;
+      let anchor = 'start';
+      if (where === 'l') { lx = p.x - 26; anchor = 'end'; }
+      if (where === 't') { lx = p.x; ly = p.y - 28; anchor = 'middle'; }
+      if (where === 'b') { lx = p.x; ly = p.y + 46; anchor = 'middle'; }
+      const x0 = anchor === 'start' ? lx : anchor === 'end' ? lx - width : lx - width / 2;
+      return { text, lx, ly, anchor, x0, x1: x0 + width, y0: ly - 22, y1: ly + 6 };
     }
 
-    function drawMarker(s) {
-      const p = project(s.at);
+    const overlaps = (a, b) => a.x0 < b.x1 + 4 && a.x1 > b.x0 - 4 && a.y0 < b.y1 + 2 && a.y1 > b.y0 - 2;
+    const inside = (b) => b.x0 >= 4 && b.x1 <= W - 4 && b.y0 >= 2 && b.y1 <= H - 2;
+
+    function drawSymbol(s, p) {
       const g = svg('g', { transform: `translate(${p.x.toFixed(1)} ${p.y.toFixed(1)})` });
       if (s.kind === 'shelter') {
         g.appendChild(svg('polygon', { points: '0,-21 20,15 -20,15', fill: '#0e5a2a', stroke: '#ffffff', 'stroke-width': 4, 'stroke-linejoin': 'round' }));
@@ -161,14 +161,37 @@
         g.appendChild(svg('circle', { r: 16, fill: '#0e2b52', stroke: '#ffffff', 'stroke-width': 4 }));
       }
       gMarks.appendChild(g);
-      if (s.label) gMarks.appendChild(labelNode(s.label, p.x, p.y, s.pos || 'r'));
+    }
+
+    /** ほかのラベルや印と重ならず、地図の中に収まる位置を、候補の順に探す。無ければ、最初の候補にする。 */
+    function drawLabel(s, p, taken) {
+      const order = [s.pos || 'r', 't', 'b', 'r', 'l'].filter((w, i, a) => a.indexOf(w) === i);
+      let chosen = null;
+      for (const where of order) {
+        const box = labelBox(s.label, p, where);
+        if (inside(box) && !taken.some((t) => overlaps(box, t))) { chosen = box; break; }
+      }
+      if (!chosen) {
+        chosen = labelBox(s.label, p, order[0]);
+        // 収まらないときは、地図の中に押し込む
+        const shift = Math.max(0, 4 - chosen.x0) - Math.max(0, chosen.x1 - (W - 4));
+        chosen.lx += shift; chosen.x0 += shift; chosen.x1 += shift;
+      }
+      taken.push(chosen);
+      gMarks.appendChild(svg('text', { class: 'maplabel', x: chosen.lx.toFixed(1), y: chosen.ly.toFixed(1), 'text-anchor': chosen.anchor }, chosen.text));
     }
 
     function renderShapes() {
       clear(gLines);
       clear(gMarks);
       for (const s of shapes) if (s.t === 'line') drawLine(s);
-      for (const s of shapes) if (s.t === 'marker') drawMarker(s);
+      const marks = shapes.filter((s) => s.t === 'marker').map((s) => ({ s, p: project(s.at) }));
+      const taken = [];
+      for (const { s, p } of marks) {
+        drawSymbol(s, p);
+        taken.push({ x0: p.x - 24, x1: p.x + 24, y0: p.y - 26, y1: p.y + 22 });
+      }
+      for (const { s, p } of marks) if (s.label) drawLabel(s, p, taken);
     }
 
     function render() {

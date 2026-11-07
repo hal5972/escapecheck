@@ -13,6 +13,8 @@
   const L = EC.L;
   const store = EC.store;
 
+  // 文字起こしの長さの上限（X-03。サーバーも 2,000 字までを受け付ける）
+  const MAX_CHARS = 2000;
   const DONE_TEXT = '聞き取りは、ひととおり終わりました。「それでいい」を押すと、点検します。';
 
   const snapshot = (plan) => {
@@ -55,7 +57,7 @@
     const transcript = h('div', { class: 'transcript', id: 'transcript', 'aria-live': 'polite' });
     const statusSlot = h('div', { class: 'status-slot' });
     const modeNote = h('p', { class: 'mode-note' });
-    const textarea = h('textarea', { class: 'textarea', id: 'typed', rows: '4', placeholder: 'ここに文字で入力できます' });
+    const textarea = h('textarea', { class: 'textarea', id: 'typed', rows: '4', maxlength: String(MAX_CHARS), placeholder: 'ここに文字で入力できます' });
     const typedWrap = h('div', { class: 'typed-wrap' },
       h('label', { class: 'field-label-text', for: 'typed' }, '文字で入力する'),
       textarea,
@@ -226,8 +228,9 @@
       startListening();
     }
 
-    async function submit(text) {
+    async function submit(raw) {
       if (working) return;
+      const text = String(raw).slice(0, MAX_CHARS);
       working = true;
       retryText = null;
       lastText = text;

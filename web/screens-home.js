@@ -89,7 +89,8 @@
       h('p', { class: 'lead' }, '下の大きなボタンから、選んでください。'),
       A.noticePrivacy());
 
-    const plans = store.listPlans();
+    const all = store.listPlans();
+    const plans = all.slice(0, 5); // 新しい順に 5 件まで
     if (plans.length) {
       A.$main.append(h('h2', null, '前の計画'));
       for (const rec of plans) {
@@ -116,7 +117,7 @@
           }, '消す'));
         A.$main.append(row);
       }
-      A.$main.append(h('p', { class: 'sub' }, '計画は、この端末の中だけに保存されています。'));
+      A.$main.append(h('p', { class: 'sub' }, `計画は、この端末の中だけに保存されています。${all.length > plans.length ? `（ほかに${all.length - plans.length}件）` : ''}`));
     }
 
     // 「はじめに」のアニメーション（別のセッションが作成する）があるときだけ、案内を出す

@@ -206,6 +206,7 @@
       if (stage === 'checked') return record;
 
       const first = plan.fixes[0];
+      if (!first) return record; // 改善案が無い計画（竹村さん）は、点検のままにする
       plan.approvals.push({ fix_id: first.fix_id, by: 'minsei', at: new Date().toISOString() });
       applyFixToPlan(plan, sample, first);
       applyApprovals(plan, sample);
@@ -283,6 +284,8 @@
       if (!fix) throw Object.assign(new Error('改善案が見つかりません'), { status: 404 });
       if (!next.approvals.some((a) => a.fix_id === fixId)) next.approvals.push({ fix_id: fixId, by: by || 'minsei', at: new Date().toISOString() });
       applyFixToPlan(next, sample, fix);
+      // 同じ種類・同じ対象の案は、反映したので、ほかの問題点の案からも外す（本物は、再点検で案を作り直す）
+      next.fixes = next.fixes.filter((f) => f.fix_id === fixId || !(f.fix_type === fix.fix_type && f.target_id === fix.target_id));
       return next;
     },
 

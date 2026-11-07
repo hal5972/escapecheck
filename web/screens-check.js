@@ -22,8 +22,11 @@
   /** 改善案。画面に出すのは、決まった種類（FIX_TYPES）だけ。承認ずみは除く。最大 3 つ。 */
   function fixesFor(plan, finding) {
     const approved = new Set((plan.approvals || []).map((a) => a.fix_id));
+    const field = plan.fields && plan.fields.shelter && plan.fields.shelter.value;
+    const currentShelter = field && typeof field === 'object' ? field.shelter_id : null;
     return (plan.fixes || [])
-      .filter((f) => f.finding_id === finding.finding_id && L.FIX_TYPES[f.fix_type] && !approved.has(f.fix_id) && f.result)
+      .filter((f) => f.finding_id === finding.finding_id && L.FIX_TYPES[f.fix_type] && !approved.has(f.fix_id) && f.result
+        && !(f.fix_type === 'CHANGE_SHELTER' && currentShelter && f.target_id === currentShelter))
       .sort((a, b) => (b.saved_min || 0) - (a.saved_min || 0))
       .slice(0, 3);
   }
@@ -51,7 +54,7 @@
 
   function shortSpeech(plan, finding) {
     const v = verdictView(worstResult(finding.result));
-    return `${ui.scenarioTitle(plan, finding)}は、${v.label}。${v.detail ? `${v.detail}。` : ''}`;
+    return `${ui.scenarioTopic(plan, finding)}は、${v.label}。${v.detail ? `${v.detail}。` : ''}`;
   }
 
   function targetName(plan, fix, facts) {
@@ -172,7 +175,7 @@
         if (willOpen && openCard && openCard !== card) openCard.setOpen(false);
         card.setOpen(willOpen);
         openCard = willOpen ? card : null;
-        if (willOpen) A.say(`${T(explanationOf(rec.plan, finding, T))}`);
+        if (willOpen) A.say(explanationOf(rec.plan, finding, T)); // 読み上げには、仮名のままの文を渡す（声の種類によって、本名に戻すかを決める）
       });
       cards.set(finding.finding_id, card);
       return card;
@@ -301,7 +304,7 @@
         h('p', { class: 'arrow' }, `↓ ${L.FIX_TYPES[fix.fix_type] || ''}`),
         h('p', { class: 'sub' }, '改善後'),
         ui.verdictBadge(worstResult(finding.result))));
-      A.say(`${ui.scenarioTitle(rec.plan, finding)}は、${bv.label}から、${av.label}になりました。${av.detail ? `${av.detail}。` : ''}`);
+      A.say(`${ui.scenarioTopic(rec.plan, finding)}は、${bv.label}から、${av.label}になりました。${av.detail ? `${av.detail}。` : ''}`);
     }
 
     // --- 点検の実行 -----------------------------------------------------------
@@ -369,7 +372,8 @@
           clear(progressSlot);
           S.cancel();
           if (recheck) showImprovement(prevFindings);
-          await showResults(true);
+          await showResults(!recheck);
+          if (recheck && scope.alive) A.$main.scrollTop = 0;
           return;
         }
         if (job.state === 'failed') {
@@ -465,7 +469,7 @@
         m.el,
         h('div', { class: 'notice' }, h('p', null, '選ぶのは、民生委員と本人です。AI は決めません。選ぶまで、計画は変わりません。')));
       A.announce(`案 ${index + 1}。${title}`);
-      A.say(`案${index + 1}。${T(fixExplanation(plan, fix, name))}。この案にすると、${afterView.text}。`);
+      A.say(`案${index + 1}。${fixExplanation(plan, fix, name)}。この案にすると、${afterView.text}。`);
       refreshActions();
     }
 
