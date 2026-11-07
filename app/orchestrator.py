@@ -42,7 +42,7 @@ class InterviewResult(TypedDict):
     plan: Plan
     next_question: str | None  # 次の追加の質問（音声読み上げする文）。すべてそろえば None
     changed_fields: list[str]
-    next_field: NotRequired[str | None]  # 次の質問で聞く欄（B が追加。画面は次の発言の asked_field に返す）
+    next_field: NotRequired[str | None]  # 次の質問で聞く欄（画面は、次の発言の asked_field に返す）
 
 
 class JobStatus(TypedDict):
