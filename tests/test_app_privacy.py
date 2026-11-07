@@ -27,6 +27,18 @@ class MaskPiiTest(unittest.TestCase):
         text = "100メートル歩くのに3分。歩行速度は0.5 m/秒。2012-12-10 の予測。"
         self.assertEqual(privacy.mask_pii(text), (text, []))
 
+    def test_keeps_long_decimals_such_as_costs(self):
+        # 監査ログの費用や計算の値（桁の多い小数）を、電話番号・座標として伏せない
+        for text in ('{"cost_usd": 0.0123456, "ms": 5132}', "速度 0.4444444 m/秒", "費用 0.0241ドル"):
+            with self.subTest(text=text):
+                self.assertEqual(privacy.mask_pii(text), (text, []))
+
+    def test_masks_japanese_coordinates(self):
+        masked, kinds = privacy.mask_pii("自宅は 33.44829, 133.43587 です")
+        self.assertEqual(kinds, ["coordinate"])
+        self.assertNotIn("44829", masked)
+        self.assertNotIn("43587", masked)
+
 
 class ViewForClaudeTest(unittest.TestCase):
     def test_removes_coordinates_and_personal_keys_everywhere(self):
