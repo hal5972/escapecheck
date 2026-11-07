@@ -195,6 +195,23 @@
       return A.say(q || DONE_TEXT);
     }
 
+    /**
+     * 答えを欄に入れたあとは、次の質問の文が全部見える位置へ移動する。読み上げる文と、見えている文を合わせる。
+     * どの欄に入ったかの結果は、質問の直前に出る。欄の一覧は、その下にある。
+     * 上から順に、「画面の先頭」「結果の行」「質問」のどこから始めれば、質問の終わりまで 1 画面に入るかを選ぶ。
+     */
+    function showQuestion() {
+      const main = A.$main;
+      const topOf = (el) => el.getBoundingClientRect().top - main.getBoundingClientRect().top + main.scrollTop;
+      const questionTop = topOf(question);
+      const questionBottom = questionTop + question.offsetHeight;
+      const resultTop = statusSlot.firstElementChild ? topOf(statusSlot.firstElementChild) : questionTop;
+      const gap = 8;
+      const start = [0, resultTop - gap, questionTop - gap].find((t) => questionBottom - t <= main.clientHeight - gap);
+      // 欄の一覧が長いので、滑らかに動かさず、読み上げが始まる前に移動する
+      main.scrollTo({ top: Math.max(0, start === undefined ? questionTop - gap : start), behavior: 'auto' });
+    }
+
     // --- 聞き取り -------------------------------------------------------------
 
     function startListening() {
@@ -270,15 +287,16 @@
         lastChanged = new Set(changed);
         clear(statusSlot);
         if (changed.length) {
+          // 結果は短くして、次の質問と一緒に見えるようにする（欄の名前は 3 つまで。全部は、下の一覧で見られる）
           const names = changed.map((k) => EC.u.splitLabel(L.FIELDS[k] || k).title);
-          statusSlot.append(A.statusBox(`${changed.length}つの欄に入りました: ${names.join('、')}`));
+          const shown = names.length > 3 ? `${names.slice(0, 3).join('、')} ほか` : names.join('、');
+          statusSlot.append(A.statusBox(`${changed.length}つの欄に入りました: ${shown}`));
         } else {
           statusSlot.append(A.statusBox('入れる欄が見つかりませんでした。もう一度、話してください。'));
         }
         renderQuestion();
         renderFields();
-        const first = fieldsList.querySelector('.field-row.changed');
-        if (first && first.scrollIntoView) first.scrollIntoView({ block: 'center', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+        showQuestion();
         working = false;
         refreshActions();
         const said = say();
