@@ -22,5 +22,6 @@ video/
 app/logs/
 eval/runs/
 
-# Claude Code の個人の設定
+# Claude Code の個人の設定と、セッションごとの作業フォルダ
 .claude/settings.local.json
+.claude/worktrees/
