@@ -9,7 +9,7 @@ Agent SDK には options の env で渡す。キーをログ・画面・例外�
 
 処理の順序（コードで固定）:
 - interview: 発言の電話番号などを伏せる → 出典リストに登録 → 聞き取りエージェント → 変わった欄をコードで求める →
-  次に聞く欄をコードで決める（エージェントの質問は、その欄についてのものだけ使う）
+  次に聞く欄と質問の文をコードで決める（質問は、確認済みの決まった文 QUESTION_TEMPLATES だけを使う）
 - check: レッドチームエージェント（前提条件の抽出 → シナリオの計算 → 問題点 → 改善案）。数値は sim が出す
 - approve: 承認を記録 → 承認の確認（hooks.check_apply_fix）→ 反映 → sim で計算し直す
 - verify: コードの点検（hooks.code_issues）→ 検証エージェント（別セッション・読み取りだけ）→ 人の確認の印を引き継いで合わせる
@@ -72,7 +72,7 @@ QUESTION_ORDER = [
     "notes",
 ]
 
-#: 聞き取りエージェントが質問を返さなかったときに使う、決まった質問
+#: 追加の質問の文（読み上げる文）。確認済みの決まった文だけを使い、聞き取りエージェントが作った文は使わない
 QUESTION_TEMPLATES = {
     "walk_speed": "100メートル歩くのに、何分くらいかかりますか。",
     "sleep_place": "夜は、何階で寝ていますか。",
@@ -143,10 +143,6 @@ def missing_fields(plan: Plan, exclude: set[str] | None = None) -> list[str]:
     return [k for k in QUESTION_ORDER if plan["fields"].get(k, {}).get("status") != "filled" and k not in exclude]
 
 
-def _valid_question(text: Any) -> bool:
-    return isinstance(text, str) and 0 < len(text.strip()) <= 120 and "{" not in text and "}" not in text
-
-
 def interview(
     plan: Plan,
     utterance: str,
@@ -176,16 +172,12 @@ def interview(
 
     session = PlanSession(plan=plan, role="interview", backend=backend())
     prompt = agents.interview_prompt(plan, source_id, text, speaker, missing_fields(plan), asked_field)
-    run = _run_agent(session, "interview", prompt)
+    _run_agent(session, "interview", prompt)
 
     changed = [k for k in pm.FIELDS if plan["fields"].get(k) != before.get(k)]
     remaining = missing_fields(plan, exclude=asked_fields(plan))
     next_field = remaining[0] if remaining else None
-    question = None
-    if next_field is not None:
-        out = run.structured if isinstance(run.structured, dict) else {}
-        proposed = out.get("next_question")
-        question = proposed if out.get("next_field") == next_field and _valid_question(proposed) else QUESTION_TEMPLATES[next_field]
+    question = QUESTION_TEMPLATES[next_field] if next_field is not None else None
     return InterviewResult(plan=plan, next_question=question, changed_fields=changed, next_field=next_field)
 
 
