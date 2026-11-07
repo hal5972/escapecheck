@@ -219,12 +219,14 @@ class PremiseTest(SimTestCase):
         result = sim.run_scenario(plan, "S8", premise_ids=[pid])
         self.assertEqual(minutes(result, "leave"), [15.0])
 
-    def test_none_means_all_registered_premises_for_s8(self):
+    def test_none_means_all_registered_premises(self):
         plan = make_plan()
         add_premise(plan, "SLEEP_UPSTAIRS", "夜は2階で寝ゆう")
         self.assertEqual(sim.run_scenario(plan, "S8")["need_min"], 31.3)
-        # S1〜S7 は、premise_ids を渡さなければ前提条件を使わない
-        self.assertEqual(sim.run_scenario(plan, "S1")["need_min"], 30.3)
+        # premise_ids を省略すると、どのシナリオでも登録済みの前提条件を使う（try_fix と同じ条件）
+        self.assertEqual(sim.run_scenario(plan, "S1")["need_min"], 33.3)
+        # 空のリストなら前提条件を使わない
+        self.assertEqual(sim.run_scenario(plan, "S1", premise_ids=[])["need_min"], 30.3)
 
     def test_premise_combined_with_s1(self):
         plan = make_plan()
