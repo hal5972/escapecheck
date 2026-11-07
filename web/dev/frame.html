@@ -1,0 +1,10 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><title>frame</title>
+<style>html,body{margin:0;background:#d8d5cb}iframe{display:block;margin:0 auto;border:0;background:#fff}</style></head>
+<body><iframe id="f" width="390"></iframe>
+<script>
+const q=new URLSearchParams(location.search);
+const f=document.getElementById('f');
+f.height=q.get('h')||'844';
+f.src='/?mock=1&autologin=1'+(q.get('x')||'')+'#'+(q.get('p')||'/home');
+</script></body></html>

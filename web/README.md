@@ -28,6 +28,7 @@
 | `#/sample?id=yamada&stage=checked` | 山田さんの、点検が終わった状態の「点検」の画面を開く |
 | `#/sample?id=yamada&stage=checked&goto=fix` | 同じ状態から「改善案」の画面を開く |
 | `#/sample?id=yamada&stage=improved&goto=print` | 改善が終わった状態から「印刷」の画面を開く |
+| `dev/frame.html?p=/sample?id=yamada&stage=checked&h=2600`（`p` の `?`・`&`・`=` は `%3F`・`%26`・`%3D` にする） | 画像を撮る用。幅 390px の枠（iframe）の中でアプリを開く。headless の Chrome は、窓の幅を 500px 未満にできないため |
 | `?audit=1`（コンソールで `await ECAudit.runAll()`） | 主な 11 画面を順に開いて、文字の大きさ・ボタンの高さ・コントラスト・横のはみ出しを確認する（結果が空なら問題なし） |
 
 `id` は `yamada`（山田さん）、`okabayashi`（岡林さん夫婦）、`takemura`（竹村さん）。`stage` は `start`（話す手順から）、`talked`（聞き取りのあと）、`checked`（点検のあと）、`improved`（改善のあと）。`goto` は `talk`・`check`・`fix`・`verify`・`print`。
