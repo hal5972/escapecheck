@@ -56,8 +56,11 @@ class AgentOptionsTest(unittest.TestCase):
             self.assertEqual(options_for("interview").skills, [])
         self.assertEqual(options_for("interview").model, "claude-sonnet-5-5")  # 切り替えが無ければ設計どおり
 
-    def test_structured_output_for_interview_and_verify(self):
-        self.assertEqual(options_for("interview").output_format["type"], "json_schema")
+    def test_structured_output_only_for_verify(self):
+        # 聞き取りエージェントは欄に書き込むだけ（追加の質問は、コードが決まった文から選ぶ）
+        self.assertIsNone(options_for("interview").output_format)
+        self.assertEqual(options_for("interview").skills, ["kobetsu-plan-form", "tosa-ben"])
+        self.assertNotIn("質問", agents.system_prompt_for("interview", agents.SKILLS["interview"]).split("手順:")[1].split("4.")[0])
         self.assertEqual(options_for("verify").output_format["type"], "json_schema")
         self.assertIsNone(options_for("redteam").output_format)
 

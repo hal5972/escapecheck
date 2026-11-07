@@ -29,11 +29,13 @@ if str(ROOT) not in sys.path:
 CASES_PATH = ROOT / "eval" / "dialect_cases" / "dialect_cases.json"
 RUNS_DIR = ROOT / "eval" / "runs"
 
-BASE_SKILLS = ["kobetsu-plan-form", "yasashii-kotoba"]
+#: v1（2026-11-07 20:04）は、聞き取りエージェントが質問の文も作っていた版で、yasashii-kotoba の Skill も使っていた。
+#: 質問を決まった文にした後は、聞き取りエージェントの Skill は kobetsu-plan-form と tosa-ben だけ
+BASE_SKILLS = ["kobetsu-plan-form"]
 VARIANTS: dict[str, tuple[str, list[str]]] = {
-    "sonnet+tosa": ("claude-sonnet-5-5", ["kobetsu-plan-form", "tosa-ben", "yasashii-kotoba"]),
+    "sonnet+tosa": ("claude-sonnet-5-5", ["kobetsu-plan-form", "tosa-ben"]),
     "sonnet": ("claude-sonnet-5-5", BASE_SKILLS),
-    "haiku+tosa": ("claude-haiku-5-5", ["kobetsu-plan-form", "tosa-ben", "yasashii-kotoba"]),
+    "haiku+tosa": ("claude-haiku-5-5", ["kobetsu-plan-form", "tosa-ben"]),
     "haiku": ("claude-haiku-5-5", BASE_SKILLS),
 }
 
