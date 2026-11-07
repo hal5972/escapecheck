@@ -2,8 +2,12 @@
 
     .venv/Scripts/python.exe eval/run_dialect_eval.py --label v1
     .venv/Scripts/python.exe eval/run_dialect_eval.py --variants sonnet+tosa,haiku+tosa --cases d01,d02
+    .venv/Scripts/python.exe eval/run_dialect_eval.py --dataset asr --variants sonnet+tosa --repeat 2
 
 - 評価データセット: eval/dialect_cases/dialect_cases.json（15件。デモ用の架空の人物だけ。地元の話者の確認前）
+- --dataset asr: eval/dialect_cases/asr_cases.json（合成音声の答えを、アプリの音声入力で聞き取った文字起こしそのまま。
+  アプリと同じく、前に聞いた質問の欄（asked_field）も渡す）
+- --repeat: 同じ例を N 回ずつ実行する（モデルの答えの揺れを見る）
 - 1件ごとに、空の計画に発言を1つ渡し（POST /api/interview と同じ処理）、記入された欄を正解と比べる。判定はコードで行う
 - 欄の正答率 = 正しかった確認の数 ÷ 確認の数。確認は「正解の欄」と「話していないので未確認のままの欄」の両方
 - 計算（hazard・sim）は使わないので、既定でテスト用の仮の値（app/stub_backend.py）にする
@@ -27,6 +31,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 CASES_PATH = ROOT / "eval" / "dialect_cases" / "dialect_cases.json"
+DATASETS = {"dialect": CASES_PATH, "asr": ROOT / "eval" / "dialect_cases" / "asr_cases.json"}
 RUNS_DIR = ROOT / "eval" / "runs"
 
 #: v1（2026-11-07 20:04）は、聞き取りエージェントが質問の文も作っていた版で、yasashii-kotoba の Skill も使っていた。
@@ -110,7 +115,7 @@ def run_variant(name: str, cases: list[dict]) -> dict:
             started = time.monotonic()
             error = None
             try:
-                orchestrator.interview(plan, case["text"], case.get("speaker", "minsei"))
+                orchestrator.interview(plan, case["text"], case.get("speaker", "minsei"), asked_field=case.get("asked_field"))
             except Exception as exc:  # noqa: BLE001  1件の失敗で全体を止めない
                 error = f"{type(exc).__name__}: {exc}"
             seconds = round(time.monotonic() - started, 1)
@@ -164,13 +169,16 @@ def main() -> int:
     parser.add_argument("--cases", default=None, help="例: d01,d02")
     parser.add_argument("--real-tools", action="store_true", help="計算を tools/ の実装で行う（既定はテスト用の仮の値）")
     parser.add_argument("--rescore", default=None, help="記録した実行（eval/runs/ の JSON）を、今の規則で判定し直す")
+    parser.add_argument("--dataset", choices=sorted(DATASETS), default="dialect", help="評価データセット")
+    parser.add_argument("--repeat", type=int, default=1, help="同じ例を N 回ずつ実行する")
     args = parser.parse_args()
 
-    data = json.loads(CASES_PATH.read_text(encoding="utf-8"))
+    data = json.loads(DATASETS[args.dataset].read_text(encoding="utf-8"))
     cases = data["cases"]
     if args.cases:
         wanted = set(args.cases.split(","))
         cases = [c for c in cases if c["case_id"] in wanted]
+    cases = [c for c in cases for _ in range(max(args.repeat, 1))]
     if args.rescore:
         recorded = json.loads(Path(args.rescore).read_text(encoding="utf-8"))
         results = rescore(recorded, data["cases"])
@@ -195,9 +203,9 @@ def main() -> int:
         print(f"- {r['variant']} の誤り: {', '.join(misses) or 'なし'}")
 
     RUNS_DIR.mkdir(parents=True, exist_ok=True)
-    out = RUNS_DIR / f"{datetime.now().strftime('%Y%m%d-%H%M%S')}-dialect-{args.label}.json"
-    out.write_text(json.dumps({"label": args.label, "status": data["status"], "results": results}, ensure_ascii=False,
-                              indent=1, default=str), encoding="utf-8")
+    out = RUNS_DIR / f"{datetime.now().strftime('%Y%m%d-%H%M%S')}-{args.dataset}-{args.label}.json"
+    out.write_text(json.dumps({"label": args.label, "dataset": args.dataset, "repeat": args.repeat, "status": data["status"],
+                               "results": results}, ensure_ascii=False, indent=1, default=str), encoding="utf-8")
     print(f"\n記録: {out}")
     return 0
 

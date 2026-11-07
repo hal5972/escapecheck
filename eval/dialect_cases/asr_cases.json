@@ -1,0 +1,58 @@
+{
+ "about": "音声認識の文字起こしの評価データセット。合成音声（架空の民生委員の土佐弁の答え）をアプリの音声入力（Chrome の音声認識）で聞き取った文字起こしを、そのまま使う。人名はアプリと同じく仮名（Aさん、Bさん）にした。デモ用の架空の人物だけで、実在の人物とは関係ない",
+ "status": "2026-11-08 02:35〜02:38 の試験の文字起こし（4件）。正解は、評価を実行する前に決めて固定した（2026-11-08 02:55）",
+ "rules": {
+  "expect": "dialect_cases.json と同じ",
+  "unfilled": "文字起こしで語が消えたため、推測でしか埋められない欄。未確認のままでなければ誤り",
+  "asked_field": "アプリがその前に聞いた質問の欄（アプリと同じく、聞き取りエージェントに渡す）"
+ },
+ "cases": [
+  {
+   "case_id": "a01",
+   "speaker": "minsei",
+   "point": "台本「Aさんは一人暮らしで、杖ついちゅう。夜は1階の奥の部屋で寝ゆう。耳が遠うて、放送は聞こえんがよ。息子さんは高知市で働きゆう。隣のBさんと仲がええき、よう声かけてくれゆう。」。杖ついちゅう→ついつい中（杖が消えた）、寝ゆう→寝よう、遠うて→通って、がよ→だよ、働きゆう→働きう、ええき→ええ 駅、くれゆう→くれよ",
+   "text": "Aさんは一人暮らしでついつい中 夜は1階の奥の部屋で寝よう 耳が通って放送は聞こえんだよ 息子さんは高知市で働きう 隣のBさんと仲がええ 駅よう声かけてくれよ",
+   "expect": {
+    "household": {"any": ["一人"]},
+    "sleep_place": {"any": ["1階", "一階"]},
+    "hearing_and_sight": {"any": ["聞こえな", "聞こえん"]},
+    "supporters": {"any": ["Bさん", "隣"]},
+    "support_method": {"any": ["声"]},
+    "notes": {"any": ["息子"]}
+   },
+   "unfilled": ["mobility"]
+  },
+  {
+   "case_id": "a02",
+   "speaker": "minsei",
+   "asked_field": "walk_speed",
+   "point": "台本「100メートルを歩くのに、3分くらいかかるのう。」。のう→の",
+   "text": "100m を歩くのに3分くらいかかるの",
+   "expect": {
+    "walk_speed": {"meters": 100, "minutes": 3}
+   }
+  },
+  {
+   "case_id": "a03",
+   "speaker": "minsei",
+   "asked_field": "time_to_leave_night",
+   "point": "台本「夜は、着替えて出るまで10分くらいかかるのう。」。のう→の",
+   "text": "夜は着替えて出るまで10分くらいかかるの",
+   "expect": {
+    "time_to_leave_night": {"minutes": 10}
+   },
+   "unfilled": ["time_to_leave_day"]
+  },
+  {
+   "case_id": "a04",
+   "speaker": "minsei",
+   "asked_field": "time_to_leave_day",
+   "point": "台本「昼間は、5分くらいで出れるき。」。き（から）→気",
+   "text": "昼間は5分くらいで出れる気",
+   "expect": {
+    "time_to_leave_day": {"minutes": 5}
+   },
+   "unfilled": ["time_to_leave_night"]
+  }
+ ]
+}

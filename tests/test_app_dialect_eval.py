@@ -84,6 +84,22 @@ class DatasetTest(unittest.TestCase):
                 for rule in case["expect"].values():
                     self.assertTrue(rule.get("any") or "meters" in rule or "minutes" in rule)
 
+    def test_speech_recognition_cases_are_pseudonymized_and_valid(self):
+        data = json.loads(dialect.DATASETS["asr"].read_text(encoding="utf-8"))
+        cases = data["cases"]
+        self.assertTrue(cases)
+        self.assertEqual(len({c["case_id"] for c in cases}), len(cases))
+        for case in cases:
+            with self.subTest(case=case["case_id"]):
+                self.assertTrue(case["expect"])
+                self.assertTrue(set(case["expect"]) | set(case.get("unfilled", [])) <= set(pm.FIELDS))
+                self.assertFalse(set(case["expect"]) & set(case.get("unfilled", [])))
+                if "asked_field" in case:
+                    self.assertIn(case["asked_field"], pm.FIELDS)
+                # アプリと同じく、人名は仮名にしてある（サンプルの人名を送らない）
+                for name in ("山田", "西村"):
+                    self.assertNotIn(name, case["text"])
+
     def test_variants_compare_models_and_tosa_skill(self):
         self.assertEqual(len(dialect.VARIANTS), 4)
         with_skill = [name for name, (_, skills) in dialect.VARIANTS.items() if "tosa-ben" in skills]
