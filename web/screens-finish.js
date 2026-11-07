@@ -23,6 +23,7 @@
     if (!rec) { A.go('home', {}, { replace: true }); return; }
     A.state.rec = rec;
     A.setBack('check');
+    A.setStage(4);
     const T = A.T;
 
     const statusSlot = h('div');
@@ -112,7 +113,8 @@
       const agentOpen = agentIssues.filter((i) => !i.acknowledged);
 
       const row = (ok, text) => h('li', { class: ok ? 'is-ok' : 'is-open' },
-        h('span', { class: 'mark', 'aria-hidden': 'true' }, ok ? '○' : '△'), h('span', null, text));
+        h('span', { class: 'mark', 'aria-hidden': 'true' }, EC.verdictIcon(ok ? 'ok' : 'tight', 22), h('span', { class: 'mark-char' }, ok ? '○' : '△')),
+        h('span', null, text));
       listSlot.append(h('h2', null, '確認の結果'), h('ul', { class: 'check-list' },
         row(noSource.length === 0, noSource.length === 0 ? `すべての欄に出典があります（${filled.length}欄）` : `出典がない欄が${noSource.length}つあります`),
         row(unconfirmed.length === 0, unconfirmed.length === 0 ? '未確認の欄は、ありません' : `未確認の欄: ${unconfirmed.length}つ（印刷には「未確認」と出ます）`),
@@ -146,7 +148,7 @@
           h('p', { class: 'explain' }, text)));
         A.say(text);
         A.setActions([{
-          id: 'consult', kind: 'primary', label: '相談することにする',
+          id: 'consult', kind: 'primary', icon: 'check', label: '相談することにする',
           onClick: () => { acknowledge(item.id, { message: text, resolution: 'consult' }); showItem(); },
         }]);
         return;
@@ -163,8 +165,8 @@
         A.say(issue.message);
         A.setActions([
           fixTarget
-            ? { id: 'fix', kind: 'primary', label: '避難先を変える案を見る', onClick: () => A.go('fix', { finding: fixTarget.finding_id }) }
-            : { id: 'check', kind: 'primary', label: '点検の画面へ', onClick: () => A.go('check') },
+            ? { id: 'fix', kind: 'primary', icon: 'trend', label: '避難先を変える案を見る', onClick: () => A.go('fix', { finding: fixTarget.finding_id }) }
+            : { id: 'check', kind: 'primary', icon: 'clipboard', label: '点検の画面へ', onClick: () => A.go('check') },
           { id: 'consult', label: '本人・家族と相談する', onClick: () => { acknowledge(item.id, { resolution: 'consult' }); showItem(); } },
         ]);
         return;
@@ -189,10 +191,10 @@
       typedWrap.hidden = !typedMode();
 
       const refresh = () => {
-        const talk = { id: 'answer-btn', kind: 'primary', label: '話して答える', onClick: onTalk };
-        if (working) { talk.label = '欄に入れています'; talk.disabled = true; }
+        const talk = { id: 'answer-btn', kind: 'primary', icon: 'mic', label: '話して答える', onClick: onTalk };
+        if (working) { talk.label = '欄に入れています'; talk.disabled = true; talk.icon = null; }
         else if (listening) { talk.label = '止める'; talk.listening = true; }
-        else if (typedMode()) talk.label = '送る';
+        else if (typedMode()) { talk.label = '送る'; talk.icon = 'send'; }
         A.setActions([talk, {
           id: 'skip', label: filledNow ? 'このままにする' : '未確認のまま', disabled: working,
           onClick: () => { acknowledge(item.id, { resolution: filledNow ? 'kept' : 'unconfirmed' }); showItem(); },
@@ -202,7 +204,7 @@
       const submit = async (text) => {
         working = true;
         clear(statusSlot);
-        statusSlot.append(A.statusBox('答えを、欄に入れています'));
+        statusSlot.append(A.statusBox('答えを、欄に入れています', 'busy'));
         refresh();
         try {
           const res = await api.interview(rec.plan, pseudonymize(String(text).slice(0, 2000), rec.names), 'minsei', issue.field);
@@ -257,7 +259,7 @@
       clear(itemSlot);
       renderChecklist();
       clear(statusSlot);
-      statusSlot.append(A.statusBox('完成にできるか、確認しています'));
+      statusSlot.append(A.statusBox('完成にできるか、確認しています', 'busy'));
       A.setActions([{ id: 'wait', kind: 'primary', label: '確認しています', disabled: true }]);
       try {
         const res = await api.finalize(rec.plan);
@@ -271,10 +273,10 @@
             h('p', { class: 'strong' }, '確認が終わりました。'),
             h('p', null, '計画を完成にしました。市に出す様式と、本人用の避難カードを印刷できます。')));
           A.say('確認が終わりました。印刷できます。');
-          A.setActions([{ id: 'print', kind: 'confirm', label: '印刷へ進む', onClick: () => A.go('print') }]);
+          A.setActions([{ id: 'print', kind: 'confirm', icon: 'print', label: '印刷へ進む', onClick: () => A.go('print') }]);
         } else {
           statusSlot.append(A.errorBox(`まだ完成にできません: ${(res.reasons || []).map(T).join('、') || '確認の残りがあります'}`));
-          A.setActions([{ id: 'again', kind: 'primary', label: 'もう一度確認する', onClick: () => start() }]);
+          A.setActions([{ id: 'again', kind: 'primary', icon: 'swap', label: 'もう一度確認する', onClick: () => start() }]);
         }
       } catch (e) {
         if (!scope.alive) return;
@@ -286,7 +288,7 @@
 
     async function start() {
       clear(statusSlot);
-      statusSlot.append(A.statusBox('検証エージェントが、欄の内容とお話が合っているか確認しています'));
+      statusSlot.append(A.statusBox('検証エージェントが、欄の内容とお話が合っているか確認しています', 'busy'));
       A.announce('確認しています');
       A.setActions([{ id: 'wait', kind: 'primary', label: '確認しています', disabled: true }]);
       try {
@@ -315,6 +317,7 @@
     if (!rec) { A.go('home', {}, { replace: true }); return; }
     A.state.rec = rec;
     A.setBack('verify');
+    A.setStage(5);
     const T = A.T;
 
     const slot = h('div', { class: 'sheets-slot' });
@@ -333,8 +336,8 @@
     })();
 
     A.setActions([
-      { id: 'print', kind: 'primary', label: '印刷する', onClick: () => window.print() },
-      { id: 'home', label: 'ホームに戻る', onClick: () => A.go('home') },
+      { id: 'print', kind: 'primary', icon: 'print', label: '印刷する', onClick: () => window.print() },
+      { id: 'home', label: 'ホームに戻る', icon: 'home', onClick: () => A.go('home') },
     ]);
   });
 

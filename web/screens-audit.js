@@ -88,9 +88,9 @@
     const deny = kind === 'stop';
     const who = AGENTS[entry.agent] || (entry.agent ? String(entry.agent) : '');
     const what = TOOLS[entry.tool] || (entry.tool ? String(entry.tool) : '');
-    return h('div', { class: `audit-entry${deny ? ' is-deny' : ''}` },
+    return h('div', { class: `audit-entry${deny ? ' is-deny' : ''}${kind === 'fail' ? ' is-fail' : ''}` },
       h('p', { class: 'audit-head' },
-        h('span', { class: 'mark', 'aria-hidden': 'true' }, deny ? '×' : (kind === 'fail' ? '△' : '○')),
+        h('span', { class: 'mark', 'aria-hidden': 'true' }, EC.icon(deny ? 'cross' : (kind === 'fail' ? 'exclam' : 'check'), { size: 20, stroke: 3 })),
         h('span', null, DECISIONS[kind]),
         h('span', { class: 'audit-time' }, clock(entry.at))),
       h('p', null, `${who}　${what}${targetText(entry)}`),
@@ -146,7 +146,7 @@
 
     async function load() {
       clear(statusSlot);
-      statusSlot.append(A.statusBox('記録を読み込んでいます'));
+      statusSlot.append(A.statusBox('記録を読み込んでいます', 'busy'));
       A.setActions([{ id: 'reload', kind: 'primary', label: '読み込んでいます', disabled: true }]);
       try {
         entries = await api.audit(rec.plan.plan_id);
@@ -158,7 +158,7 @@
         clear(statusSlot);
         statusSlot.append(A.errorBox(A.errorText(e)));
       }
-      A.setActions([{ id: 'reload', kind: 'primary', label: '記録を読み込み直す', onClick: load }]);
+      A.setActions([{ id: 'reload', kind: 'primary', icon: 'swap', label: '記録を読み込み直す', onClick: load }]);
     }
 
     load();

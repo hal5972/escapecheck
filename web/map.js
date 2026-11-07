@@ -111,10 +111,10 @@
     // --- 経路と印 ------------------------------------------------------------
 
     const LINE_STYLE = {
-      good: { color: '#0e5a2a', width: 8, dash: null },
-      stall: { color: '#b3261e', width: 8, dash: '16 9' },
-      plain: { color: '#0a4a98', width: 8, dash: null },
-      old: { color: '#4b5563', width: 6, dash: '3 10' },
+      good: { color: '#1b7d46', width: 8, dash: null },
+      stall: { color: '#c62a1f', width: 8, dash: '16 9' },
+      plain: { color: '#21478a', width: 8, dash: null },
+      old: { color: '#5d667b', width: 6, dash: '3 10' },
     };
 
     function drawLine(s) {
@@ -151,14 +151,14 @@
     function drawSymbol(s, p) {
       const g = svg('g', { transform: `translate(${p.x.toFixed(1)} ${p.y.toFixed(1)})` });
       if (s.kind === 'shelter') {
-        g.appendChild(svg('polygon', { points: '0,-21 20,15 -20,15', fill: '#0e5a2a', stroke: '#ffffff', 'stroke-width': 4, 'stroke-linejoin': 'round' }));
+        g.appendChild(svg('polygon', { points: '0,-21 20,15 -20,15', fill: '#1b7d46', stroke: '#ffffff', 'stroke-width': 4, 'stroke-linejoin': 'round' }));
       } else if (s.kind === 'supporter') {
-        g.appendChild(svg('polygon', { points: '0,-19 17,0 0,19 -17,0', fill: '#6b2c91', stroke: '#ffffff', 'stroke-width': 4, 'stroke-linejoin': 'round' }));
+        g.appendChild(svg('polygon', { points: '0,-19 17,0 0,19 -17,0', fill: '#5b3a8c', stroke: '#ffffff', 'stroke-width': 4, 'stroke-linejoin': 'round' }));
       } else if (s.kind === 'stop') {
-        g.appendChild(svg('circle', { r: 18, fill: '#b3261e', stroke: '#ffffff', 'stroke-width': 4 }));
+        g.appendChild(svg('circle', { r: 18, fill: '#c62a1f', stroke: '#ffffff', 'stroke-width': 4 }));
         g.appendChild(svg('path', { d: 'M-8 -8 L8 8 M8 -8 L-8 8', stroke: '#ffffff', 'stroke-width': 5, 'stroke-linecap': 'round' }));
       } else {
-        g.appendChild(svg('circle', { r: 16, fill: '#0e2b52', stroke: '#ffffff', 'stroke-width': 4 }));
+        g.appendChild(svg('circle', { r: 16, fill: '#13294f', stroke: '#ffffff', 'stroke-width': 4 }));
       }
       gMarks.appendChild(g);
     }

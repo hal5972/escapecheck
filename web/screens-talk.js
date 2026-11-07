@@ -29,6 +29,7 @@
     if (!rec) { A.go('home', {}, { replace: true }); return; }
     A.state.rec = rec;
     A.setBack('home');
+    A.setStage(1);
     const T = A.T;
 
     let listening = null;
@@ -50,11 +51,16 @@
 
     const person = (rec.names || []).find((n) => n.role === 'person');
     const personBar = h('div', { class: 'person-bar' },
-      h('span', { class: 'person-name' }, (person && person.call) || rec.title || rec.plan.alias),
-      rec.sample ? h('span', { class: 'sub' }, 'デモ用の架空の人物') : null,
-      h('span', { class: 'progress-pill', id: 'progress' }));
+      h('span', { class: 'person-avatar', 'aria-hidden': 'true' }, EC.icon('person', { size: 26 })),
+      h('div', { class: 'person-text' },
+        h('span', { class: 'person-name' }, (person && person.call) || rec.title || rec.plan.alias),
+        rec.sample ? h('span', { class: 'sub' }, 'デモ用の架空の人物') : null),
+      h('div', { class: 'progress-wrap' },
+        h('span', { class: 'progress-pill', id: 'progress' }),
+        h('span', { class: 'meter', 'aria-hidden': 'true' }, h('span', { class: 'meter-fill', id: 'meter-fill' }))));
 
-    const questionTag = h('span', { class: 'question-tag' }, '最初の質問');
+    const questionTagText = h('span', null, '最初の質問');
+    const questionTag = h('span', { class: 'question-tag' }, EC.icon('speaker', { size: 26 }), questionTagText);
     const questionText = h('span', { class: 'question-text' });
     const question = h('button', { type: 'button', class: 'question-box', 'aria-describedby': 'question-hint', onclick: () => say() },
       questionTag, questionText, h('span', { class: 'question-hint', id: 'question-hint' }, '押すと、もう一度読みます'));
@@ -98,7 +104,7 @@
     function renderQuestion() {
       const q = currentQuestion();
       const anyFilled = Object.values(rec.plan.fields || {}).some((f) => ui.isFilled(f));
-      questionTag.textContent = q ? (anyFilled ? '追加の質問' : '最初の質問') : '聞き取りの状況';
+      questionTagText.textContent = q ? (anyFilled ? '追加の質問' : '最初の質問') : '聞き取りの状況';
       questionText.textContent = q ? T(q) : DONE_TEXT;
     }
 
@@ -131,6 +137,8 @@
       const total = Object.keys(L.FIELDS).length;
       const pill = A.$main.querySelector('#progress');
       if (pill) pill.textContent = `埋まった欄 ${filled}／${total}`;
+      const fill = A.$main.querySelector('#meter-fill');
+      if (fill) fill.style.width = `${total ? Math.round((filled / total) * 100) : 0}%`;
 
       // 自宅の場所（地図で指定）
       if (plan.home && plan.sources && plan.sources.src_home) {
@@ -181,12 +189,15 @@
     }
 
     function refreshActions() {
-      const talkAction = { id: 'talk', kind: 'primary', label: '話す', onClick: onTalk };
-      if (working) { talkAction.label = '欄に入れています'; talkAction.disabled = true; }
-      else if (retryText !== null) { talkAction.label = 'もう一度'; talkAction.onClick = () => submit(retryText); }
+      // 聞き取りが終わったあとは、先へ進む「それでいい」を主なボタンにする（話している間は、話すボタンが主）
+      const finished = !currentQuestion();
+      const talkMain = !finished || Boolean(listening) || working || retryText !== null;
+      const talkAction = { id: 'talk', kind: talkMain ? 'primary' : undefined, icon: 'mic', label: '話す', onClick: onTalk };
+      if (working) { talkAction.label = '欄に入れています'; talkAction.disabled = true; talkAction.icon = null; }
+      else if (retryText !== null) { talkAction.label = 'もう一度'; talkAction.icon = 'swap'; talkAction.onClick = () => submit(retryText); }
       else if (listening) { talkAction.label = '止める'; talkAction.listening = true; }
-      else if (typedMode()) { talkAction.label = '送る'; }
-      A.setActions([talkAction, { id: 'ok', kind: 'confirm', label: 'それでいい', disabled: working, onClick: () => A.go('check') }]);
+      else if (typedMode()) { talkAction.label = '送る'; talkAction.icon = 'send'; }
+      A.setActions([talkAction, { id: 'ok', kind: talkMain ? undefined : 'primary', icon: 'check', label: 'それでいい', disabled: working, onClick: () => A.go('check') }]);
     }
 
     /** いまの質問を読み上げる（合成音声のファイルがあれば、それを再生する）。 */
@@ -271,7 +282,7 @@
       lastText = text;
       renderTranscript(text, '');
       clear(statusSlot);
-      statusSlot.append(A.statusBox('お話を、欄に入れています'));
+      statusSlot.append(A.statusBox('お話を、欄に入れています', 'busy'));
       A.announce('お話を、欄に入れています');
       refreshActions();
       const before = snapshot(rec.plan);
@@ -290,7 +301,7 @@
           // 結果は短くして、次の質問と一緒に見えるようにする（欄の名前は 3 つまで。全部は、下の一覧で見られる）
           const names = changed.map((k) => EC.u.splitLabel(L.FIELDS[k] || k).title);
           const shown = names.length > 3 ? `${names.slice(0, 3).join('、')} ほか` : names.join('、');
-          statusSlot.append(A.statusBox(`${changed.length}つの欄に入りました: ${shown}`));
+          statusSlot.append(A.statusBox(`${changed.length}つの欄に入りました: ${shown}`, 'done'));
         } else {
           statusSlot.append(A.statusBox('入れる欄が見つかりませんでした。もう一度、話してください。'));
         }

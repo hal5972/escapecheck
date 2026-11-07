@@ -149,7 +149,7 @@
     const plan = rec.plan;
     const T = ctx.T;
     const sheet = h('section', { class: 'sheet sheet-card' },
-      h('div', { class: 'card-banner' }, '揺れたら、すぐ避難'),
+      h('div', { class: 'card-banner' }, EC.icon('triangle', { size: 36 }), h('span', null, '揺れたら、すぐ避難')),
       h('h2', { class: 'sheet-title card-name' }, `${callName(rec)}の避難カード`),
       h('p', { class: 'sub screen-only' }, '2枚目: 本人用。A4・1枚。冷蔵庫などに貼ります。'));
 
@@ -183,7 +183,7 @@
         h('p', { class: 'big-line' }, `避難所要時間: ${isNum(worst.result.need_min) ? `${ceilMin(worst.result.need_min)}分` : '不明'}`),
         h('p', { class: 'big-line' }, `津波到達時間: ${isNum(worst.result.avail_min) ? `${floorMin(worst.result.avail_min)}分` : '不明'}`),
         h('div', { class: `verdict verdict-${v.key}` },
-          h('span', { class: 'mark', 'aria-hidden': 'true' }, v.mark),
+          h('span', { class: 'mark', 'aria-hidden': 'true' }, EC.verdictIcon(v.key, 26), h('span', { class: 'mark-char' }, v.mark)),
           h('span', { class: 'vtext' }, v.text)),
         h('p', { class: 'sub' }, `いちばん厳しい場合の時間です。条件: ${EC.ui.scenarioTitle(plan, worst)}`));
       const open = (plan.findings || []).filter((f) => ['short', 'unknown'].includes(verdictView(EC.u.findingResult(plan, f)).key));

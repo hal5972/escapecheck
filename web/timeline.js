@@ -33,7 +33,7 @@
   /** 一覧の記号（小さな四角）。タイムラインと同じ模様を使う。 */
   function swatch(fill) {
     return svg('svg', { class: 'tl-swatch', width: 36, height: 28, viewBox: '0 0 36 28', 'aria-hidden': 'true', focusable: 'false' },
-      svg('rect', { x: 1.5, y: 1.5, width: 33, height: 25, rx: 4, fill, stroke: '#12161c', 'stroke-width': 2 }));
+      svg('rect', { x: 1.5, y: 1.5, width: 33, height: 25, rx: 4, fill, stroke: '#0d1b36', 'stroke-width': 2 }));
   }
 
   /**
@@ -63,7 +63,7 @@
     segs.forEach((seg) => {
       const x = xOf(acc);
       const w = seg.minutes * k;
-      g.appendChild(svg('rect', { x: x.toFixed(1), y: BAR_Y, width: w.toFixed(1), height: BAR_H, fill: FILL[seg.key] || FILL.walk, stroke: '#12161c', 'stroke-width': 2 }));
+      g.appendChild(svg('rect', { x: x.toFixed(1), y: BAR_Y, width: w.toFixed(1), height: BAR_H, fill: FILL[seg.key] || FILL.walk, stroke: '#0d1b36', 'stroke-width': 2 }));
       labels.push({ x, w, text: `${Math.round(seg.minutes)}` });
       acc += seg.minutes;
     });
@@ -75,19 +75,19 @@
       let lineBottom = BAR_Y + BAR_H + 10;
       if (drawn > avail) {
         // 津波が来たあとの区間: 赤い太い枠で囲み、下に赤い斜線の帯を付ける（区間の模様は隠さない）
-        g.appendChild(svg('rect', { x: xLine.toFixed(1), y: BAR_Y - 3, width: (xEnd - xLine).toFixed(1), height: BAR_H + 6, fill: 'none', stroke: '#9b1111', 'stroke-width': 4 }));
-        g.appendChild(svg('rect', { x: xLine.toFixed(1), y: BAR_Y + BAR_H + 9, width: (xEnd - xLine).toFixed(1), height: 14, fill: 'url(#ec-pat-short)', stroke: '#9b1111', 'stroke-width': 2 }));
+        g.appendChild(svg('rect', { x: xLine.toFixed(1), y: BAR_Y - 3, width: (xEnd - xLine).toFixed(1), height: BAR_H + 6, fill: 'none', stroke: '#a31d14', 'stroke-width': 4 }));
+        g.appendChild(svg('rect', { x: xLine.toFixed(1), y: BAR_Y + BAR_H + 9, width: (xEnd - xLine).toFixed(1), height: 14, fill: 'url(#ec-pat-short)', stroke: '#a31d14', 'stroke-width': 2 }));
         lineBottom = BAR_Y + BAR_H + 26;
       } else {
         const gap = xLine - xEnd;
         if (gap > 0.5) {
-          g.appendChild(svg('rect', { x: xEnd.toFixed(1), y: BAR_Y, width: gap.toFixed(1), height: BAR_H, fill: view.key === 'tight' ? 'url(#ec-pat-tight)' : 'url(#ec-pat-margin)', stroke: view.key === 'tight' ? '#5e3c00' : '#0e5a2a', 'stroke-width': 3 }));
+          g.appendChild(svg('rect', { x: xEnd.toFixed(1), y: BAR_Y, width: gap.toFixed(1), height: BAR_H, fill: view.key === 'tight' ? 'url(#ec-pat-tight)' : 'url(#ec-pat-margin)', stroke: view.key === 'tight' ? '#8a6400' : '#1b7d46', 'stroke-width': 3 }));
         }
       }
 
       // 津波到達時間の縦の線と名前
       const labelX = Math.min(Math.max(xLine, PAD + 76), W - PAD - 76);
-      g.appendChild(svg('line', { x1: xLine.toFixed(1), x2: xLine.toFixed(1), y1: 34, y2: lineBottom, stroke: '#12161c', 'stroke-width': 4 }));
+      g.appendChild(svg('line', { x1: xLine.toFixed(1), x2: xLine.toFixed(1), y1: 34, y2: lineBottom, stroke: '#0d1b36', 'stroke-width': 4 }));
       g.appendChild(svg('text', { class: 'tl-line-label', x: labelX.toFixed(1), y: 26, 'text-anchor': 'middle' }, `津波 ${floorMin(avail)}分`));
 
       // 余裕・不足の文字

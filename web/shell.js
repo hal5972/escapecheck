@@ -11,10 +11,18 @@
 
   const $main = document.getElementById('main');
   const $actions = document.getElementById('actions');
+  const $topbar = document.getElementById('topbar');
   const $back = document.getElementById('btn-back');
   const $stop = document.getElementById('btn-voice-stop');
+  const $brand = document.getElementById('brand');
+  const $stepper = document.getElementById('stepper');
   const $banner = document.getElementById('banner');
   const $live = document.getElementById('live');
+
+  // 上の帯の印（自作の SVG）
+  $back.prepend(EC.icon('chevron-left', { size: 30, stroke: 3 }));
+  $stop.prepend(EC.icon('speaker', { size: 28 }));
+  $brand.prepend(EC.brandMark({ size: 40, onDark: true }));
 
   const state = {
     rec: null, // いま開いている計画の記録 { id, plan, names, versions, sample, ... }
@@ -57,7 +65,10 @@
     return S.speak(S.usesRemoteVoice() ? rawText : shown, { clipText: shown });
   }
 
-  S.onSpeakingChange((speaking) => { $stop.hidden = !speaking; });
+  S.onSpeakingChange((speaking) => {
+    $stop.hidden = !speaking;
+    $topbar.classList.toggle('is-speaking', speaking); // 止めるボタンの場所を空けるため、ロゴは隠す
+  });
   $stop.addEventListener('click', () => S.cancel());
 
   function announce(text) {
@@ -85,7 +96,24 @@
 
   function setBack(target, params) {
     backTarget = target ? { name: target, params } : null;
-    $back.setAttribute('aria-disabled', backTarget ? 'false' : 'true');
+    // 戻る先が無い画面（合言葉・ホーム）は、上の帯を出さない。ロゴは、画面の本文の先頭に出す
+    $back.hidden = !backTarget;
+    $topbar.classList.toggle('is-home', !backTarget);
+  }
+
+  /**
+   * 段階の表示（話す → 点検 → 改善 → 確認 → 完成）。1〜5 でその段階を示し、前の段階には ✓ が付く。0 で隠す。
+   * 各画面が、自分の段階を伝える。
+   */
+  function setStage(step) {
+    const n = step || 0;
+    $stepper.hidden = !n;
+    $stepper.querySelectorAll('li').forEach((li, i) => {
+      li.classList.toggle('is-done', n > i + 1);
+      li.classList.toggle('is-current', n === i + 1);
+      if (n === i + 1) li.setAttribute('aria-current', 'step');
+      else li.removeAttribute('aria-current');
+    });
   }
 
   $back.addEventListener('click', () => {
@@ -93,7 +121,10 @@
     go(backTarget.name, backTarget.params);
   });
 
-  /** 下のボタン。1 画面で押すボタンは 2 つまで（話す・それでいい など）。 */
+  /**
+   * 下のボタン。1 画面で押すボタンは 2 つまで（話す・それでいい など）。
+   * icon: 文字の前の印の名前（icons.js）。trailing: 文字のあとの印（進むボタンの矢印など）。聞き取り中（listening）は、音の波形を出す。
+   */
   function setActions(list) {
     clear($actions);
     const nodes = {};
@@ -102,8 +133,9 @@
       if (a.kind === 'primary') cls.push('btn-primary');
       if (a.kind === 'confirm') cls.push('btn-confirm');
       if (a.listening) cls.push('btn-listening');
+      const lead = a.listening ? EC.icon('bars', { size: 28, stroke: 3.2 }) : (a.icon ? EC.icon(a.icon, { size: 28 }) : null);
       const button = h('button', { type: 'button', class: cls.join(' '), id: a.id || null, disabled: a.disabled || null },
-        a.listening ? h('span', { class: 'btn-dot', 'aria-hidden': 'true' }) : null, a.label);
+        lead, h('span', null, a.label), a.trailing ? EC.icon(a.trailing, { size: 28 }) : null);
       button.addEventListener('click', () => { if (!button.disabled && a.onClick) a.onClick(button); });
       $actions.append(button);
       if (a.id) nodes[a.id] = button;
@@ -158,7 +190,8 @@
 
   /** 「記録」（フックが止めた書き込み）の画面への入口。ボタンの数には含めない、本文の中の行。 */
   function auditLink(from) {
-    return h('button', { type: 'button', class: 'btn-row nav-row', onclick: () => go('audit', { from }) }, 'AI の書き込みを止めた記録を見る');
+    return h('button', { type: 'button', class: 'btn-row nav-row', onclick: () => go('audit', { from }) },
+      EC.icon('list', { size: 26 }), h('span', null, 'AI の書き込みを止めた記録を見る'));
   }
 
   /** 画面の見出しに使う、計画の人の呼び方（本名は端末の中だけ）。 */
@@ -182,22 +215,36 @@
   // --- 共通の表示 ----------------------------------------------------------
 
   const noticePrivacy = () => h('div', { class: 'notice' },
-    h('p', null, 'この画面には、実在の要支援者の情報を入力しないでください。'),
-    h('p', null, '民生委員には守秘義務があります（民生委員法第15条）。この版は、架空の人物で試すためのものです。'));
+    EC.icon('lock', { size: 28, class: 'notice-icon' }),
+    h('div', { class: 'notice-body' },
+      h('p', null, 'この画面には、実在の要支援者の情報を入力しないでください。'),
+      h('p', null, '民生委員には守秘義務があります（民生委員法第15条）。この版は、架空の人物で試すためのものです。')));
 
   const noticeSafety = () => h('div', { class: 'notice notice-safety' },
-    h('p', null, 'この計画は話し合いのたたき台です。揺れたら、すぐ高い所へ。市の情報に従ってください。'));
+    EC.icon('triangle', { size: 28, class: 'notice-icon' }),
+    h('div', { class: 'notice-body' },
+      h('p', null, 'この計画は話し合いのたたき台です。揺れたら、すぐ高い所へ。市の情報に従ってください。')));
 
-  /** 処理の内容を言葉で表示する箱（U-05）。 */
-  function statusBox(message) {
-    const box = h('div', { class: 'status-box', role: 'status' }, message);
-    box.update = (text) => { box.textContent = text; };
+  /**
+   * 処理の内容を言葉で表示する箱（U-05）。
+   * kind: 'busy'（処理中。回る印）、'done'（終わった結果。チェックの印）、'info'（そのほかのお知らせ。既定）。
+   */
+  function statusBox(message, kind) {
+    const k = kind || 'info';
+    const lead = k === 'busy'
+      ? h('span', { class: 'spinner', 'aria-hidden': 'true' })
+      : h('span', { class: 'status-mark', 'aria-hidden': 'true' }, EC.icon(k === 'done' ? 'check' : 'info', { size: 20, stroke: 3 }));
+    const text = h('span', { class: 'status-text' }, message);
+    const box = h('div', { class: `status-box${k === 'done' ? ' is-done' : ''}`, role: 'status' }, lead, text);
+    box.update = (t) => { text.textContent = t; };
     return box;
   }
 
   /** 失敗したときの表示。「もう一度」は、下のボタンで出す。入力した欄は消えない（E3）。 */
   function errorBox(message) {
-    return h('div', { class: 'error-box', role: 'alert' }, message);
+    return h('div', { class: 'error-box', role: 'alert' },
+      h('span', { class: 'status-mark', 'aria-hidden': 'true' }, EC.icon('exclam', { size: 20, stroke: 3 })),
+      h('span', { class: 'status-text' }, message));
   }
 
   function errorText(e) {
@@ -220,6 +267,7 @@
     state.screen = target === screens.login ? 'login' : name || 'home';
     clear($main);
     clear($actions);
+    setStage(0); // 段階の表示は、各画面が出す
     setBanner();
     document.title = '逃げ道の点検屋';
     target({ params, scope: s });
@@ -230,7 +278,7 @@
   window.addEventListener('hashchange', render);
 
   EC.app = {
-    state, $main, $actions, T, say, announce, go, setBack, setActions, setBanner, newScope,
+    state, $main, $actions, T, say, announce, go, setBack, setStage, setActions, setBanner, newScope,
     save, openRecord, loadSessionRecord, mergeGeometry, ensureFacts, personLabel, auditLink,
     noticePrivacy, noticeSafety, statusBox, errorBox, errorText,
     register, render, parseHash,

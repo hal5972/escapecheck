@@ -118,6 +118,7 @@
     if (!rec) { A.go('home', {}, { replace: true }); return; }
     A.state.rec = rec;
     A.setBack('talk');
+    A.setStage((rec.plan.approvals || []).length ? 3 : 2); // 改善案を反映したあとは、改善の段階
     const T = A.T;
 
     const progressSlot = h('div', { class: 'progress-slot' });
@@ -257,7 +258,8 @@
       for (const f of findings) count[verdictView(findingResult(plan, f)).key] += 1;
       const blockedOne = findings.find((f) => isBlockedShelter(plan, f));
       const row = (key, mark, label) => h('div', { class: `count-row count-${key}` },
-        h('span', { class: 'mark', 'aria-hidden': 'true' }, mark), h('span', { class: 'count-label' }, label), h('span', { class: 'count-num' }, String(count[key])));
+        h('span', { class: 'mark', 'aria-hidden': 'true' }, EC.verdictIcon(key, 22), h('span', { class: 'mark-char' }, mark)),
+        h('span', { class: 'count-label' }, label), h('span', { class: 'count-num' }, String(count[key])));
       const box = h('div', { class: 'card summary-card' },
         h('p', { class: 'strong' }, `点検したシナリオ（厳しい条件）: ${findings.length}つ`),
         row('short', '×', '間に合わない'), row('tight', '△', '余裕が少ない'), row('ok', '○', '間に合う'),
@@ -290,11 +292,11 @@
       const target = findings.find((f) => isImprovable(rec.plan, f));
       if (target) {
         A.setActions([
-          { id: 'fix', kind: 'primary', label: '改善案を見る', onClick: () => A.go('fix', { finding: target.finding_id }) },
-          { id: 'verify', label: '確認へ進む', onClick: () => A.go('verify') },
+          { id: 'fix', kind: 'primary', icon: 'trend', label: '改善案を見る', onClick: () => A.go('fix', { finding: target.finding_id }) },
+          { id: 'verify', label: '確認へ進む', trailing: 'chevron-right', onClick: () => A.go('verify') },
         ]);
       } else {
-        A.setActions([{ id: 'verify', kind: 'confirm', label: '確認へ進む', onClick: () => A.go('verify') }]);
+        A.setActions([{ id: 'verify', kind: 'confirm', label: '確認へ進む', trailing: 'chevron-right', onClick: () => A.go('verify') }]);
       }
     }
 
@@ -361,7 +363,7 @@
         h('p', null, ui.scenarioTitle(rec.plan, finding)),
         h('p', { class: 'sub' }, '改善前'),
         ui.verdictBadge(beforeResult),
-        h('p', { class: 'arrow' }, `↓ ${L.FIX_TYPES[fix.fix_type] || ''}`),
+        h('p', { class: 'arrow' }, EC.icon('arrow-down', { size: 24 }), L.FIX_TYPES[fix.fix_type] || ''),
         h('p', { class: 'sub' }, '改善後'),
         ui.verdictBadge(afterResult)));
       A.say(`${ui.scenarioTopic(rec.plan, finding)}は、${bv.label}から、${av.label}になりました。${av.detail ? `${av.detail}。` : ''}`);
@@ -373,7 +375,7 @@
       clear(progressSlot);
       progressSlot.append(A.errorBox(A.errorText(e)));
       A.setActions([
-        { id: 'retry', kind: 'primary', label: 'もう一度', onClick: retry },
+        { id: 'retry', kind: 'primary', icon: 'swap', label: 'もう一度', onClick: retry },
         { id: 'back', label: '話す画面に戻る', onClick: () => A.go('talk') },
       ]);
     }
@@ -392,7 +394,7 @@
       const prevFindings = clone(rec.plan.findings || []);
       viewPlan = rec.plan;
       A.setActions([{ id: 'run', kind: 'primary', label: '点検しています', disabled: true }]);
-      const box = A.statusBox(recheck ? 'もう一度、点検しています' : '点検の準備をしています');
+      const box = A.statusBox(recheck ? 'もう一度、点検しています' : '点検の準備をしています', 'busy');
       const log = h('ul', { class: 'event-log' });
       progressSlot.append(box, log);
       A.announce(box.textContent);
@@ -514,7 +516,7 @@
         h('p', { class: 'lead' }, '津波が来る前に避難できるかを、厳しい条件で点検します。'),
         h('p', null, 'たとえば、冬の深夜、家族がいない昼、道がふさがったとき、避難支援者が来られないときです。'),
         h('p', { class: 'sub' }, '数値は、プログラムのコードが計算します。AI は計算しません。'));
-      A.setActions([{ id: 'run', kind: 'primary', label: '点検する', onClick: () => runCheck(false) }]);
+      A.setActions([{ id: 'run', kind: 'primary', icon: 'clipboard', label: '点検する', onClick: () => runCheck(false) }]);
     }
   });
 
@@ -527,6 +529,7 @@
     if (!rec) { A.go('home', {}, { replace: true }); return; }
     A.state.rec = rec;
     A.setBack('check');
+    A.setStage(3);
     const T = A.T;
     const plan = rec.plan;
     const finding = (plan.findings || []).find((f) => f.finding_id === params.finding) || (plan.findings || []).find((f) => isImprovable(plan, f));
@@ -564,12 +567,14 @@
 
       body.append(
         h('div', { class: 'fix-card' },
-          h('p', { class: 'fix-count' }, `案 ${index + 1}／${fixes.length}${isNum(fix.saved_min) && floorMin(fix.saved_min) >= 1 ? `　${floorMin(fix.saved_min)}分、短くなります` : ''}`),
+          h('p', { class: 'fix-count' }, `案 ${index + 1}／${fixes.length}`),
+          isNum(fix.saved_min) && floorMin(fix.saved_min) >= 1
+            ? h('p', { class: 'saved-line' }, EC.icon('trend', { size: 28 }), h('span', null, `${floorMin(fix.saved_min)}分、短くなります`)) : null,
           h('p', { class: 'fix-title' }, title),
           h('p', { class: 'explain' }, T(fixExplanation(plan, fix, name))),
           h('p', { class: 'sub' }, `いまの点検の結果: ${ui.scenarioTitle(plan, finding)}`),
           ui.verdictBadge(wr),
-          h('p', { class: 'arrow' }, '↓ この案にすると'),
+          h('p', { class: 'arrow' }, EC.icon('arrow-down', { size: 24 }), 'この案にすると'),
           ui.verdictBadge(worstResult(fix.result))),
         h('h2', null, 'いまと、この案を比べる'),
         h('div', { class: 'compare' },
@@ -586,8 +591,8 @@
     }
 
     function refreshActions() {
-      const list = [{ id: 'choose', kind: 'confirm', label: 'これにする', disabled: busy, onClick: choose }];
-      if (fixes.length > 1) list.push({ id: 'other', label: 'ほかの案を見る', disabled: busy, onClick: () => { index = (index + 1) % fixes.length; renderFix(); A.$main.scrollTop = 0; } });
+      const list = [{ id: 'choose', kind: 'confirm', icon: 'check', label: 'これにする', disabled: busy, onClick: choose }];
+      if (fixes.length > 1) list.push({ id: 'other', icon: 'swap', label: 'ほかの案を見る', disabled: busy, onClick: () => { index = (index + 1) % fixes.length; renderFix(); A.$main.scrollTop = 0; } });
       A.setActions(list);
     }
 
@@ -596,7 +601,7 @@
       busy = true;
       S.cancel();
       refreshActions();
-      const box = A.statusBox('計画を変更しています');
+      const box = A.statusBox('計画を変更しています', 'busy');
       body.prepend(box);
       try {
         const prevPlan = clone(rec.plan);

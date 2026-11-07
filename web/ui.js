@@ -133,7 +133,7 @@
   function verdictBadge(result) {
     const v = verdictView(result);
     return h('div', { class: `verdict verdict-${v.key}` },
-      h('span', { class: 'mark', 'aria-hidden': 'true' }, v.mark),
+      h('span', { class: 'mark', 'aria-hidden': 'true' }, EC.verdictIcon(v.key, 26), h('span', { class: 'mark-char' }, v.mark)),
       h('span', null, h('span', { class: 'vtext' }, v.label), v.detail ? h('span', { class: 'vdetail' }, v.detail) : null));
   }
 

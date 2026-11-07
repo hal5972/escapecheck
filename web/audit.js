@@ -86,7 +86,7 @@
 
     // 横にはみ出す部品が無いか（画面の幅 360px でも、横にスクロールさせない）
     const limit = document.documentElement.clientWidth + 1;
-    document.querySelectorAll('#main *, #actions *, #topbar *').forEach((el) => {
+    document.querySelectorAll('#main *, #actions *, #topbar *, #stepper *').forEach((el) => {
       if (!visible(el) || el.closest('svg') || el.closest('.print-map')) return;
       const r = el.getBoundingClientRect();
       if (r.right > limit && report.overflow.length < 5) report.overflow.push({ tag: el.tagName.toLowerCase(), cls: el.getAttribute('class') || '', right: Math.round(r.right) });

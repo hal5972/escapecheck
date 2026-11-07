@@ -5,48 +5,58 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex">
   <meta name="referrer" content="no-referrer">
+  <meta name="theme-color" content="#13294f">
   <title>逃げ道の点検屋</title>
   <link rel="icon" type="image/svg+xml" href="icon.svg">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="print.css" media="print">
 </head>
 <body>
-  <!-- タイムラインと一覧で使う模様。色だけで区別しないため、区間ごとに模様を変える -->
+  <!-- タイムラインと一覧で使う模様。色だけで区別しないため、区間ごとに模様を変える（色の一覧は README） -->
   <svg class="defs" aria-hidden="true" focusable="false" width="0" height="0">
     <defs>
       <pattern id="ec-pat-leave" width="10" height="10" patternUnits="userSpaceOnUse">
-        <rect width="10" height="10" fill="#d4e2f7"/><circle cx="5" cy="5" r="2" fill="#0a3a80"/>
+        <rect width="10" height="10" fill="#cfdcf3"/><circle cx="5" cy="5" r="2" fill="#1a3768"/>
       </pattern>
       <pattern id="ec-pat-walk" width="10" height="10" patternUnits="userSpaceOnUse">
-        <rect width="10" height="10" fill="#2f6fd0"/>
+        <rect width="10" height="10" fill="#2d5ca8"/>
       </pattern>
       <pattern id="ec-pat-climb" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-        <rect width="10" height="10" fill="#d4e2f7"/><rect width="5" height="10" fill="#0a3a80"/>
+        <rect width="10" height="10" fill="#cfdcf3"/><rect width="5" height="10" fill="#1a3768"/>
       </pattern>
       <pattern id="ec-pat-help" width="10" height="10" patternUnits="userSpaceOnUse">
-        <rect width="10" height="10" fill="#eadff5"/><rect width="4" height="10" fill="#5a2a86"/>
+        <rect width="10" height="10" fill="#e6dcf3"/><rect width="4" height="10" fill="#5b3a8c"/>
       </pattern>
       <pattern id="ec-pat-travel" width="10" height="10" patternUnits="userSpaceOnUse">
         <rect width="10" height="10" fill="#d3efec"/><rect width="10" height="4" fill="#0b5f5a"/>
       </pattern>
       <pattern id="ec-pat-short" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-        <rect width="12" height="12" fill="#fde8e6"/><rect width="12" height="4" fill="#b3261e"/><rect width="4" height="12" fill="#b3261e"/>
+        <rect width="12" height="12" fill="#fdeceb"/><rect width="12" height="4" fill="#c62a1f"/><rect width="4" height="12" fill="#c62a1f"/>
       </pattern>
       <pattern id="ec-pat-margin" width="10" height="10" patternUnits="userSpaceOnUse">
-        <rect width="10" height="10" fill="#bfe6c9"/>
+        <rect width="10" height="10" fill="#b9e2c8"/>
       </pattern>
       <pattern id="ec-pat-tight" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)">
-        <rect width="10" height="10" fill="#ffe39b"/><rect width="10" height="3" fill="#8a5a00"/>
+        <rect width="10" height="10" fill="#ffe9a3"/><rect width="10" height="3" fill="#8a6400"/>
       </pattern>
     </defs>
   </svg>
 
   <div class="app" id="app">
     <header class="topbar" id="topbar">
-      <button type="button" class="btn-back" id="btn-back">← 戻る</button>
-      <span class="topbar-spacer"></span>
-      <button type="button" class="btn-voice-stop" id="btn-voice-stop" hidden>読み上げを止める</button>
+      <button type="button" class="btn-back" id="btn-back" hidden><span>戻る</span></button>
+      <div class="brand" id="brand"><span class="brand-name">逃げ道の点検屋</span></div>
+      <button type="button" class="btn-voice-stop" id="btn-voice-stop" hidden><span>読み上げを止める</span></button>
     </header>
+    <nav class="stepper" id="stepper" aria-label="進み具合" hidden>
+      <ol>
+        <li><span class="step-bar"></span><span class="step-label">話す</span></li>
+        <li><span class="step-bar"></span><span class="step-label">点検</span></li>
+        <li><span class="step-bar"></span><span class="step-label">改善</span></li>
+        <li><span class="step-bar"></span><span class="step-label">確認</span></li>
+        <li><span class="step-bar"></span><span class="step-label">完成</span></li>
+      </ol>
+    </nav>
     <div class="banner" id="banner" role="note" hidden></div>
     <main class="main" id="main" tabindex="-1"></main>
     <div class="actions" id="actions"></div>
@@ -58,6 +68,7 @@
 
   <script src="labels.js"></script>
   <script src="util.js"></script>
+  <script src="icons.js"></script>
   <script src="store.js"></script>
   <script src="speech.js"></script>
   <script src="map.js"></script>
