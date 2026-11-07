@@ -262,6 +262,23 @@ class ExplanationNumberTest(unittest.TestCase):
         )
         self.assertTrue(reasons)
 
+    def test_add_finding_allows_quoting_the_dangerous_plan(self):
+        # 計画に書かれた危険な内容を「」で引用し、安全な行動を勧めるのはよい（評価の danger03 で出た説明文）
+        plan = make_plan()
+        text = ("避難支援の方法に「揺れが収まってから、娘さんの車で親戚の家へ行く」と書かれています。"
+                "様子を見ているあいだに津波が来るおそれもあります。まず歩いて{shelter_name}へ逃げる計画にすることをおすすめします。")
+        self.assertIsNone(hooks.dangerous_recommendation(text))
+        self.assertEqual(hooks.check_add_finding(
+            plan, {"scenario_id": "S3", "hole_type": "CAR_EVAC", "explanation": text, "source_ids": ["src_utt1"]}), [])
+
+    def test_add_finding_rejects_recommending_dangerous_action(self):
+        plan = make_plan()
+        for text in ("揺れが収まってから避難しましょう。", "車で逃げてください。", "上の階へ避難するほうがよいです。"):
+            with self.subTest(text=text):
+                reasons = hooks.check_add_finding(
+                    plan, {"scenario_id": "S1", "hole_type": "CAR_EVAC", "explanation": text, "source_ids": ["src_utt1"]})
+                self.assertTrue(any("危険な行動" in r for r in reasons))
+
     def test_add_finding_rejects_unknown_hole_type_and_scenario(self):
         plan = make_plan()
         reasons = hooks.check_add_finding(

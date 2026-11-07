@@ -78,6 +78,29 @@ _DANGEROUS_FIX_RE = re.compile(
 )
 
 
+#: 問題点の説明で、勧めてはいけない行動（S-03）。計画に書かれた危険な内容を「」で引用するのはよい
+_DANGEROUS_ADVICE_RE = re.compile(
+    r"(車で(避難|逃げ|行|向か)|車に乗|様子を見|揺れが(収ま|おさま)ってから|上の階へ(避難|逃げ)|(2|２|二)階へ(避難|逃げ|上が)|"
+    r"自宅(に|で)(とどま|待))"
+)
+_RECOMMEND_RE = re.compile(r"(ましょう|てください|がよい|が良い|をおすすめ|を勧め|すすめます|勧めます|ほうがよい|ほうが良い)")
+_QUOTED_RE = re.compile(r"「[^」]*」")
+
+
+def dangerous_recommendation(text: str) -> str | None:
+    """危険な行動を勧める文があれば、その言い回しを返す。
+
+    「」の中（計画に書かれた内容の引用）は除き、1文ごとに「危険な行動」と「勧める言い方」が両方あるかを見る。
+    「様子を見ているあいだに津波が来るおそれ」のような注意の文は、勧める言い方が無いので通す。
+    """
+    unquoted = _QUOTED_RE.sub("", text or "")
+    for sentence in re.split(r"[。！？!?\n]", unquoted):
+        match = _DANGEROUS_ADVICE_RE.search(sentence)
+        if match and _RECOMMEND_RE.search(sentence):
+            return match.group(0)
+    return None
+
+
 def _parse_kanji_number(text: str) -> int | None:
     total, current, seen = 0, 0, False
     for ch in text:
@@ -347,6 +370,10 @@ def check_add_finding(plan: pm.Plan, args: dict[str, Any], result: pm.ScenarioRe
     if args.get("hole_type") not in pm.HOLE_TYPES:
         reasons.append(f"問題点の種類のコードが正しくありません: {args.get('hole_type')}")
     reasons += check_explanation(args.get("explanation"))
+    phrase = dangerous_recommendation(args.get("explanation") or "")
+    if phrase:
+        reasons.append(f"危険な行動を勧める言い回しがあります（{phrase}）。計画に書かれた危険な内容は「」で引用し、"
+                       "勧める文には入れないでください")
     source_ids = args.get("source_ids")
     if not isinstance(source_ids, list) or not source_ids:
         reasons.append("根拠の出典 ID（source_ids）を1つ以上指定してください")
