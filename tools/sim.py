@@ -86,6 +86,8 @@ ASSUMPTIONS: dict[str, Assumption] = {
         Assumption("asm_fix_bedside", "仮定: 枕元の準備（靴・ライト・上着）で短縮", -3, "分", "改善案の効果の仮定。本人に「何分で出られそうか」を聞いて置き換える"),
         Assumption("asm_fix_sleep_near_exit", "仮定: 就寝場所を玄関の近くにして短縮", -2, "分", "改善案の効果の仮定。2階から下りる時間も無くなる"),
         Assumption("asm_fix_change_route", "仮定: 別の避難経路（閉塞のおそれが無い道）", 1.3, "倍", "直線距離 × 1.3 の概算に戻す。地図で経路を指定すると正確になる"),
+        Assumption("asm_fix_alert_device", "仮定: 光や振動で知らせる機器で、揺れと津波の警報に自分で気づける", 0, "",
+                   "改善案の効果の仮定。避難支援者の声かけを待たずに避難を始められる。機器の種類と入手は、市の福祉の窓口に相談する"),
     ]
 }
 
@@ -170,7 +172,9 @@ def parse_walk_speed(value: object) -> float | None:
     return parse_walk_speed(meters / (minutes * 60))
 
 
-_NEGATED_AID = re.compile(r"介助(は|が)?(不要|いらな|無し|なし)")
+#: 打ち消しの言い方（「車いすは使わない」「介助は不要」）。判定の前に除く（「車いす」の語だけで介助が必要と判定しない）
+_NEGATED_AID = re.compile(
+    r"(車いす|車椅子|介助)(は|も|を|が)?(使わ(ない|ん|ず)|使ってい?(ない|ん)|使いよらん|不要|いらな|いらん|無し|なし|必要(ない|なし|ありません))")
 _NEEDS_AID = re.compile(r"車いす|車椅子|介助|(一人|ひとり|1人)では(歩け|立ち上がれ|動け|避難でき)|立ち上がれ(ない|ん)|寝たきり|歩けない|歩けん|おんぶ|背負")
 _CANE = re.compile(r"杖|つえ|ステッキ|歩行器|シルバーカー|手押し車|足が悪|膝が悪|ひざが悪|腰が悪|ゆっくり")
 _INDEPENDENT = re.compile(r"自力|問題(なし|ない)|普通に歩け|しっかり歩け|元気に歩")
@@ -236,10 +240,13 @@ class _Cond:
     change_route: bool = False
     callers: set[str] = field(default_factory=set)
     shelter_override: str | None = None
+    alert_device: bool = False
 
     def apply_fix(self, fix_type: str, target_id: str | None) -> None:
         if fix_type == "BEDSIDE_PREP":
             self.bedside = True
+        elif fix_type == "ALERT_DEVICE":
+            self.alert_device = True
         elif fix_type == "SLEEP_NEAR_EXIT":
             self.near_exit = True
         elif fix_type == "CHANGE_ROUTE":
@@ -563,6 +570,11 @@ def _evaluate(plan: Plan, cond: _Cond, data: datasets.Dataset) -> ScenarioResult
     if home is None:
         return _result(cond, "cannot_compute", src, reason_code="NO_HOME")
     person = _person(plan, cond)
+    # 改善案 ALERT_DEVICE: 耳が遠い人が、光や振動で知らせる機器で自分で気づけるので、声かけを待たずに避難を始める
+    alert_sources: list[str] = []
+    if cond.alert_device and person.cannot_hear:
+        alert_sources = person.sources.get("cannot_hear", []) + [src.assume("asm_fix_alert_device")]
+        person.cannot_hear = False
 
     # 津波到達時間（自宅）
     pick = hazard.arrival_at(home, data, earliest=cond.earliest)
@@ -609,6 +621,8 @@ def _evaluate(plan: Plan, cond: _Cond, data: datasets.Dataset) -> ScenarioResult
     climb = Breakdown(key="climb", label=f"避難先で上がる（{shelter.name}）", minutes=float(ASSUMPTIONS["asm_climb"].value),
                       source_ids=[src.assume("asm_climb"), shelter_sources[-1]])
     leave = _leave_time(plan, cond, person, src)
+    if alert_sources:
+        leave = _Leg(leave.minutes, leave.sources + alert_sources, leave.label + "。光や振動で知らせる機器で気づく")
     help_min = float(ASSUMPTIONS["asm_help"].value)
 
     def together(trip: _SupporterTrip) -> tuple[float, list[Breakdown]]:
@@ -713,6 +727,9 @@ def try_fix(plan: Plan, scenario_id: str, fix_type: str, target_id: str | None =
         key = "available_night" if cond.period == "night" else "available_day"
         if supporter.get(key) is False:
             raise ValueError(f"{supporter.get('alias', target_id)}は、このシナリオの時間帯には来られません")
+    elif fix_type == "ALERT_DEVICE":
+        if not _person(plan, cond).cannot_hear:
+            raise ValueError("耳が遠い（放送や呼びかけに気づけない）前提が無い計画には、この案は使えません")
     before = _evaluate(plan, cond, data)
     cond.apply_fix(fix_type, target_id)
     after = _evaluate(plan, cond, data)

@@ -508,6 +508,43 @@ class AddCallerAcceptedTest(SimTestCase):
         self.assertEqual(result["supporter_verdict"], "ok")
 
 
+class AlertDeviceTest(SimTestCase):
+    """改善案 ALERT_DEVICE（光や振動で知らせる機器を枕元に置く）。耳が遠い人が、声かけを待たずに避難を始める。"""
+
+    def plan_who_cannot_hear(self):
+        plan = make_plan(supporters=[supporter("sup_b", "Bさん", 600, age_band="70代", available_night=True)])
+        add_premise(plan, "CANNOT_HEAR", "耳が遠うて、放送は聞こえん")
+        return plan
+
+    def test_person_who_cannot_hear_starts_without_waiting_for_a_caller(self):
+        plan = self.plan_who_cannot_hear()
+        before = sim.run_scenario(plan, "S1")
+        # 声かけを待つ: 70代の支援者が 780m を来る（夜間 10 + 冬 2 + 780m / (0.62 × 0.8) = 26.3分）
+        self.assertEqual(minutes(before, "supporter_travel"), [38.3])
+        after = sim.try_fix(plan, "S1", "ALERT_DEVICE")
+        # 機器で自分で気づく: 夜間 10 + 冬 2 = 12分で出て、杖・暗い道 0.40 m/秒で 390m（16.3分）、上がる 2分
+        self.assertEqual(minutes(after, "supporter_travel"), [])
+        self.assertEqual(minutes(after, "leave"), [12.0])
+        self.assertEqual(after["need_min"], 30.3)
+        self.assertIn("asm_fix_alert_device", after["assumptions"])
+        self.assertIn("機器", next(b["label"] for b in after["breakdown"] if b["key"] == "leave"))
+
+    def test_rejected_without_a_hearing_premise(self):
+        with self.assertRaises(ValueError):
+            sim.try_fix(make_plan(), "S1", "ALERT_DEVICE")
+
+    def test_approved_alert_device_is_used_in_the_check(self):
+        plan = self.plan_who_cannot_hear()
+        add_fix(plan, "ALERT_DEVICE")
+        self.assertEqual(sim.run_scenario(plan, "S1")["need_min"], 30.3)
+
+    def test_stacks_with_bedside_preparation(self):
+        plan = self.plan_who_cannot_hear()
+        add_fix(plan, "ALERT_DEVICE")
+        # 枕元の準備（−3分）も効くようになる: 12 − 3 = 9分で出る
+        self.assertEqual(minutes(sim.try_fix(plan, "S1", "BEDSIDE_PREP"), "leave"), [9.0])
+
+
 class InterfaceRuleTest(unittest.TestCase):
     def test_calculation_functions_take_no_numbers_from_outside(self):
         # S-01: 計算の MCP ツールに、Claude が数値を渡せる引数を作らない
@@ -531,6 +568,21 @@ class ParseTest(unittest.TestCase):
         self.assertAlmostEqual(sim.parse_walk_speed({"meters": 50, "minutes": 1}), 50 / 60)
         self.assertAlmostEqual(sim.parse_walk_speed(0.6), 0.6)
         self.assertIsNone(sim.parse_walk_speed("ゆっくり"))
+
+    def test_mobility_ignores_negated_wheelchair_and_aid(self):
+        # 質問「杖や車いすを使いますか」への答えで「車いすは使わない」と言っても、介助が必要とは判定しない
+        cases = {
+            "杖をついて歩く。車いすは使わない": "cane",
+            "杖をついて歩きよう 車いすは使わん": "cane",
+            "杖をついて歩く。車いすは使っていない": "cane",
+            "杖をついて歩く。介助は不要": "cane",
+            "車いすを使う": "needs_aid",
+            "車いすで、介助が必要": "needs_aid",
+            "一人では立ち上がれん": "needs_aid",
+        }
+        for text, expected in cases.items():
+            with self.subTest(text=text):
+                self.assertEqual(sim.mobility_class(make_plan({"mobility": text})), expected)
 
 
 class BaselineTest(SimTestCase):

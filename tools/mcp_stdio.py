@@ -98,7 +98,7 @@ def run_scenario(plan_ref: str, scenario_id: str, premise_ids: list[str] | None 
 @server.tool()
 @_reasons
 def try_fix(plan_ref: str, scenario_id: str, fix_type: str, target_id: str | None = None) -> dict:
-    """改善案（CHANGE_SHELTER・ADD_CALLER・BEDSIDE_PREP・SLEEP_NEAR_EXIT・CHANGE_ROUTE）を試した結果。危険な案は理由つきで拒否する。
+    """改善案（CHANGE_SHELTER・ADD_CALLER・BEDSIDE_PREP・SLEEP_NEAR_EXIT・CHANGE_ROUTE・ALERT_DEVICE）を試した結果。危険な案は理由つきで拒否する。
 
     CHANGE_SHELTER の target_id は find_shelters の shelter_id、ADD_CALLER は避難支援者の supporter_id。
     """
