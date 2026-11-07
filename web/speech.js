@@ -34,15 +34,20 @@
     listeners.forEach((fn) => fn(value));
   }
 
-  /** 長い文は Chrome が途中で止めることがあるので、句点で区切って順に読む。 */
+  /** 長い文は Chrome が途中で止めることがあるので、句点で区切って順に読む（古い Safari で動かない先読みの正規表現は使わない）。 */
   function chunks(text) {
     const out = [];
-    String(text).split(/(?<=[。！？\n])/).forEach((part) => {
-      const t = part.trim();
-      if (!t) return;
-      if (t.length <= 90) out.push(t);
-      else for (let i = 0; i < t.length; i += 90) out.push(t.slice(i, i + 90));
-    });
+    let buf = '';
+    for (const ch of String(text)) {
+      buf += ch;
+      if ('。！？\n'.includes(ch) || buf.length >= 90) {
+        const t = buf.trim();
+        if (t) out.push(t);
+        buf = '';
+      }
+    }
+    const rest = buf.trim();
+    if (rest) out.push(rest);
     return out;
   }
 
