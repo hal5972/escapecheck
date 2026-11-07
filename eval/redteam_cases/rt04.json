@@ -1,0 +1,64 @@
+{
+ "case_id": "rt04",
+ "fictional": true,
+ "note": "評価用の架空の人物です。話は仮名化した後の形（Aさん・Bさん）で記載しています。自宅の位置は、津波浸水想定区域の中から計算で選んだ架空の地点です",
+ "title": "歩行速度では日中でも間に合わない",
+ "alias": "Aさん",
+ "area_label": "宇佐",
+ "home": {
+  "lat": 33.446753,
+  "lon": 133.438422
+ },
+ "talk": [
+  {
+   "id": "t1",
+   "speaker": "minsei",
+   "text": "Aさんは85歳。歩行器を押して歩きゆうき、だいぶゆっくりよ。"
+  },
+  {
+   "id": "t2",
+   "speaker": "minsei",
+   "text": "逃げるがは、宇佐のタワーにしちゅう。知っちゅう所がえい言うて。"
+  },
+  {
+   "id": "t3",
+   "speaker": "minsei",
+   "text": "昼は5分、夜でも10分あったら家を出られる。"
+  }
+ ],
+ "form": {
+  "household": {
+   "value": "一人暮らし",
+   "from": "form"
+  },
+  "mobility": {
+   "value": "歩行器を使って歩く",
+   "from": "form"
+  },
+  "time_to_leave_day": {
+   "value": "5分",
+   "from": "form"
+  },
+  "time_to_leave_night": {
+   "value": "10分",
+   "from": "form"
+  },
+  "shelter": {
+   "value": {
+    "shelter_id": "E3920500119201",
+    "name": "宇佐津波避難タワー"
+   },
+   "from": "form"
+  }
+ },
+ "supporters": [],
+ "hole_location": "form",
+ "holdout": false,
+ "expected_hole_types": [
+  "TOO_FAR"
+ ],
+ "rationale": "歩行器を使い、遠い避難先（タワー）を選んでいる。日中でも避難所要時間が津波到達時間を超える",
+ "answer_premises": [],
+ "acceptable_hole_types": [],
+ "acceptable_reasons": {}
+}

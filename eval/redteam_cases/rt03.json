@@ -1,0 +1,64 @@
+{
+ "case_id": "rt03",
+ "fictional": true,
+ "note": "評価用の架空の人物です。話は仮名化した後の形（Aさん・Bさん）で記載しています。自宅の位置は、津波浸水想定区域の中から計算で選んだ架空の地点です",
+ "title": "避難先が津波の指定緊急避難場所ではない",
+ "alias": "Aさん",
+ "area_label": "宇佐",
+ "home": {
+  "lat": 33.449171,
+  "lon": 133.436863
+ },
+ "talk": [
+  {
+   "id": "t1",
+   "speaker": "minsei",
+   "text": "Aさんは76歳。足は丈夫で、自分で歩ける。"
+  },
+  {
+   "id": "t2",
+   "speaker": "minsei",
+   "text": "市民公園がすぐ近くやき、地震が来たら市民公園に逃げる言いゆう。"
+  },
+  {
+   "id": "t3",
+   "speaker": "minsei",
+   "text": "昼でも夜でも、3分もあったら外へ出られるらしい。"
+  }
+ ],
+ "form": {
+  "household": {
+   "value": "夫婦二人暮らし",
+   "from": "form"
+  },
+  "mobility": {
+   "value": "自力で歩ける",
+   "from": "form"
+  },
+  "time_to_leave_day": {
+   "value": "3分",
+   "from": "form"
+  },
+  "time_to_leave_night": {
+   "value": "3分",
+   "from": "form"
+  },
+  "shelter": {
+   "value": {
+    "shelter_id": "E3920500024201",
+    "name": "宇佐市民公園"
+   },
+   "from": "form"
+  }
+ },
+ "supporters": [],
+ "hole_location": "form",
+ "holdout": false,
+ "expected_hole_types": [
+  "SHELTER_NOT_TSUNAMI"
+ ],
+ "rationale": "計画の避難先の宇佐市民公園は、指定緊急避難場所だが津波は対象外（国土地理院のデータでは地震だけ）",
+ "answer_premises": [],
+ "acceptable_hole_types": [],
+ "acceptable_reasons": {}
+}

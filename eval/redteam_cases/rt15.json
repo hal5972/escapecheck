@@ -1,0 +1,73 @@
+{
+ "case_id": "rt15",
+ "fictional": true,
+ "note": "評価用の架空の人物です。話は仮名化した後の形（Aさん・Bさん）で記載しています。自宅の位置は、津波浸水想定区域の中から計算で選んだ架空の地点です",
+ "title": "タワーの階段を上がれない（話の中だけ）",
+ "alias": "Aさん",
+ "area_label": "宇佐",
+ "home": {
+  "lat": 33.448733,
+  "lon": 133.438638
+ },
+ "talk": [
+  {
+   "id": "t1",
+   "speaker": "minsei",
+   "text": "Aさんは83歳で、杖をついて歩きゆう。"
+  },
+  {
+   "id": "t2",
+   "speaker": "person",
+   "text": "膝が悪いき、あのタワーの階段はよう上がらんがよ。"
+  },
+  {
+   "id": "t3",
+   "speaker": "minsei",
+   "text": "家を出るのは昼は5分、夜は8分。"
+  }
+ ],
+ "form": {
+  "household": {
+   "value": "一人暮らし",
+   "from": "form"
+  },
+  "mobility": {
+   "value": "杖をついて歩く",
+   "from": "form"
+  },
+  "time_to_leave_day": {
+   "value": "5分",
+   "from": "form"
+  },
+  "time_to_leave_night": {
+   "value": "8分",
+   "from": "form"
+  },
+  "shelter": {
+   "value": {
+    "shelter_id": "E3920500119201",
+    "name": "宇佐津波避難タワー"
+   },
+   "from": "form"
+  }
+ },
+ "supporters": [],
+ "hole_location": "talk",
+ "holdout": false,
+ "expected_hole_types": [
+  "CANNOT_CLIMB"
+ ],
+ "rationale": "様式の避難先はタワー。話では、膝が悪くタワーの階段を上がれない。近い別の避難先も無い",
+ "answer_premises": [
+  {
+   "code": "CANNOT_CLIMB",
+   "quote": "あのタワーの階段はよう上がらん"
+  }
+ ],
+ "acceptable_hole_types": [
+  "TOO_FAR"
+ ],
+ "acceptable_reasons": {
+  "TOO_FAR": "日中（S2）でも間に合わない"
+ }
+}
