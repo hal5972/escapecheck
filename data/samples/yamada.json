@@ -1,0 +1,35 @@
+{
+  "case_id": "yamada",
+  "fictional": true,
+  "note": "デモ用の架空の人物です。実在の人物・住所とは関係ありません。自宅の位置は、宇佐の津波浸水想定区域の中から選んだ架空の地点です",
+  "title": "山田ハルさん（架空、84歳）: 宇佐で一人暮らし。杖をついて歩く",
+  "person": {"display_name": "山田ハル", "age": 84, "description": "宇佐町で一人暮らし。杖をついて歩く。夜は1階の奥の部屋で寝る。息子は高知市に住む。隣の西村さん（70代）と仲が良い"},
+  "alias": "Aさん",
+  "area_label": "宇佐",
+  "home": {"lat": 33.4475, "lon": 133.4366},
+  "talk": [
+    {"id": "t1", "speaker": "minsei", "text": "山田さんは84歳で、一人暮らしよ。杖ついちゅうき、歩くのはゆっくりで、100メートル歩くのに3分くらいかかる。"},
+    {"id": "t2", "speaker": "minsei", "text": "夜は1階の奥の部屋で寝ゆう。昼やったら、5分あったら玄関を出られるろう。"},
+    {"id": "t3", "speaker": "minsei", "text": "息子さんは高知市で会社に勤めよって、向こうに住みゆう。隣の西村さんは70代で、仲がえいき、地震のときは声をかけてくれる言うちゅう。"},
+    {"id": "t4", "speaker": "minsei", "text": "逃げる先は、宇佐の津波避難タワーにしちゅう。"},
+    {"id": "t5", "speaker": "minsei", "text": "ほんで、膝が悪うて、タワーの階段はよう上がらん言いよった。"}
+  ],
+  "form": {
+    "household": {"value": "一人暮らし", "from": "t1", "quote": "一人暮らし"},
+    "mobility": {"value": "杖をついて歩く", "from": "t1", "quote": "杖ついちゅう"},
+    "walk_speed": {"value": "100mを3分", "from": "t1", "quote": "100メートル歩くのに3分"},
+    "sleep_place": {"value": "1階の奥の部屋", "from": "t2", "quote": "夜は1階の奥の部屋で寝ゆう"},
+    "time_to_leave_day": {"value": "5分", "from": "t2", "quote": "5分あったら玄関を出られる"},
+    "support_method": {"value": "隣の西村さん（Bさん）が地震のときに声をかける", "from": "t3", "quote": "地震のときは声をかけてくれる"},
+    "shelter": {"value": {"shelter_id": "E3920500119201", "name": "宇佐津波避難タワー"}, "from": "t4", "quote": "宇佐の津波避難タワー"},
+    "contact": {"value": "息子（高知市に住む）", "from": "t3", "quote": "息子さんは高知市で会社に勤めよって、向こうに住みゆう"}
+  },
+  "supporters": [
+    {"supporter_id": "sup_b", "alias": "Bさん", "relation": "隣人", "age_band": "70代", "available_day": true, "available_night": true,
+     "location": {"lat": 33.44795, "lon": 133.4366}, "from": "t3"}
+  ],
+  "demo_notes": [
+    "話の中だけにある前提条件: t5「膝が悪うて、タワーの階段はよう上がらん」（CANNOT_CLIMB、対象は宇佐津波避難タワー）",
+    "様式の欄の問題点: 夜間の避難開始時間が聞き取れていない（NIGHT_PREP）"
+  ]
+}
