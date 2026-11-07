@@ -286,7 +286,7 @@
 
     async function start() {
       clear(statusSlot);
-      statusSlot.append(A.statusBox('検証エージェントが、出典と原文の食い違いを確認しています'));
+      statusSlot.append(A.statusBox('検証エージェントが、欄の内容とお話が合っているか確認しています'));
       A.announce('確認しています');
       A.setActions([{ id: 'wait', kind: 'primary', label: '確認しています', disabled: true }]);
       try {

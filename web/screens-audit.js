@@ -127,7 +127,7 @@
       clear(listSlot);
       const denies = entries.filter((e) => kindOf(e) === 'stop');
       summarySlot.append(h('div', { class: 'card' },
-        h('p', { class: 'strong' }, `コードが止めたもの: ${denies.length}件`),
+        h('p', { class: 'strong' }, `プログラムが止めたもの: ${denies.length}件`),
         h('p', { class: 'sub' }, `記録の全体: ${entries.length}件`)));
       // 新しい順。同じ秒の記録は、あとから書かれたものを先に出す
       const shown = (showAll ? entries : denies).map((e, i) => ({ e, i }))
@@ -158,7 +158,7 @@
         clear(statusSlot);
         statusSlot.append(A.errorBox(A.errorText(e)));
       }
-      A.setActions([{ id: 'reload', kind: 'primary', label: '最新の記録にする', onClick: load }]);
+      A.setActions([{ id: 'reload', kind: 'primary', label: '記録を読み込み直す', onClick: load }]);
     }
 
     load();

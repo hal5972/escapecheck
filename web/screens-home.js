@@ -86,7 +86,7 @@
     A.setBack(null);
     A.$main.append(
       h('h1', null, '逃げ道の点検屋'),
-      h('p', { class: 'lead' }, '下の大きなボタンから、選んでください。'),
+      h('p', { class: 'lead' }, '話して個別避難計画を作り、厳しい条件で点検して、改善します。下の大きなボタンから、選んでください。'),
       A.noticePrivacy());
 
     const all = store.listPlans();
@@ -129,7 +129,7 @@
 
     A.setActions([
       { label: 'サンプルデータで試す', kind: 'primary', id: 'samples', onClick: () => A.go('samples') },
-      { label: '新しい方', id: 'new', onClick: () => A.go('new') },
+      { label: '新しい計画を作る', id: 'new', onClick: () => A.go('new') },
     ]);
   });
 
@@ -232,7 +232,7 @@
     };
 
     A.$main.append(
-      h('h1', null, '新しい方'),
+      h('h1', null, '新しい計画を作る'),
       h('p', null, '地図をタップ（指で軽く押す）して、自宅の場所を決めてください。指でなぞると、地図が動きます。'),
       map.el, map.credit, pickHint, factsSlot,
       h('h2', null, 'お名前（なくてもよい）'),

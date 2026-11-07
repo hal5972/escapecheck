@@ -169,13 +169,13 @@
       const blocked = isBlockedShelter(viewPlan, finding);
       const timeline = EC.timeline.render(result, blocked ? { title: `上がれる避難先（${result.shelter_name || '別の避難先'}）にした場合` } : {});
       const explain = h('p', { class: 'explain' }, T(bodyText(finding)));
+      // 聞き取りの中だけにあった話（前提条件）の原文。様式の欄に無い話を、AI が話から拾ったことを見せる
+      const premises = viewPlan.premises || [];
+      const premise = premises.find((p) => p.code === finding.hole_type) || (finding.scenario_id === 'S8' ? premises[0] : null);
+      const quote = premise ? h('p', null, '聞き取りの中だけにあった話: ', h('span', { class: 'quote' }, `「${T(premise.quote)}」`)) : null;
       // 図（タイムライン）を先に出す。スマートフォンの 1 画面で、津波の線と不足が見えるように。
-      // 計画の避難先に上がれないときは、図が別の避難先の分なので、説明を先に出す
-      const parts = blocked ? [explain, timeline] : [timeline, explain];
-      if (finding.scenario_id === 'S8') {
-        const premise = (viewPlan.premises || []).find((p) => p.code === finding.hole_type) || (viewPlan.premises || [])[0];
-        if (premise) parts.push(h('p', null, '話の中の言葉: ', h('span', { class: 'quote' }, `「${T(premise.quote)}」`)));
-      }
+      // 計画の避難先に上がれないときは、図が別の避難先の分なので、話の原文と説明を先に出す
+      const parts = blocked ? [quote, explain, timeline] : [timeline, explain, quote];
       if (finding.hole_type && L.HOLE_TYPES[finding.hole_type]) {
         parts.push(h('p', { class: 'sub' }, `問題点の種類: ${L.HOLE_TYPES[finding.hole_type]}`));
       }
@@ -198,7 +198,7 @@
       if (!fixesFor(viewPlan, finding).length && v.key !== 'ok') {
         parts.push(h('p', { class: 'strong' }, 'この問題点に使える改善案は、ありません。ご本人・ご家族・市と相談してください。'));
       }
-      return parts;
+      return parts.filter(Boolean);
     }
 
     function buildCard(finding, isNew) {
