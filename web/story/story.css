@@ -1,0 +1,72 @@
+/*
+ * 「仕組み」のアニメーション（約10秒）。素の SVG と CSS の @keyframes だけで作成している。
+ * 4つの区切りで、カードと矢印を順に出す。
+ *   ① 話 → 聞き取りエージェント → 計画  ② レッドチームエージェント ⇄ 計算ツール
+ *   ③ フック（根拠のない記載を止める）  ④ 検証エージェント → 人の承認 → 印刷
+ * 共通の動きと再生の部品は、はじめに（../intro/）と同じ player.css・player.js を使う。
+ */
+
+:root { --total: 10.5s; }
+
+.sub { font-weight: 500; }
+.mono { font-family: ui-monospace, "Cascadia Mono", Consolas, Menlo, monospace; font-weight: 600; }
+
+/* --- カード（出る順） -------------------------------------------------------- */
+
+.c-a1 { animation: pop 0.6s ease-out 0.2s both; }
+.c-a2 { animation: pop 0.6s ease-out 0.9s both; }
+.k-a2 { animation: pop 0.4s ease-out 1.25s both; }
+.c-a3 { animation: pop 0.6s ease-out 1.6s both; }
+.g1 { animation: pop 0.4s ease-out 1.95s both; }
+.g2 { animation: pop 0.4s ease-out 2.1s both; }
+.g3 { animation: pop 0.4s ease-out 2.25s both; }
+.c-a4 { animation: pop 0.6s ease-out 2.7s both; }
+.k-a4 { animation: pop 0.4s ease-out 3.05s both; }
+.c-t { animation: pop 0.6s ease-out 3.4s both; }
+.c-b4 { animation: pop 0.6s ease-out 5.3s both; }
+.c-b3 { animation: pop 0.6s ease-out 7.7s both; }
+.k-b3 { animation: pop 0.4s ease-out 8.05s both; }
+.c-b2 { animation: pop 0.6s ease-out 8.4s both; }
+.c-b1 { animation: pop 0.6s ease-out 9.1s both; }
+
+/* --- 矢印（線を引いてから、先を出す） ------------------------------------------- */
+
+.ar-line { stroke-dasharray: 1; }
+.ar1 .ar-line { animation: draw 0.4s ease-out 0.65s both; }
+.ar1 .ar-head { animation: fade-in 0.15s linear 1s both; }
+.ar2 .ar-line { animation: draw 0.4s ease-out 1.35s both; }
+.ar2 .ar-head { animation: fade-in 0.15s linear 1.7s both; }
+.ar3 .ar-line { animation: draw 0.4s ease-out 2.5s both; }
+.ar3 .ar-head { animation: fade-in 0.15s linear 2.85s both; }
+.ar-t .ar-line { animation: draw 0.3s ease-out 3.75s both; }
+.ar-t .ar-head { animation: fade-in 0.15s linear 3.9s both; }
+.ar4 .ar-line { animation: draw 0.4s ease-out 5.05s both; }
+.ar4 .ar-head { animation: fade-in 0.15s linear 5.4s both; }
+.ar5 .ar-line { animation: draw 0.4s ease-out 7.45s both; }
+.ar5 .ar-head { animation: fade-in 0.15s linear 7.8s both; }
+.ar6 .ar-line { animation: draw 0.4s ease-out 8.15s both; }
+.ar6 .ar-head { animation: fade-in 0.15s linear 8.5s both; }
+.ar7 .ar-line { animation: draw 0.4s ease-out 8.85s both; }
+.ar7 .ar-head { animation: fade-in 0.15s linear 9.2s both; }
+
+/* --- ③ 根拠のない記載を、フックが止める ---------------------------------------- */
+
+.reject { animation: reject 1.7s ease-in-out 5.7s both; }
+@keyframes reject {
+  0%   { opacity: 0; transform: translateY(-20px); }
+  12%  { opacity: 1; }
+  40%  { transform: translateY(58px); }
+  55%  { transform: translateY(30px); }
+  72%  { transform: translateY(58px); }
+  88%  { opacity: 1; transform: translateY(40px); }
+  100% { opacity: 0; transform: translateY(40px); }
+}
+.stop { animation: pop 0.5s ease-out 6.5s both; }
+
+/* --- 区切りごとの文（1つの区切りに1文） ---------------------------------------- */
+
+.cap { left: 4cqw; top: 3.2cqw; max-width: 80cqw; }
+.cap-s1 { animation: cap-in 0.6s ease-out 0.3s both, cap-out 0.4s ease-in 2.15s forwards; }
+.cap-s2 { animation: cap-in 0.6s ease-out 2.6s both, cap-out 0.4s ease-in 4.85s forwards; }
+.cap-s3 { animation: cap-in 0.6s ease-out 5.2s both, cap-out 0.4s ease-in 7.25s forwards; }
+.cap-s4 { animation: cap-in 0.6s ease-out 7.6s both; }
