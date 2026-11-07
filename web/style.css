@@ -623,3 +623,23 @@ label.field-label-text { display: block; font-weight: 700; margin: 12px 0 6px; }
 .btn-row[aria-expanded] { padding-right: 48px; }
 .btn-row[aria-expanded]::after { content: "▾"; position: absolute; right: 16px; top: 50%; transform: translateY(-50%); }
 .btn-row[aria-expanded="true"]::after { content: "▴"; }
+
+/* --- 記録（フックが止めた書き込み） ------------------------------------------- */
+
+.nav-row { position: relative; padding-right: 48px; font-weight: 700; }
+.nav-row::after { content: "›"; position: absolute; right: 18px; top: 50%; transform: translateY(-50%); font-size: 1.5rem; }
+
+.audit-entry {
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  background: #fff;
+  border: 3px solid var(--line);
+  border-radius: 14px;
+}
+.audit-entry p { margin: 0 0 4px; }
+.audit-entry.is-deny { border-color: var(--red-line); background: var(--red-bg); }
+.audit-head { display: flex; align-items: center; gap: 10px; font-weight: 700; }
+.audit-head .mark { flex: none; width: 1.4em; text-align: center; font-size: 1.3rem; }
+.audit-time { margin-left: auto; font-weight: 400; color: #2b323d; }
+.audit-reason { font-weight: 700; }
+.audit-entry.is-deny .audit-head, .audit-entry.is-deny .audit-reason { color: var(--red-text); }

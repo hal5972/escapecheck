@@ -117,7 +117,7 @@
     const premisesSlot = h('div', { class: 'premises-slot' });
     const introSlot = h('div', { class: 'intro-slot' });
     const cardsSlot = h('div', { class: 'cards' });
-    A.$main.append(h('h1', null, `${A.personLabel(rec)}の点検`), introSlot, progressSlot, improvedSlot, summarySlot, cardsSlot, premisesSlot, factsSlot, A.noticeSafety());
+    A.$main.append(h('h1', null, `${A.personLabel(rec)}の点検`), introSlot, progressSlot, improvedSlot, summarySlot, cardsSlot, premisesSlot, factsSlot, A.auditLink('check'), A.noticeSafety());
 
     const cards = new Map(); // finding_id → { el, setOpen, resultKey }
     let openCard = null;

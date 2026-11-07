@@ -132,6 +132,7 @@
     await record('点検（まだ）', '#/check', 1200);
     await load('checked');
     await record('点検（結果）', '#/check', 3500);
+    await record('記録', '#/audit?from=check', 1500);
     await record('改善案', '#/fix?finding=fnd_s1', 3500);
     await record('確認', '#/verify', 2500);
     await load('improved');
