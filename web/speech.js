@@ -3,7 +3,7 @@
  * - 音声入力が使えないブラウザや接続では、利用できない旨を返し、画面は文字の入力欄を出す（E1）
  * - 音声認識を使うときは、音声が Google のサーバーに送られることを画面に出す（R-04。文言は sttNotice）
  * - 音声読み上げは ja-JP、速度 0.9。端末の中の声を優先する（ネットワークの声は、読む文が外部に送られるため）
- * - 読み上げに渡す文だけを、読み仮名に置き換える（readings.json の {"書き方": "読み"}。画面の表示は漢字のまま）
+ * - 読み上げに渡す文だけを、読み仮名に置き換える（readings.json の readings。画面の表示は漢字のまま）
  * - 画面に表示する文と同じ文が audio/manifest.json の items にあれば、合成音声のファイル（audio/<file>）を再生し、無ければ読み上げる
  */
 (function () {
@@ -31,15 +31,23 @@
   const listeners = new Set();
 
   // --- 読み仮名の置き換え ---------------------------------------------------
-  // 読み上げに渡す文だけを置き換える（画面の表示は漢字のまま）。一覧は readings.json の {"書き方": "読み"}。
+  // 読み上げに渡す文だけを置き換える（画面の表示は漢字のまま）。一覧は readings.json の readings（text の書き方を reading の読みに）。
   // 合成音声のファイルを作るスクリプトも、同じファイルを読む。読み込めないときは、下の予備を使う
 
   const FALLBACK_READINGS = { '何分': 'なんぷん', '間に合': 'まにあ' };
 
-  /** 一覧を整える。書き方と読みが文字のものだけを使い、長い書き方から順に置き換える。 */
-  function sortReadings(map) {
-    const entries = map && typeof map === 'object' && !Array.isArray(map) ? Object.entries(map) : [];
-    return entries.filter(([word, reading]) => word && typeof reading === 'string').sort((a, b) => b[0].length - a[0].length);
+  /**
+   * 一覧を整える。{"readings": [{ "text": 書き方, "reading": 読み }]} の形を読む（{"書き方": "読み"} の形も受ける）。
+   * 書き方と読みが文字のものだけを使い、長い書き方から順に置き換える。
+   */
+  function sortReadings(data) {
+    let pairs = [];
+    if (data && Array.isArray(data.readings)) {
+      pairs = data.readings.filter((r) => r && typeof r.text === 'string' && typeof r.reading === 'string').map((r) => [r.text, r.reading]);
+    } else if (data && typeof data === 'object' && !Array.isArray(data)) {
+      pairs = Object.entries(data).filter(([, reading]) => typeof reading === 'string');
+    }
+    return pairs.filter(([word]) => word).sort((a, b) => b[0].length - a[0].length);
   }
 
   let readings = sortReadings(FALLBACK_READINGS);
