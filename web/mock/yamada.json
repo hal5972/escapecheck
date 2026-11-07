@@ -35,7 +35,7 @@
         "notes": { "value": "息子さんは高知市で働いている（平日の昼は不在）", "quote": "息子さんは高知市で働きゆう" }
       },
       "with_supporters": true,
-      "next_question": "歩く速さを教えてください。100メートルを、何分くらいで歩けますか。"
+      "next_question": "歩行速度を教えてください。100メートルを、何分くらいで歩けますか。"
     },
     {
       "utterance": "100メートルを歩くのに、3分くらいかかるのう。",
@@ -105,10 +105,10 @@
       "basis": "直線距離 390m に、道なりにする係数 1.3（仮定）を掛けた概算。道路のデータは使っていない"
     },
     "src_asm_winter": { "kind": "assumption", "label": "冬は、避難を始めるまでに2分を加える", "value": 2, "unit": "分", "basis": "冬の防寒の支度に必要な時間（仮定）" },
-    "src_asm_dark": { "kind": "assumption", "label": "夜は、暗いので歩く速さを0.8倍にする", "value": 0.8, "unit": "倍", "basis": "足元が見えにくい（仮定）" },
+    "src_asm_dark": { "kind": "assumption", "label": "夜は、暗いので歩行速度を0.8倍にする", "value": 0.8, "unit": "倍", "basis": "足元が見えにくい（仮定）" },
     "src_asm_climb": { "kind": "assumption", "label": "避難先で上がる時間は2分", "value": 2, "unit": "分", "basis": "階段のある避難先の場合（仮定）" },
     "src_asm_help": { "kind": "assumption", "label": "声をかけて、一緒に出るまで3分", "value": 3, "unit": "分", "basis": "避難支援者が着いてから出発するまで（仮定）" },
-    "src_asm_sup_speed": { "kind": "assumption", "label": "避難支援者の歩く速さは0.62 m/秒", "value": 0.62, "unit": "m/秒", "basis": "東日本大震災の調べの平均に近い値（仮定）" },
+    "src_asm_sup_speed": { "kind": "assumption", "label": "避難支援者の歩行速度は0.62 m/秒", "value": 0.62, "unit": "m/秒", "basis": "東日本大震災の調べの平均に近い値（仮定）" },
     "src_asm_sup_leave": { "kind": "assumption", "label": "避難支援者が出るまでの時間（昼5分、夜10分）", "value": 5, "unit": "分", "basis": "避難を始めるまでの時間の例（2〜5分）をもとにした仮定。夜は倍にした" },
     "src_asm_leave_day": { "kind": "assumption", "label": "日中の避難開始時間は5分", "value": 5, "unit": "分", "basis": "聞き取れていないため、避難を始めるまでの時間の例（2〜5分）から置いた仮定" }
   },

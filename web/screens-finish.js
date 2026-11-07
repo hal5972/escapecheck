@@ -153,7 +153,7 @@
       const refresh = () => {
         const talk = { id: 'answer-btn', kind: 'primary', label: '話して答える', onClick: onTalk };
         if (working) { talk.label = '欄に入れています'; talk.disabled = true; }
-        else if (listening) { talk.label = 'とめる'; talk.listening = true; }
+        else if (listening) { talk.label = '止める'; talk.listening = true; }
         else if (typedMode()) talk.label = '送る';
         A.setActions([talk, { id: 'skip', label: '未確認のまま', disabled: working, onClick: () => { acknowledge(item.id, { resolution: 'unconfirmed' }); showItem(); } }]);
       };
@@ -192,7 +192,7 @@
         }
         if (listening) { listening.stop(); return; }
         listening = S.listen({
-          onInterim: (fin, interim) => { clear(transcript); transcript.append(fin, interim ? h('span', { class: 'interim' }, interim) : null); },
+          onInterim: (fin, interim) => { clear(transcript); EC.u.add(transcript, fin, interim ? h('span', { class: 'interim' }, interim) : null); },
           onEnd: ({ text, error }) => {
             listening = null;
             if (!scope.alive) return;
@@ -293,7 +293,7 @@
 
     A.setActions([
       { id: 'print', kind: 'primary', label: '印刷する', onClick: () => window.print() },
-      { id: 'home', label: 'ホームにもどる', onClick: () => A.go('home') },
+      { id: 'home', label: 'ホームに戻る', onClick: () => A.go('home') },
     ]);
   });
 

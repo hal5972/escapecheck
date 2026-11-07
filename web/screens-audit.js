@@ -13,7 +13,7 @@
 
   const AGENTS = {
     interview: '聞き取りエージェント',
-    redteam: 'レッドチームエージェント',
+    redteam: 'レッドチームエージェント（計画の弱点を探す）',
     verify: '検証エージェント',
     server: 'サーバーのコード',
   };
@@ -83,9 +83,9 @@
       h('span', null, '通した書き込みも見る'),
       h('span', { class: 'switch-state' }, '切'));
 
-    A.$main.append(
+    EC.u.add(A.$main,
       h('h1', null, '記録'),
-      h('p', { class: 'lead' }, 'AI が計画に書き込もうとしたとき、プログラムのコード（フック）が確認した記録です。'),
+      h('p', { class: 'lead' }, 'AI が計画に書き込もうとしたとき、プログラムのコード（フック）が確認した記録（監査ログ）です。'),
       h('p', null, '出典のない書き込み、原文にない引用、説明文に直接書いた数値、承認のない変更は、コードが止めます。止めた理由は AI に返り、AI が直して、書き込み直します。'),
       EC.api.getMode() === 'mock' ? h('p', { class: 'sub' }, 'これは、サンプルの記録です。サーバーに接続すると、実際の記録を出します。') : null,
       statusSlot, summarySlot, switchRow, listSlot, A.noticeSafety());

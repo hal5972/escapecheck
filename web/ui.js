@@ -40,7 +40,7 @@
       const q = quote || s.text;
       if (q) box.append(h('p', null, '話した言葉: ', h('span', { class: 'quote' }, `「${T(q)}」`)));
     } else if (s.kind === 'map_tap') {
-      box.append(h('p', null, '地図をさわって、自宅の場所を決めました。位置は、この端末の中に保存します。'));
+      box.append(h('p', null, '地図をタップして、自宅の場所を決めました。位置は、この端末の中に保存します。'));
     } else {
       if (s.name) box.append(h('p', null, `データ: ${s.name}`));
       if (s.version) box.append(h('p', null, `版: ${s.version}`));

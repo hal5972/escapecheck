@@ -74,6 +74,12 @@
     return el;
   }
 
+  /** 子を追加する。null・undefined・false は無視する（DOM の append に null を渡すと、文字の「null」が入るため）。 */
+  function add(el, ...children) {
+    appendChildren(el, children);
+    return el;
+  }
+
   const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
   function uid(prefix) {
@@ -223,7 +229,7 @@
   }
 
   EC.u = {
-    h, svg, clear, sleep, uid, safeHref,
+    h, svg, clear, add, sleep, uid, safeHref,
     isNum, ceilMin, floorMin, roundMin,
     verdictView, severityOf, worstResult,
     splitLabel, fillTemplate, formatDate, formatClock,

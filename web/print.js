@@ -99,7 +99,7 @@
           h('th', null, EC.ui.scenarioTitle(plan, f)),
           h('td', null, `${v.mark} ${v.text}`,
             isNum(f.result.need_min) && isNum(f.result.avail_min)
-              ? h('div', null, `避難にかかる時間 ${ceilMin(f.result.need_min)}分／津波が来るまで ${floorMin(f.result.avail_min)}分`)
+              ? h('div', null, `避難所要時間 ${ceilMin(f.result.need_min)}分／津波到達時間 ${floorMin(f.result.avail_min)}分`)
               : null)));
       }
       body.append(h('h3', null, '点検の結果（厳しい条件でのシミュレーション）'), h('table', { class: 'sheet-table' }, resultRows));
@@ -167,13 +167,13 @@
     const printMap = result ? EC.ui.scenarioMap(result, { plan, facts: ctx.facts, T, fixed: { width: 700, height: 300 }, plain: true }) : null;
     if (printMap) mapSlot.append(h('div', { class: 'print-map' }, printMap.el));
 
-    // 避難にかかる時間（いちばん厳しい場合）
+    // 避難所要時間（いちばん厳しい場合）
     if (worst) {
       const r = worstResult(worst.result);
       const v = verdictView(r);
       sheet.append(
-        h('p', { class: 'big-line' }, `避難にかかる時間: ${isNum(worst.result.need_min) ? `${ceilMin(worst.result.need_min)}分` : '不明'}`),
-        h('p', { class: 'big-line' }, `津波が来るまで: ${isNum(worst.result.avail_min) ? `${floorMin(worst.result.avail_min)}分` : '不明'}`),
+        h('p', { class: 'big-line' }, `避難所要時間: ${isNum(worst.result.need_min) ? `${ceilMin(worst.result.need_min)}分` : '不明'}`),
+        h('p', { class: 'big-line' }, `津波到達時間: ${isNum(worst.result.avail_min) ? `${floorMin(worst.result.avail_min)}分` : '不明'}`),
         h('div', { class: `verdict verdict-${v.key}` },
           h('span', { class: 'mark', 'aria-hidden': 'true' }, v.mark),
           h('span', { class: 'vtext' }, v.text)),

@@ -76,7 +76,7 @@
     const need = isNum(result.need_min) ? `${EC.u.ceilMin(result.need_min)}分` : null;
     const avail = isNum(result.avail_min) ? `${floorMin(result.avail_min)}分` : null;
     const head = '改善案を反映して、計算し直しました。';
-    const times = need && avail ? `避難にかかる時間は${need}、津波が来るまで${avail}で、` : '';
+    const times = need && avail ? `避難所要時間は${need}、津波到達時間は${avail}で、` : '';
     if (v.key === 'ok') return `${head}${times}間に合います${v.detail ? `（${v.detail}）` : ''}。`;
     if (v.key === 'tight') return `${head}${times}余裕が少ない状態です${v.detail ? `（${v.detail}）` : ''}。`;
     if (v.key === 'short') return `${head}${times}${v.detail ? `まだ${v.detail}です。` : 'まだ間に合いません。'}`;
@@ -243,7 +243,7 @@
         h('p', { class: 'strong' }, `点検したシナリオ（厳しい条件）: ${findings.length}つ`),
         row('short', '×', '間に合わない'), row('tight', '△', '余裕が少ない'), row('ok', '○', '間に合う'),
         count.unknown ? row('unknown', '？', '計算できない') : null,
-        h('p', { class: 'sub' }, '時間は、すべて、揺れてからの分です。'));
+        h('p', { class: 'sub' }, '避難所要時間と、津波到達時間を比べます。時間は、すべて、揺れてからの分です。'));
       if (findings.length && count.short === findings.length) {
         // E5: すべてのシナリオで間に合わない
         box.append(h('p', { class: 'strong' }, 'この方は、現在の条件では間に合いません。'),
@@ -350,7 +350,7 @@
       progressSlot.append(A.errorBox(A.errorText(e)));
       A.setActions([
         { id: 'retry', kind: 'primary', label: 'もう一度', onClick: retry },
-        { id: 'back', label: '話す画面にもどる', onClick: () => A.go('talk') },
+        { id: 'back', label: '話す画面に戻る', onClick: () => A.go('talk') },
       ]);
     }
 

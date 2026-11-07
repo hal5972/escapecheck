@@ -112,7 +112,7 @@
   function setBanner() {
     const mock = EC.api.getMode() === 'mock';
     $banner.hidden = !mock;
-    $banner.textContent = mock ? '試験用: サーバー未接続。サンプルの値で動いています。' : '';
+    $banner.textContent = mock ? '試験用: サーバーにつながっていません。サンプルの値で動いています。' : '';
   }
 
   // --- 計画の保存（端末の中だけ） ----------------------------------------------
