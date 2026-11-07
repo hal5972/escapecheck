@@ -23,6 +23,13 @@
         svg('path', { d: 'M0 12C70 -2 130 -2 200 12S320 26 390 8V28H0Z' })));
   }
 
+  /** 下の 2 つのボタンの説明（印は、ボタンと同じ。塗りは主なボタン、枠は、もう 1 つのボタン）。 */
+  function chooseRow(icon, title, text, primary) {
+    return h('div', { class: `choose-row${primary ? ' is-primary' : ''}` },
+      h('span', { class: 'choose-ic', 'aria-hidden': 'true' }, EC.icon(icon, { size: 24 })),
+      h('p', null, h('span', { class: 'strong' }, title), h('br'), text));
+  }
+
   /** 流れ（話す → 点検 → 改善）。何をするアプリかを、ひと目で見せる。 */
   function flow() {
     const step = (icon, label) => h('div', { class: 'flow-step' }, h('span', { class: 'flow-ic' }, EC.icon(icon, { size: 30 })), label);
@@ -43,10 +50,10 @@
     const msg = h('div', { id: 'login-msg', 'aria-live': 'polite' });
     A.$main.append(
       hero('話して計画を作り、点検して、改善します。'),
-      A.noticePrivacy(),
       h('label', { class: 'field-label-text', for: 'passphrase' }, '合言葉'),
       input,
-      msg);
+      msg,
+      A.noticePrivacy());
 
     let busy = false;
     const submit = async () => {
@@ -103,6 +110,10 @@
     A.$main.append(
       hero('話して個別避難計画を作り、厳しい条件で点検して、改善します。下の大きなボタンから、選んでください。'),
       flow(),
+      h('div', { class: 'card choose-card' },
+        h('p', { class: 'strong' }, 'どちらから始めますか'),
+        chooseRow('play', 'サンプルデータで試す', 'デモ用の架空の人物で、話すところから試せます。', true),
+        chooseRow('plus', '新しい計画を作る', '自宅の場所を地図で決めてから、話します。', false)),
       A.noticePrivacy());
 
     const all = store.listPlans();

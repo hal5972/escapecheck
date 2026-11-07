@@ -322,17 +322,17 @@
 
     const slot = h('div', { class: 'sheets-slot' });
     A.$main.append(
-      h('h1', null, '印刷'),
+      h('h1', null, '完成した計画の印刷'),
       h('p', { class: 'lead' }, 'A4で2枚を印刷します。本人用の避難カードと、市に出す様式です。'),
       h('p', { class: 'sub' }, '印刷の順は、1枚目が市の様式、2枚目が避難カードです。'),
       slot);
 
+    // 注意の文は、避難カードと様式に載っているので、この画面の下には重ねて出さない
     (async () => {
       await A.ensureFacts(rec);
       if (!scope.alive) return;
       const sheets = EC.print.buildSheets(rec, { T, facts: A.state.facts });
       slot.replaceWith(sheets);
-      A.$main.append(A.noticeSafety());
     })();
 
     A.setActions([

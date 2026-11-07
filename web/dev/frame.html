@@ -1,10 +1,30 @@
 <!doctype html>
 <html lang="ja"><head><meta charset="utf-8"><title>frame</title>
-<style>html,body{margin:0;background:#d8d5cb}iframe{display:block;margin:0 auto;border:0;background:#fff}</style></head>
+<style>html,body{margin:0;background:#dde3ee}iframe{display:block;margin:0 auto;border:0;background:#fff}</style></head>
 <body><iframe id="f" width="390"></iframe>
 <script>
+// 試験・撮影用: 画面を、スマートフォンの幅（w）と高さ（h）の枠に入れて開く。p は、開く画面（#/ のあと）。
+// do は、開いたあとに作る状態（listening: 聞き取り中、dialog: 確認の表示、error: 失敗の表示、running: 点検の実行中）
 const q=new URLSearchParams(location.search);
 const f=document.getElementById('f');
+f.width=q.get('w')||'390';
 f.height=q.get('h')||'844';
 f.src='/?mock=1&autologin=1'+(q.get('x')||'')+'#'+(q.get('p')||'/home');
+
+const acts={
+  listening(w){
+    const main=w.document.getElementById('main');
+    const badge=main.querySelector('.live-badge'); const tr=main.querySelector('.transcript');
+    if(!badge||!tr) return;
+    badge.hidden=false; tr.classList.add('is-live');
+    tr.textContent='山田さんは一人暮らしで、杖ついちゅう。';
+    const s=w.document.createElement('span'); s.className='interim'; s.textContent='夜は1階の奥の部屋で'; tr.appendChild(s);
+    w.EC.app.setActions([{id:'talk',kind:'primary',label:'止める',listening:true,onClick(){}},{id:'ok',label:'それでいい',trailing:'chevron-right',onClick(){}}]);
+  },
+  dialog(w){ w.EC.ui.confirmDialog({message:'山田さんの計画を、この端末から消します。元には戻せません。',okLabel:'消す',cancelLabel:'やめる'}); },
+  error(w){ const A=w.EC.app; A.$main.prepend(A.errorBox('音声入力を使えませんでした。文字で入力してください。')); },
+  running(w){ const b=w.document.getElementById('run'); if(b) b.click(); },
+};
+const act=q.get('do');
+if(act&&acts[act]) f.addEventListener('load',()=>setTimeout(()=>{ try{ acts[act](f.contentWindow); }catch(e){} }, Number(q.get('wait')||2000)));
 </script></body></html>

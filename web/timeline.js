@@ -30,6 +30,27 @@
     return label.replace(/直線距離\s*×\s*1\.3\s*の概算、?/, '').replace('、）', '）');
   }
 
+  // 判定の印（丸に記号）。画面の判定の札と同じ形・同じ色。色は CSS の変数と同じ値（README の色の一覧）
+  const DOT = { ok: ['#1b7d46', '#ffffff'], tight: ['#f4b400', '#2e2100'], short: ['#c62a1f', '#ffffff'], unknown: ['#5d667b', '#ffffff'] };
+  const GLYPH = {
+    ok: 'M-5.5 0.5L-1.8 4.2L5.8 -4',
+    short: 'M-4.6 -4.6L4.6 4.6M4.6 -4.6L-4.6 4.6',
+    tight: 'M0 -6.8V1.2',
+    unknown: 'M-3.6 -3.2A3.6 3.6 0 1 1 1.6 0.2C0.4 0.9 0 1.5 0 2.6',
+  };
+
+  function verdictDot(key, cx, cy) {
+    const [fill, ink] = DOT[key] || DOT.unknown;
+    const g = svg('g', { transform: `translate(${cx.toFixed(1)} ${cy})`, 'aria-hidden': 'true' });
+    g.appendChild(svg('circle', { r: 13, fill }));
+    g.appendChild(svg('path', { d: GLYPH[key] || GLYPH.unknown, fill: 'none', stroke: ink, 'stroke-width': 3, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
+    if (key === 'tight' || key === 'unknown') g.appendChild(svg('circle', { cy: 6.4, r: 1.8, fill: ink }));
+    return g;
+  }
+
+  /** 文字の幅の見積もり（SVG の文字の位置を決めるだけに使う）。半角は 0.55 倍、全角は 1 倍。 */
+  const textWidth = (str, size) => [...String(str)].reduce((sum, c) => sum + (c.charCodeAt(0) < 256 ? 0.55 : 1) * size, 0);
+
   /** 一覧の記号（小さな四角）。タイムラインと同じ模様を使う。 */
   function swatch(fill) {
     return svg('svg', { class: 'tl-swatch', width: 36, height: 28, viewBox: '0 0 36 28', 'aria-hidden': 'true', focusable: 'false' },
@@ -90,17 +111,22 @@
       g.appendChild(svg('line', { x1: xLine.toFixed(1), x2: xLine.toFixed(1), y1: 34, y2: lineBottom, stroke: '#0d1b36', 'stroke-width': 4 }));
       g.appendChild(svg('text', { class: 'tl-line-label', x: labelX.toFixed(1), y: 26, 'text-anchor': 'middle' }, `津波 ${floorMin(avail)}分`));
 
-      // 余裕・不足の文字
-      const note = svg('text', { class: `tl-note tl-note-${view.key}`, y: 140 });
-      note.textContent = `${view.mark} ${view.detail || view.label}`;
-      note.setAttribute('x', (view.key === 'short' ? W - PAD : Math.min(Math.max(xLine, 170), W - PAD)).toFixed(1));
-      note.setAttribute('text-anchor', 'end');
+      // 余裕・不足の文字。前に、判定の札と同じ印（丸に記号）を付ける
+      const noteText = view.detail || view.label;
+      const noteX = view.key === 'short' ? W - PAD : Math.min(Math.max(xLine, 170), W - PAD);
+      const note = svg('text', { class: `tl-note tl-note-${view.key}`, x: noteX.toFixed(1), y: 140, 'text-anchor': 'end' });
+      note.textContent = noteText;
+      g.appendChild(verdictDot(view.key, noteX - textWidth(noteText, 26) - 22, 131));
       g.appendChild(note);
     }
 
-    // 区間の分の数字。幅が足りないときは出さない
+    // 区間の分の数字。模様の上でも読めるよう、白い札の上に出す。幅が足りないときは出さない
     labels.forEach((l) => {
-      if (l.w >= 34) g.appendChild(svg('text', { class: 'tl-num', x: (l.x + l.w / 2).toFixed(1), y: BAR_Y + 30, 'text-anchor': 'middle' }, l.text));
+      const pw = l.text.length * 15 + 14;
+      if (l.w < pw + 2) return;
+      const cx = l.x + l.w / 2;
+      g.appendChild(svg('rect', { x: (cx - pw / 2).toFixed(1), y: BAR_Y + 7, width: pw.toFixed(1), height: 30, rx: 8, fill: '#ffffff', stroke: '#0d1b36', 'stroke-width': 1.5 }));
+      g.appendChild(svg('text', { class: 'tl-num', x: cx.toFixed(1), y: BAR_Y + 30, 'text-anchor': 'middle' }, l.text));
     });
 
     // 文字の一覧

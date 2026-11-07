@@ -118,7 +118,8 @@
     if (!rec) { A.go('home', {}, { replace: true }); return; }
     A.state.rec = rec;
     A.setBack('talk');
-    A.setStage((rec.plan.approvals || []).length ? 3 : 2); // 改善案を反映したあとは、改善の段階
+    const improved = (rec.plan.approvals || []).length > 0; // 改善案を反映したあとは、改善の段階
+    A.setStage(improved ? 3 : 2);
     const T = A.T;
 
     const progressSlot = h('div', { class: 'progress-slot' });
@@ -128,7 +129,9 @@
     const premisesSlot = h('div', { class: 'premises-slot' });
     const introSlot = h('div', { class: 'intro-slot' });
     const cardsSlot = h('div', { class: 'cards' });
-    A.$main.append(h('h1', null, `${A.personLabel(rec)}の点検`), introSlot, progressSlot, improvedSlot, summarySlot, cardsSlot, premisesSlot, factsSlot, A.auditLink('check'), A.noticeSafety());
+    // 「記録」（コードが止めた書き込み）への入口は、結果の概要の直後に出す（画面の下のほうに隠れないように）
+    const auditSlot = h('div', { class: 'audit-slot' });
+    A.$main.append(h('h1', null, `${A.personLabel(rec)}の${improved ? '改善後の点検' : '点検'}`), introSlot, progressSlot, improvedSlot, summarySlot, auditSlot, cardsSlot, premisesSlot, factsSlot, A.noticeSafety());
 
     const cards = new Map(); // finding_id → { el, setOpen, resultKey }
     let openCard = null;
@@ -308,9 +311,11 @@
       factsSlot.append(ui.factsPanel(A.state.facts.facts));
       renderPremises();
       clear(summarySlot);
+      clear(auditSlot);
       const findings = rec.plan.findings || [];
       if (findings.length) summarySlot.append(summaryNode(rec.plan, findings));
       else summarySlot.append(h('div', { class: 'card' }, h('p', null, '問題点は見つかりませんでした。')));
+      auditSlot.append(A.auditLink('check'));
       return true;
     }
 
@@ -385,6 +390,7 @@
       clear(improvedSlot);
       clear(cardsSlot);
       clear(summarySlot);
+      clear(auditSlot);
       clear(factsSlot);
       clear(premisesSlot);
       clear(introSlot);
@@ -512,10 +518,11 @@
     } else if ((rec.plan.findings || []).length) {
       showResults();
     } else {
-      introSlot.append(
-        h('p', { class: 'lead' }, '津波が来る前に避難できるかを、厳しい条件で点検します。'),
+      introSlot.append(h('div', { class: 'card intro-card' },
+        h('span', { class: 'intro-ic', 'aria-hidden': 'true' }, EC.icon('clipboard', { size: 36 })),
+        h('p', { class: 'lead strong' }, '津波が来る前に避難できるかを、厳しい条件で点検します。'),
         h('p', null, 'たとえば、冬の深夜、家族がいない昼、道がふさがったとき、避難支援者が来られないときです。'),
-        h('p', { class: 'sub' }, '数値は、プログラムのコードが計算します。AI は計算しません。'));
+        h('p', { class: 'sub' }, '数値は、プログラムのコードが計算します。AI は計算しません。')));
       A.setActions([{ id: 'run', kind: 'primary', icon: 'clipboard', label: '点検する', onClick: () => runCheck(false) }]);
     }
   });
@@ -569,7 +576,7 @@
         h('div', { class: 'fix-card' },
           h('p', { class: 'fix-count' }, `案 ${index + 1}／${fixes.length}`),
           isNum(fix.saved_min) && floorMin(fix.saved_min) >= 1
-            ? h('p', { class: 'saved-line' }, EC.icon('trend', { size: 28 }), h('span', null, `${floorMin(fix.saved_min)}分、短くなります`)) : null,
+            ? h('p', { class: 'saved-line' }, EC.icon('clock', { size: 28 }), h('span', null, `${floorMin(fix.saved_min)}分、短くなります`)) : null,
           h('p', { class: 'fix-title' }, title),
           h('p', { class: 'explain' }, T(fixExplanation(plan, fix, name))),
           h('p', { class: 'sub' }, `いまの点検の結果: ${ui.scenarioTitle(plan, finding)}`),

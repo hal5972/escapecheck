@@ -120,6 +120,7 @@ body {
   font-size: var(--fs-base);
   line-height: var(--lh-text);
   letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums; /* 数字の幅をそろえる（分の表示などが縦にそろう） */
   word-break: auto-phrase;
   line-break: strict;
   overflow-wrap: anywhere;
@@ -313,7 +314,12 @@ p { margin: 0 0 var(--sp-3); }
 }
 .btn-primary:active, .btn-confirm:active { background: var(--ai-800); transform: translateY(3px); box-shadow: 0 0 0 var(--ai-950); }
 .btn-listening { background: var(--ai-950); border-color: var(--ai-950); }
-.btn[disabled] { opacity: 0.5; cursor: default; box-shadow: none; transform: none; }
+/* 押せないボタン: 文字が読めるまま、押せない形（破線の枠と薄い面）にする */
+.btn[disabled], .btn-primary[disabled], .btn-confirm[disabled] {
+  color: var(--ink-sub); background: var(--fill); border: 2px dashed var(--line-strong);
+  cursor: default; box-shadow: none; transform: none;
+}
+.btn[disabled] .spinner { margin-right: 2px; }
 .btn .ic { width: 28px; height: 28px; }
 
 /* 聞き取り中の印（音の波形が動く） */
@@ -390,6 +396,11 @@ p { margin: 0 0 var(--sp-3); }
 }
 .card p:last-child { margin-bottom: 0; }
 .cards { margin: 0 0 14px; }
+.intro-card { padding-top: 18px; }
+.intro-ic {
+  display: grid; place-items: center; width: 64px; height: 64px; margin: 0 0 12px;
+  color: var(--ai-700); background: var(--ai-100); border-radius: 50%;
+}
 .facts-card p, .summary-card p, .item-card p { margin: 0 0 6px; }
 .facts-card, .summary-card, .item-card { margin-bottom: 14px; }
 
@@ -501,7 +512,7 @@ label.field-label-text { display: block; font-weight: 700; margin: var(--sp-3) 0
 .hero {
   position: relative;
   margin: calc(-1 * var(--sp-4)) calc(-1 * var(--sp-4)) var(--sp-4);
-  padding: calc(28px + env(safe-area-inset-top, 0px)) 20px 52px;
+  padding: calc(22px + env(safe-area-inset-top, 0px)) 20px 46px;
   background-color: var(--ai-900);
   background-image: linear-gradient(160deg, var(--ai-950) 0%, var(--ai-800) 100%);
   color: #fff;
@@ -533,6 +544,16 @@ label.field-label-text { display: block; font-weight: 700; margin: var(--sp-3) 0
   color: var(--ai-700); background: var(--ai-100); border-radius: 50%;
 }
 .flow-arrow { margin-top: 16px; color: var(--ai-600); }
+
+.choose-card > .strong { margin-bottom: var(--sp-2); }
+.choose-row { display: flex; align-items: flex-start; gap: var(--sp-3); margin: 0 0 var(--sp-3); }
+.choose-row:last-child { margin-bottom: 0; }
+.choose-row p { flex: 1; min-width: 0; margin: 0; }
+.choose-ic {
+  flex: none; display: grid; place-items: center; width: 44px; height: 44px; margin-top: 2px;
+  color: var(--ai-700); background: var(--paper); border: 2px solid var(--ai-700); border-radius: 12px;
+}
+.choose-row.is-primary .choose-ic { color: #fff; background: var(--ai-700); }
 
 .saved-row { display: flex; gap: var(--sp-2); align-items: stretch; margin: 0 0 var(--sp-2); }
 .saved-row .btn-row { margin: 0; }
@@ -577,7 +598,12 @@ label.field-label-text { display: block; font-weight: 700; margin: var(--sp-3) 0
 }
 .question-tag { display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--ai-700); }
 .question-text { display: block; margin-top: 2px; font-size: var(--fs-md); font-weight: 700; line-height: 1.5; color: var(--ink); }
-.question-hint { display: block; margin-top: 4px; color: var(--ink-sub); }
+/* 質問の札を押すと、もう一度読む。押せることが分かるよう、ボタンの形の札にする */
+.question-hint {
+  display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 10px; padding: 6px 14px;
+  font-weight: 700; line-height: 1.3; color: var(--ai-700); background: var(--paper);
+  border: 2px solid var(--ai-700); border-radius: var(--r-md);
+}
 
 .transcript {
   min-height: 112px;
@@ -590,6 +616,13 @@ label.field-label-text { display: block; font-weight: 700; margin: var(--sp-3) 0
   line-height: 1.55;
 }
 .transcript.is-live { border-color: var(--ai-700); box-shadow: 0 0 0 4px var(--ai-200); }
+.live-badge { display: flex; align-items: center; gap: 10px; margin: 0 0 6px; font-weight: 700; color: var(--ai-900); }
+.live-badge[hidden] { display: none; }
+.live-dot { flex: none; width: 14px; height: 14px; background: var(--ai-700); border-radius: 50%; animation: pulse 1.1s ease-in-out infinite; }
+@keyframes pulse { 50% { transform: scale(1.5); opacity: 0.55; } }
+.question-box.is-speaking { box-shadow: 0 0 0 4px var(--ai-200); }
+.question-box.is-speaking .ic-speaker path:last-child { animation: wave 0.9s ease-in-out infinite; }
+@keyframes wave { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
 .transcript .placeholder { color: var(--ink-sub); }
 .transcript .interim { color: var(--ink-sub); text-decoration: underline dotted; }
 .mode-note { margin: 0 0 var(--sp-3); color: var(--ink-sub); }
@@ -600,8 +633,17 @@ label.field-label-text { display: block; font-weight: 700; margin: var(--sp-3) 0
 .status-slot:empty, .premises-slot:empty, .improved-slot:empty, .progress-slot:empty,
 .summary-slot:empty, .facts-slot:empty, .intro-slot:empty { display: none; }
 
-/* 欄（計画の項目 1 つ。押すと出典を開く） */
-.field-item { margin: 0 0 var(--sp-2); }
+/* 欄（計画の項目 1 つ。押すと出典を開く）。1 つの白い面の中を、細い線で区切った一覧にする */
+.fields-list {
+  margin: 0 0 var(--sp-3);
+  overflow: hidden;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-1);
+}
+.field-item { margin: 0; border-bottom: 1px solid var(--line); }
+.field-item:last-child { border-bottom: 0; }
 .field-row {
   position: relative;
   display: block;
@@ -612,24 +654,24 @@ label.field-label-text { display: block; font-weight: 700; margin: var(--sp-3) 0
   text-align: left;
   color: var(--ink);
   background: var(--paper);
-  border: 1px solid var(--line);
+  border: 0;
   border-left: 6px solid var(--ai-700);
-  border-radius: var(--r-md);
-  box-shadow: var(--shadow-1);
+  border-radius: 0;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
+.field-row:focus-visible { outline-offset: -4px; }
+.source-detail-wrap { padding: 0 10px 8px; }
 .field-row::after { top: 26px; margin-top: 0; }
 .field-row[aria-expanded="true"]::after { top: 30px; margin-top: 0; }
 .field-row .field-title { display: block; font-weight: 700; color: var(--ai-800); }
 .field-row .field-hint { display: block; color: var(--ink-sub); }
 .field-row .field-value { display: block; margin-top: 2px; font-size: var(--fs-md); }
-.field-row.unconfirmed { background: var(--fill); border-style: dashed; border-left-style: solid; border-left-color: var(--unknown); box-shadow: none; }
+.field-row.unconfirmed { background: var(--fill); border-left-color: var(--unknown); }
 .field-row.unconfirmed .field-value { color: var(--ink-sub); font-weight: 700; }
-.field-row.changed { background: #fffbe6; border-color: var(--tight-line); border-left-color: var(--tight); animation: flash 1.6s ease-out 1; }
+.field-row.changed { background: #fffbe6; border-left-color: var(--tight); animation: flash 1.6s ease-out 1; }
 .field-row.changed .field-title::after { content: "いま入った"; padding: 0 10px; margin-left: 10px; font-weight: 700; color: var(--tight-ink); background: var(--tight-bg); border: 1px solid var(--tight-line); border-radius: 999px; }
 @keyframes flash { 0% { background: #ffe58a; } 100% { background: #fffbe6; } }
-.field-row[aria-expanded="true"] { border-color: var(--ai-700); }
 .field-row .chip { margin-top: 6px; border-radius: 8px; }
 .field-row .chip::before { content: "出典: "; font-weight: 400; }
 
@@ -762,7 +804,7 @@ label.field-label-text { display: block; font-weight: 700; margin: var(--sp-3) 0
 .tl-title { margin: 0 0 4px; font-weight: 700; color: var(--ai-900); }
 .tl-svg { display: block; width: 100%; height: auto; }
 /* 図の文字は、図が縮むと小さくなる。幅 360px でも 24px 以上に見えるよう、26 で描く */
-.tl-num { font-size: 26px; font-weight: 700; fill: #fff; stroke: #0d1b36; stroke-width: 5px; paint-order: stroke; stroke-linejoin: round; }
+.tl-num { font-size: 26px; font-weight: 700; fill: var(--ink); }
 .tl-line-label { font-size: 26px; font-weight: 700; fill: var(--ink); }
 .tl-note { font-size: 26px; font-weight: 700; }
 .tl-note-short { fill: var(--short-ink); }
@@ -852,7 +894,6 @@ label.field-label-text { display: block; font-weight: 700; margin: var(--sp-3) 0
 .check-list .mark-char { display: none; }
 
 .sheets-preview { display: flex; flex-direction: column; gap: var(--sp-4); }
-.sheets-preview .sheet-card { order: -1; }
 .sheet {
   padding: 14px;
   background: var(--paper);
@@ -886,8 +927,13 @@ label.field-label-text { display: block; font-weight: 700; margin: var(--sp-3) 0
 .sheet-table td.src-cell { padding-top: 0; }
 .sheet-table td.src-cell:empty { display: none; }
 .sheet-table td .chip, .sheet-table td.src-cell .chip { margin: 0; }
-.event-log { margin: 0 0 14px; padding-left: 1.4em; color: var(--ink-sub); }
-.event-log li { margin: 0 0 4px; }
+/* 進んだ作業の一覧（終わったものに ✓ を付ける） */
+.event-log { list-style: none; margin: 0 0 14px; padding: 0 4px; color: var(--ink-sub); }
+.event-log li { position: relative; margin: 0 0 4px; padding-left: 34px; }
+.event-log li::before {
+  content: ""; position: absolute; left: 10px; top: 0.55em; width: 7px; height: 13px;
+  border-right: 3px solid var(--ok); border-bottom: 3px solid var(--ok); transform: rotate(45deg);
+}
 
 /* ==== 13. 重ねて出す確認の表示 =========================================== */
 
@@ -929,6 +975,11 @@ label.field-label-text { display: block; font-weight: 700; margin: var(--sp-3) 0
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+
+/* 幅 380px 未満: 上の帯の名前は隠して、ロゴだけにする（戻る・読み上げを止めるの場所を空ける） */
+@media (max-width: 379px) {
+  .brand-name { display: none; }
 }
 
 /* 横幅の狭い端末（幅 360px 未満） */

@@ -63,8 +63,10 @@
     const questionTag = h('span', { class: 'question-tag' }, EC.icon('speaker', { size: 26 }), questionTagText);
     const questionText = h('span', { class: 'question-text' });
     const question = h('button', { type: 'button', class: 'question-box', 'aria-describedby': 'question-hint', onclick: () => say() },
-      questionTag, questionText, h('span', { class: 'question-hint', id: 'question-hint' }, '押すと、もう一度読みます'));
+      questionTag, questionText, h('span', { class: 'question-hint', id: 'question-hint' }, EC.icon('play', { size: 20 }), '押すと、もう一度読みます'));
 
+    // 聞き取り中の表示（脈を打つ印と文字）。声の入力を受けていることを、ボタンの色だけに頼らず伝える
+    const liveBadge = h('div', { class: 'live-badge', hidden: true }, h('span', { class: 'live-dot', 'aria-hidden': 'true' }), '聞いています');
     const transcript = h('div', { class: 'transcript', id: 'transcript', 'aria-live': 'polite' });
     const statusSlot = h('div', { class: 'status-slot' });
     const modeNote = h('p', { class: 'mode-note' });
@@ -93,7 +95,7 @@
     const examplesSlot = h('div', { class: 'examples-slot' });
 
     EC.u.add(A.$main,
-      personBar, statusSlot, question, transcript, typedWrap, modeNote,
+      personBar, statusSlot, question, liveBadge, transcript, typedWrap, modeNote,
       S.sttSupported ? phoneSettings : null,
       premisesSlot,
       h('div', { class: 'fields-head' }, h('h2', null, '計画の欄')),
@@ -111,6 +113,7 @@
     function renderTranscript(finalText, interim) {
       clear(transcript);
       transcript.classList.toggle('is-live', Boolean(listening));
+      liveBadge.hidden = !listening;
       if (!finalText && !interim) {
         transcript.append(h('span', { class: 'placeholder' }, lastText || 'ここに、文字起こし（話した内容の文字）が出ます'));
         return;
@@ -197,7 +200,7 @@
       else if (retryText !== null) { talkAction.label = 'もう一度'; talkAction.icon = 'swap'; talkAction.onClick = () => submit(retryText); }
       else if (listening) { talkAction.label = '止める'; talkAction.listening = true; }
       else if (typedMode()) { talkAction.label = '送る'; talkAction.icon = 'send'; }
-      A.setActions([talkAction, { id: 'ok', kind: talkMain ? undefined : 'primary', icon: 'check', label: 'それでいい', disabled: working, onClick: () => A.go('check') }]);
+      A.setActions([talkAction, { id: 'ok', kind: talkMain ? undefined : 'primary', trailing: 'chevron-right', label: 'それでいい', disabled: working, onClick: () => A.go('check') }]);
     }
 
     /** いまの質問を読み上げる（合成音声のファイルがあれば、それを再生する）。 */
@@ -344,6 +347,10 @@
     });
 
     scope.onLeave(() => { if (listening) listening.abort(); listening = null; });
+
+    // 質問を読み上げている間は、質問の札の印を動かす
+    question.classList.toggle('is-speaking', S.isSpeaking());
+    scope.onLeave(S.onSpeakingChange((speaking) => question.classList.toggle('is-speaking', speaking)));
 
     // --- 初めの表示 -----------------------------------------------------------
 
