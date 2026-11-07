@@ -11,8 +11,11 @@ Agent SDK には options の env で渡す。キーをログ・画面・例外�
 
 from __future__ import annotations
 
-from typing import Literal, TypedDict
+from typing import Any, Callable, Literal, TypedDict
 
+from app import hooks
+from app.backend import default_backend
+from tools import plan_model as pm
 from tools.plan_model import Finding, Issue, Plan
 
 
@@ -28,6 +31,43 @@ class JobStatus(TypedDict):
     events: list[str]  # 画面に出す進捗（「冬の深夜のシナリオで点検しています」など）
     plan: Plan | None  # done のとき、findings と fixes が入った計画
     error: str | None  # failed のとき、利用者に見せてよい文（キーや内部情報を含めない）
+
+
+class FinalizeRejected(Exception):
+    """完成のチェックで止まった。reasons は画面に出してよい文。"""
+
+    def __init__(self, reasons: list[str]) -> None:
+        super().__init__("完成にできません")
+        self.reasons = reasons
+
+
+# ---------------------------------------------------------------------------
+# 差し替え（テスト用）
+# ---------------------------------------------------------------------------
+
+_state: dict[str, Any] = {"backend": None}
+
+
+def backend() -> Any:
+    if _state["backend"] is None:
+        _state["backend"] = default_backend()
+    return _state["backend"]
+
+
+def override(**values: Any) -> Callable[[], None]:
+    """計算（backend）などを差し替え、元に戻す関数を返す（テスト用）。"""
+    previous = {key: _state.get(key) for key in values}
+    _state.update(values)
+
+    def restore() -> None:
+        _state.update(previous)
+
+    return restore
+
+
+# ---------------------------------------------------------------------------
+# インターフェース仕様の関数
+# ---------------------------------------------------------------------------
 
 
 def interview(plan: Plan, utterance: str, speaker: Literal["minsei", "person", "family"] = "minsei") -> InterviewResult:
@@ -58,3 +98,12 @@ def verify(plan: Plan) -> list[Issue]:
 def redteam_for_eval(plan: Plan) -> list[Finding]:
     """評価用（eval/run_eval.py の --runner claude）: start_check と同じ処理を同期的に実行し、findings を返す。"""
     raise NotImplementedError("B のセッションが実装する")
+
+
+def finalize(plan: Plan) -> Plan:
+    """完成の印を付ける。コードによる点検（hooks.check_finalize）で1つでも欠ければ FinalizeRejected（F-12・AC-03）。"""
+    reasons = hooks.check_finalize(plan, backend())
+    if reasons:
+        raise FinalizeRejected(reasons)
+    plan["status"] = "final"
+    return plan
