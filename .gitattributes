@@ -1,0 +1,5 @@
+# 改行の決まり。シェルのスクリプトと git のフックは LF でないと bash で動かない
+* text=auto
+*.sh text eol=lf
+.githooks/* text eol=lf
+*.py text eol=lf

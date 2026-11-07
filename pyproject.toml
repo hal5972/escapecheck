@@ -1,0 +1,17 @@
+[project]
+name = "escapecheck"
+version = "0.1.0"
+description = "逃げ道の点検屋（EscapeCheck）: 民生委員が声で作る個別避難計画を、Claude が崩して点検する"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "claude-agent-sdk==0.2.179",
+    "mcp==2.3.0",
+]
+
+[tool.uv]
+# PC に入っている python.org の Python だけを使う（uv が Python を自分で落とさない）
+python-preference = "only-system"
+python-downloads = "never"
+# パッケージは作らない（アプリとして動かす）
+package = false
