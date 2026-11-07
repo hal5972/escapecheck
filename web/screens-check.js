@@ -129,9 +129,7 @@
     const premisesSlot = h('div', { class: 'premises-slot' });
     const introSlot = h('div', { class: 'intro-slot' });
     const cardsSlot = h('div', { class: 'cards' });
-    // 「記録」（コードが止めた書き込み）への入口は、結果の概要の直後に出す（画面の下のほうに隠れないように）
-    const auditSlot = h('div', { class: 'audit-slot' });
-    A.$main.append(h('h1', null, `${A.personLabel(rec)}の${improved ? '改善後の点検' : '点検'}`), introSlot, progressSlot, improvedSlot, summarySlot, auditSlot, cardsSlot, premisesSlot, factsSlot, A.noticeSafety());
+    A.$main.append(h('h1', null, `${A.personLabel(rec)}の${improved ? '改善後の点検' : '点検'}`), introSlot, progressSlot, improvedSlot, summarySlot, cardsSlot, premisesSlot, factsSlot, A.noticeSafety());
 
     const cards = new Map(); // finding_id → { el, setOpen, resultKey }
     let openCard = null;
@@ -256,24 +254,49 @@
       return card;
     }
 
-    function summaryNode(plan, findings) {
+    /** 判定ごとのシナリオの数（種類の数を数えるだけ。時間の計算はしない）。 */
+    function countVerdicts(p, list) {
       const count = { short: 0, tight: 0, ok: 0, unknown: 0 };
-      for (const f of findings) count[verdictView(findingResult(plan, f)).key] += 1;
+      for (const f of list) if (f.result) count[verdictView(findingResult(p, f)).key] += 1;
+      return count;
+    }
+
+    /** 点検の結論の 1 文と、その判定の種類。画面の先頭に、いちばん大事なことを出す。 */
+    function headlineOf(count) {
+      if (count.short > 0) return { key: 'short', text: `${count.short}つのシナリオで、間に合いません。` };
+      if (count.tight > 0) return { key: 'tight', text: `${count.tight}つのシナリオは、余裕が少ないです。` };
+      if (count.unknown > 0) return { key: 'unknown', text: `${count.unknown}つのシナリオは、計算できません。` };
+      return { key: 'ok', text: 'すべてのシナリオで、間に合います。' };
+    }
+
+    function summaryNode(plan, findings) {
+      const count = countVerdicts(plan, findings);
       const blockedOne = findings.find((f) => isBlockedShelter(plan, f));
+      // 改善案を反映したあとは、前回の点検との変化（前 → 後）も出す
+      const versions = rec.versions || [];
+      const prevPlan = improved && versions.length >= 2 ? versions[versions.length - 2].plan : null;
+      const prev = prevPlan && (prevPlan.findings || []).length ? countVerdicts(prevPlan, prevPlan.findings) : null;
+      const changed = Boolean(prev) && Object.keys(count).some((k) => prev[k] !== count[k]);
       const row = (key, mark, label) => h('div', { class: `count-row count-${key}` },
         h('span', { class: 'mark', 'aria-hidden': 'true' }, EC.verdictIcon(key, 22), h('span', { class: 'mark-char' }, mark)),
-        h('span', { class: 'count-label' }, label), h('span', { class: 'count-num' }, String(count[key])));
+        h('span', { class: 'count-label' }, label),
+        h('span', { class: 'count-num' }, changed && prev[key] !== count[key] ? `${prev[key]} → ${count[key]}` : String(count[key])));
+      const head = headlineOf(count);
       const box = h('div', { class: 'card summary-card' },
-        h('p', { class: 'strong' }, `点検したシナリオ（厳しい条件）: ${findings.length}つ`),
+        h('div', { class: `verdict verdict-${head.key} headline` },
+          h('span', { class: 'mark', 'aria-hidden': 'true' }, EC.verdictIcon(head.key, 26)),
+          h('span', { class: 'vtext' }, head.text)),
         row('short', '×', '間に合わない'), row('tight', '△', '余裕が少ない'), row('ok', '○', '間に合う'),
         count.unknown ? row('unknown', '？', '計算できない') : null,
-        blockedOne ? h('p', null, `計画の避難先（${currentShelterName(plan, T)}）には上がれないため、点検は、${blockedOne.result.shelter_name || '別の避難先'}で計算しています。`) : null,
-        h('p', { class: 'sub' }, '避難所要時間と、津波到達時間を比べます。時間は、すべて、揺れてからの分です。'));
+        h('p', { class: 'sub' }, `厳しい条件で点検した、${findings.length}つのシナリオの結果です。${changed ? '数字の矢印は、前回の点検からの変化です。' : ''}`),
+        blockedOne ? h('p', null, `計画の避難先（${currentShelterName(plan, T)}）には上がれないため、点検は、${blockedOne.result.shelter_name || '別の避難先'}で計算しています。`) : null);
       if (findings.length && count.short === findings.length) {
         // E5: すべてのシナリオで間に合わない
         box.append(h('p', { class: 'strong' }, 'この方は、現在の条件では間に合いません。'),
           h('p', null, '市や家族と話し合うための資料として、どこで何分足りないかを印刷できます。'));
       }
+      // 「記録」（コードが止めた書き込み）への入口。結果の概要の中に置く（画面の下のほうに隠れないように）
+      box.append(A.auditLink('check'));
       return box;
     }
 
@@ -311,11 +334,9 @@
       factsSlot.append(ui.factsPanel(A.state.facts.facts));
       renderPremises();
       clear(summarySlot);
-      clear(auditSlot);
       const findings = rec.plan.findings || [];
       if (findings.length) summarySlot.append(summaryNode(rec.plan, findings));
       else summarySlot.append(h('div', { class: 'card' }, h('p', null, '問題点は見つかりませんでした。')));
-      auditSlot.append(A.auditLink('check'));
       return true;
     }
 
@@ -364,12 +385,12 @@
       const bv = verdictView(beforeResult);
       const av = verdictView(afterResult);
       improvedSlot.append(h('div', { class: 'result-change' },
-        h('p', { class: 'strong' }, '改善の結果'),
+        h('p', { class: 'strong card-title' }, EC.icon('trend', { size: 28 }), h('span', null, '改善の結果')),
         h('p', null, ui.scenarioTitle(rec.plan, finding)),
-        h('p', { class: 'sub' }, '改善前'),
+        h('p', { class: 'phase phase-before' }, '改善前'),
         ui.verdictBadge(beforeResult),
         h('p', { class: 'arrow' }, EC.icon('arrow-down', { size: 24 }), L.FIX_TYPES[fix.fix_type] || ''),
-        h('p', { class: 'sub' }, '改善後'),
+        h('p', { class: 'phase phase-after' }, '改善後'),
         ui.verdictBadge(afterResult)));
       A.say(`${ui.scenarioTopic(rec.plan, finding)}は、${bv.label}から、${av.label}になりました。${av.detail ? `${av.detail}。` : ''}`);
     }
@@ -390,7 +411,6 @@
       clear(improvedSlot);
       clear(cardsSlot);
       clear(summarySlot);
-      clear(auditSlot);
       clear(factsSlot);
       clear(premisesSlot);
       clear(introSlot);
@@ -458,6 +478,8 @@
         if (!scope.alive || token !== revealToken) return;
         if (job.events && job.events.length > seen) {
           for (const ev of job.events.slice(seen)) log.append(h('li', null, ev));
+          // いま実行中の作業（いちばん新しい行）は、回る印にする。済んだ行は、✓ のまま
+          [...log.children].forEach((li, i, all) => li.classList.toggle('is-active', i === all.length - 1));
           seen = job.events.length;
           lastProgress = Date.now();
           const latest = job.events[seen - 1];
@@ -574,15 +596,16 @@
 
       body.append(
         h('div', { class: 'fix-card' },
+          // いちばん先に、案の名前と、いまの判定 → この案にしたときの判定を見せる。説明は、そのあと
           h('p', { class: 'fix-count' }, `案 ${index + 1}／${fixes.length}`),
-          isNum(fix.saved_min) && floorMin(fix.saved_min) >= 1
-            ? h('p', { class: 'saved-line' }, EC.icon('clock', { size: 28 }), h('span', null, `${floorMin(fix.saved_min)}分、短くなります`)) : null,
           h('p', { class: 'fix-title' }, title),
-          h('p', { class: 'explain' }, T(fixExplanation(plan, fix, name))),
           h('p', { class: 'sub' }, `いまの点検の結果: ${ui.scenarioTitle(plan, finding)}`),
           ui.verdictBadge(wr),
           h('p', { class: 'arrow' }, EC.icon('arrow-down', { size: 24 }), 'この案にすると'),
-          ui.verdictBadge(worstResult(fix.result))),
+          ui.verdictBadge(worstResult(fix.result)),
+          isNum(fix.saved_min) && floorMin(fix.saved_min) >= 1
+            ? h('p', { class: 'saved-line' }, EC.icon('clock', { size: 28 }), h('span', null, `${floorMin(fix.saved_min)}分、短くなります`)) : null,
+          h('p', { class: 'explain' }, T(fixExplanation(plan, fix, name)))),
         h('h2', null, 'いまと、この案を比べる'),
         h('div', { class: 'compare' },
           blocked

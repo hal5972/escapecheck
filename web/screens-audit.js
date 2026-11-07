@@ -117,18 +117,23 @@
 
     EC.u.add(A.$main,
       h('h1', null, '記録'),
-      h('p', { class: 'lead' }, 'AI が計画に書き込もうとしたとき、プログラムのコード（フック）が確認した記録（監査ログ）です。'),
-      h('p', null, '出典のない書き込み、原文にない引用、説明文に直接書いた数値、承認のない変更は、コードが止めます。止めた理由は AI に返り、AI が直して、書き込み直します。'),
+      h('p', { class: 'lead' }, 'AI が計画に書き込もうとしたとき、プログラムが確認した記録です。'),
       EC.api.getMode() === 'mock' ? h('p', { class: 'sub' }, 'これは、サンプルの記録です。サーバーに接続すると、実際の記録を出します。') : null,
-      statusSlot, summarySlot, switchRow, listSlot, A.noticeSafety());
+      statusSlot, summarySlot, switchRow, listSlot,
+      h('div', { class: 'card' },
+        h('p', { class: 'strong' }, '止める書き込み'),
+        h('p', null, '出典のない書き込み、原文にない引用、説明文に直接書いた数値、承認のない変更は、プログラムのコード（フック）が止めます。止めた理由は AI に返り、AI が直して、書き込み直します。この記録を、監査ログといいます。')),
+      A.noticeSafety());
 
     function render() {
       clear(summarySlot);
       clear(listSlot);
       const denies = entries.filter((e) => kindOf(e) === 'stop');
-      summarySlot.append(h('div', { class: 'card' },
-        h('p', { class: 'strong' }, `プログラムが止めたもの: ${denies.length}件`),
-        h('p', { class: 'sub' }, `記録の全体: ${entries.length}件`)));
+      summarySlot.append(h('div', { class: 'card audit-summary' },
+        h('span', { class: 'audit-big', 'aria-hidden': 'true' }, String(denies.length)),
+        h('div', null,
+          h('p', { class: 'strong' }, `プログラムが止めたもの: ${denies.length}件`),
+          h('p', { class: 'sub' }, `記録の全体: ${entries.length}件`))));
       // 新しい順。同じ秒の記録は、あとから書かれたものを先に出す
       const shown = (showAll ? entries : denies).map((e, i) => ({ e, i }))
         .sort((a, b) => ((Date.parse(b.e.at) || 0) - (Date.parse(a.e.at) || 0)) || (b.i - a.i))

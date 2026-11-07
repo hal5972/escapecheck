@@ -51,7 +51,7 @@
   --plum-bg: #efe9f8;
   --plum-ink: #2f1d52;
 
-  --focus: #0b5fff;
+  --focus: var(--ai-600);
 
   /* 文字（UD フォントを優先。外部のフォントは読み込まない）。大きさは html の 24px が基準 */
   --font: "BIZ UDPGothic", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic UI", "Meiryo", sans-serif;
@@ -314,6 +314,11 @@ p { margin: 0 0 var(--sp-3); }
 }
 .btn-primary:active, .btn-confirm:active { background: var(--ai-800); transform: translateY(3px); box-shadow: 0 0 0 var(--ai-950); }
 .btn-listening { background: var(--ai-950); border-color: var(--ai-950); }
+/* 元に戻せない操作（消す）: 止める色（赤）の塗り */
+.btn-danger {
+  min-height: var(--tap-primary); color: #fff; background: var(--short-deep); border-color: var(--short-deep); box-shadow: 0 3px 0 var(--short-ink);
+}
+.btn-danger:active { background: var(--short-ink); transform: translateY(3px); box-shadow: 0 0 0 var(--short-ink); }
 /* 押せないボタン: 文字が読めるまま、押せない形（破線の枠と薄い面）にする */
 .btn[disabled], .btn-primary[disabled], .btn-confirm[disabled] {
   color: var(--ink-sub); background: var(--fill); border: 2px dashed var(--line-strong);
@@ -374,8 +379,8 @@ p { margin: 0 0 var(--sp-3); }
 }
 .nav-row::after { margin-top: -6px; transform: rotate(-45deg); }
 .btn-row[aria-expanded], .nav-row { padding-right: 52px; font-weight: 700; }
-.nav-row { display: flex; align-items: center; gap: 12px; color: var(--ai-900); }
-.nav-row .ic { color: var(--ai-700); }
+.nav-row, .row-action { display: flex; align-items: center; gap: 12px; color: var(--ai-900); font-weight: 700; }
+.nav-row .ic, .row-action .ic { color: var(--ai-700); }
 
 .btn-link {
   display: flex; align-items: center; justify-content: center;
@@ -519,7 +524,7 @@ label.field-label-text { display: block; font-weight: 700; margin: var(--sp-3) 0
 }
 .hero-top { display: flex; align-items: center; gap: var(--sp-3); margin: 0 0 14px; }
 .hero .brand-mark { display: block; filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.3)); }
-.hero-tag { padding: 0 14px; font-weight: 700; color: #fff; border: 2px solid rgba(255, 255, 255, 0.65); border-radius: 999px; }
+.hero-tag { margin-left: auto; padding: 0 12px; font-weight: 700; color: #fff; border: 2px solid rgba(255, 255, 255, 0.45); border-radius: 999px; }
 .hero h1 { margin: 0 0 8px; font-size: var(--fs-2xl); color: #fff; }
 .hero p { margin: 0; color: #dbe5f7; font-size: var(--fs-md); }
 .hero-wave { position: absolute; left: 0; right: 0; bottom: -1px; display: block; width: 100%; height: 28px; }
@@ -768,7 +773,10 @@ label.field-label-text { display: block; font-weight: 700; margin: var(--sp-3) 0
 .assumptions-block { margin: 10px 0 0; }
 .assumptions-block .btn-row { margin-bottom: var(--sp-2); }
 
-/* 点検の概要 */
+/* 点検の概要（先頭に、結論の 1 文） */
+.verdict.headline { margin: 0 0 var(--sp-3); }
+.verdict.headline .vtext { font-size: var(--fs-md); line-height: 1.4; }
+.summary-card .nav-row { margin: var(--sp-3) 0 0; }
 .count-row { display: flex; align-items: center; gap: 10px; padding: 4px 0; }
 .count-row .mark {
   flex: none; display: grid; place-items: center; width: 36px; height: 36px;
@@ -791,6 +799,12 @@ label.field-label-text { display: block; font-weight: 700; margin: var(--sp-3) 0
   box-shadow: var(--shadow-1);
 }
 .result-change .arrow { display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--ai-700); }
+.card-title { display: flex; align-items: center; gap: 8px; color: var(--ai-900); }
+.card-title .ic { color: var(--ai-700); }
+.phase { display: inline-block; margin: 6px 0; padding: 0 12px; font-weight: 700; border-radius: 999px; }
+.phase-before { color: var(--ink-sub); background: var(--fill); }
+.phase-after { color: var(--ai-900); background: var(--ai-100); }
+.result-change .verdict:last-child { box-shadow: 0 0 0 3px var(--v-line); }
 
 /* ==== 9. タイムライン ==================================================== */
 
@@ -870,7 +884,7 @@ label.field-label-text { display: block; font-weight: 700; margin: var(--sp-3) 0
   font-weight: 700; color: var(--ai-900); background: var(--ai-100); border-radius: 999px;
 }
 .fix-title { margin: 0 0 6px; font-size: var(--fs-lg); font-weight: 700; line-height: 1.4; color: var(--ai-900); }
-.saved-line { display: flex; align-items: center; gap: 8px; margin: 4px 0 8px; font-size: var(--fs-lg); font-weight: 700; color: var(--ok-ink); }
+.saved-line { display: flex; align-items: center; gap: 8px; margin: 12px 0 4px; font-size: var(--fs-lg); font-weight: 700; color: var(--ok-ink); }
 .saved-line .ic { color: var(--ok); }
 .fix-card .arrow { display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--ai-700); }
 
@@ -934,6 +948,11 @@ label.field-label-text { display: block; font-weight: 700; margin: var(--sp-3) 0
   content: ""; position: absolute; left: 10px; top: 0.55em; width: 7px; height: 13px;
   border-right: 3px solid var(--ok); border-bottom: 3px solid var(--ok); transform: rotate(45deg);
 }
+.event-log li.is-active { color: var(--ink); font-weight: 700; }
+.event-log li.is-active::before {
+  left: 6px; top: 0.5em; width: 18px; height: 18px; border: 3px solid var(--ai-300); border-top-color: var(--ai-700);
+  border-radius: 50%; transform: none; animation: spin 0.9s linear infinite;
+}
 
 /* ==== 13. 重ねて出す確認の表示 =========================================== */
 
@@ -945,6 +964,7 @@ label.field-label-text { display: block; font-weight: 700; margin: var(--sp-3) 0
 .overlay[hidden] { display: none; }
 .dialog { display: grid; gap: var(--sp-3); width: 100%; max-width: 520px; padding: 22px 20px 20px; background: var(--paper); border-radius: var(--r-xl); box-shadow: var(--shadow-2); }
 .dialog p { margin: 0; font-size: var(--fs-md); font-weight: 700; }
+.dialog-title { margin: 0; padding: 0; font-size: var(--fs-lg); color: var(--ai-900); border-left: 0; }
 
 /* ==== 14. 記録（フックが止めた書き込み） ================================ */
 
@@ -956,6 +976,13 @@ label.field-label-text { display: block; font-weight: 700; margin: var(--sp-3) 0
   border-left: 6px solid var(--unknown-line);
   border-radius: var(--r-md);
   box-shadow: var(--shadow-1);
+}
+.audit-summary { display: flex; align-items: center; gap: var(--sp-4); }
+.audit-summary p { margin: 0; }
+.audit-big {
+  flex: none; display: grid; place-items: center; min-width: 76px; height: 76px; padding: 0 8px;
+  font-size: 2.2rem; font-weight: 700; color: var(--short-ink); background: var(--short-bg);
+  border: 1px solid var(--short-line); border-radius: var(--r-lg);
 }
 .audit-entry p { margin: 0 0 4px; }
 .audit-entry.is-deny { background: var(--short-bg); border-color: var(--short-line); border-left-color: var(--short); }

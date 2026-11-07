@@ -184,7 +184,7 @@
         h('p', { class: 'big-line' }, `津波到達時間: ${isNum(worst.result.avail_min) ? `${floorMin(worst.result.avail_min)}分` : '不明'}`),
         h('div', { class: `verdict verdict-${v.key}` },
           h('span', { class: 'mark', 'aria-hidden': 'true' }, EC.verdictIcon(v.key, 26), h('span', { class: 'mark-char' }, v.mark)),
-          h('span', { class: 'vtext' }, v.text)),
+          h('span', null, h('span', { class: 'vtext' }, v.label), v.detail ? h('span', { class: 'vdetail' }, v.detail) : null)),
         h('p', { class: 'sub' }, `いちばん厳しい場合の時間です。条件: ${EC.ui.scenarioTitle(plan, worst)}`));
       const open = (plan.findings || []).filter((f) => ['short', 'unknown'].includes(verdictView(EC.u.findingResult(plan, f)).key));
       if (open.length) {
@@ -200,7 +200,11 @@
       sheet.append(h('p', { class: 'big-line' }, 'まだ点検していません。'));
     }
 
-    const callers = (plan.supporters || []).map((s) => T(s.alias)).join('、');
+    // 本名が分からない避難支援者（仮名のまま）は、続柄を添える
+    const callers = (plan.supporters || []).map((s) => {
+      const name = T(s.alias);
+      return name === s.alias && s.relation ? `${name}（${s.relation}）` : name;
+    }).join('、');
     sheet.append(h('p', { class: 'big-line' }, `声をかける人: ${callers || '未確認'}`));
     sheet.append(h('p', { class: 'notice notice-safety' }, SAFETY));
     if (rec.sample) sheet.append(h('p', { class: 'sub' }, 'デモ用の架空の人物のサンプルです。'));

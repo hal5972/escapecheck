@@ -49,7 +49,7 @@
     });
     const msg = h('div', { id: 'login-msg', 'aria-live': 'polite' });
     A.$main.append(
-      hero('話して計画を作り、点検して、改善します。'),
+      hero('民生委員が、話して津波の個別避難計画を作り、点検して、改善します。'),
       h('label', { class: 'field-label-text', for: 'passphrase' }, '合言葉'),
       input,
       msg,
@@ -108,7 +108,7 @@
   A.register('home', () => {
     A.setBack(null);
     A.$main.append(
-      hero('話して個別避難計画を作り、厳しい条件で点検して、改善します。下の大きなボタンから、選んでください。'),
+      hero('民生委員が、話して津波の個別避難計画を作り、厳しい条件で点検して、改善します。下の大きなボタンから、選んでください。'),
       flow(),
       h('div', { class: 'card choose-card' },
         h('p', { class: 'strong' }, 'どちらから始めますか'),
@@ -134,6 +134,7 @@
             type: 'button', class: 'btn-row saved-delete',
             onclick: async () => {
               const ok = await EC.ui.confirmDialog({
+                title: '計画の削除', danger: true,
                 message: `${title}の計画を、この端末から消します。元には戻せません。`,
                 okLabel: '消す', cancelLabel: 'やめる',
               });

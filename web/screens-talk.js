@@ -35,6 +35,7 @@
     let listening = null;
     let working = false;
     let forceText = false;
+    let sttFailed = false; // 音声入力を試して、使えなかった（文字の入力に切り替えた理由の表示に使う）
     let continuous = Boolean(A.state.settings.continuous) && S.sttSupported;
     let lastChanged = new Set();
     let retryText = null;
@@ -63,7 +64,7 @@
     const questionTag = h('span', { class: 'question-tag' }, EC.icon('speaker', { size: 26 }), questionTagText);
     const questionText = h('span', { class: 'question-text' });
     const question = h('button', { type: 'button', class: 'question-box', 'aria-describedby': 'question-hint', onclick: () => say() },
-      questionTag, questionText, h('span', { class: 'question-hint', id: 'question-hint' }, EC.icon('play', { size: 20 }), '押すと、もう一度読みます'));
+      questionTag, questionText, h('span', { class: 'question-hint', id: 'question-hint' }, EC.icon('play', { size: 20 }), 'もう一度聞く'));
 
     // 聞き取り中の表示（脈を打つ印と文字）。声の入力を受けていることを、ボタンの色だけに頼らず伝える
     const liveBadge = h('div', { class: 'live-badge', hidden: true }, h('span', { class: 'live-dot', 'aria-hidden': 'true' }), '聞いています');
@@ -75,6 +76,11 @@
       h('label', { class: 'field-label-text', for: 'typed' }, '文字で入力する'),
       textarea,
       h('p', { class: 'sub' }, 'キーボードのマイクのボタンで、話して入力することもできます。'));
+    // 声と文字の切り替え（声がうまくいかないときの入口）。音声入力が使えない環境では、文字だけなので出さない
+    const typedToggleText = h('span', null, '文字で入力する');
+    const typedToggle = S.sttSupported
+      ? h('button', { type: 'button', class: 'btn-row row-action' }, EC.icon('keyboard', { size: 26 }), typedToggleText)
+      : null;
     const switchRow = h('button', { type: 'button', class: 'switch-row', role: 'switch', 'aria-checked': String(continuous) },
       h('span', { class: 'switch-box', 'aria-hidden': 'true' }),
       h('span', null, '続けて聞く（質問を読んだあと、自動で聞き取ります）'),
@@ -95,7 +101,7 @@
     const examplesSlot = h('div', { class: 'examples-slot' });
 
     EC.u.add(A.$main,
-      personBar, statusSlot, question, liveBadge, transcript, typedWrap, modeNote,
+      personBar, statusSlot, question, typedWrap, liveBadge, transcript, typedToggle, modeNote,
       S.sttSupported ? phoneSettings : null,
       premisesSlot,
       h('div', { class: 'fields-head' }, h('h2', null, '計画の欄')),
@@ -124,13 +130,14 @@
     function renderNote() {
       clear(modeNote);
       if (typedMode()) {
-        modeNote.append(S.sttSupported
-          ? '音声入力が使えませんでした。文字で入力してください。'
-          : 'このブラウザや接続では、音声入力を使えません。文字で入力してください。');
+        modeNote.append(!S.sttSupported
+          ? 'このブラウザや接続では、音声入力を使えません。文字で入力してください。'
+          : (sttFailed ? '音声入力が使えませんでした。文字で入力してください。' : '文字で入力しています。話すときは、「声で話す」を押してください。'));
       } else {
         modeNote.append(S.sttNotice());
       }
       typedWrap.hidden = !typedMode();
+      if (typedToggle) typedToggleText.textContent = forceText ? '声で話す' : '文字で入力する';
     }
 
     function renderFields() {
@@ -149,7 +156,7 @@
         const btn = h('button', { type: 'button', class: 'field-row', 'aria-expanded': 'false' },
           h('span', { class: 'field-title' }, '自宅の場所'),
           h('span', { class: 'field-value' }, '地図で決めた位置'),
-          h('span', { class: 'field-hint' }, '住所の文字は保存せず、AI（Claude）にも送りません。'),
+          h('span', { class: 'field-hint' }, '住所の文字は保存せず、AI にも送りません。'),
           ui.chip(ui.sourceInfo(plan, 'src_home')));
         btn.addEventListener('click', () => {
           const open = btn.getAttribute('aria-expanded') === 'true';
@@ -200,7 +207,7 @@
       else if (retryText !== null) { talkAction.label = 'もう一度'; talkAction.icon = 'swap'; talkAction.onClick = () => submit(retryText); }
       else if (listening) { talkAction.label = '止める'; talkAction.listening = true; }
       else if (typedMode()) { talkAction.label = '送る'; talkAction.icon = 'send'; }
-      A.setActions([talkAction, { id: 'ok', kind: talkMain ? undefined : 'primary', trailing: 'chevron-right', label: 'それでいい', disabled: working, onClick: () => A.go('check') }]);
+      A.setActions([talkAction, { id: 'ok', kind: talkMain ? undefined : 'primary', trailing: 'chevron-right', label: 'それでいい', disabled: working || Boolean(listening), onClick: () => A.go('check') }]);
     }
 
     /** いまの質問を読み上げる（合成音声のファイルがあれば、それを再生する）。 */
@@ -226,6 +233,16 @@
       main.scrollTo({ top: Math.max(0, start === undefined ? questionTop - gap : start), behavior: 'auto' });
     }
 
+    /** first から last までが見える位置にする（すでに見えているときは動かさない。見える高さに入らないときは first を先頭にする）。 */
+    function reveal(first, last) {
+      const main = A.$main;
+      const topOf = (el) => el.getBoundingClientRect().top - main.getBoundingClientRect().top + main.scrollTop;
+      const top = topOf(first) - 8;
+      const bottom = topOf(last) + last.offsetHeight + 8;
+      if (top < main.scrollTop) main.scrollTo({ top: Math.max(0, top), behavior: 'auto' });
+      else if (bottom > main.scrollTop + main.clientHeight) main.scrollTo({ top: Math.max(0, Math.min(top, bottom - main.clientHeight)), behavior: 'auto' });
+    }
+
     // --- 聞き取り -------------------------------------------------------------
 
     function startListening() {
@@ -246,9 +263,11 @@
           clear(statusSlot);
           if (error && error !== 'no-speech' && error !== 'aborted') {
             forceText = true;
+            sttFailed = true;
             renderNote();
             statusSlot.append(A.errorBox(message || '音声入力を使えませんでした。文字で入力してください。'));
             refreshActions();
+            reveal(statusSlot, typedWrap); // 文字を入れる欄が、すぐ見えるように
           } else {
             statusSlot.append(A.statusBox(message));
           }
@@ -256,10 +275,13 @@
       });
       if (!listening) {
         forceText = true;
+        sttFailed = true;
         renderNote();
         statusSlot.append(A.errorBox(S.errorMessage('start-failed')));
+        reveal(statusSlot, typedWrap);
       } else {
         renderTranscript('', '');
+        reveal(liveBadge, transcript); // 「聞いています」と文字起こしが見える位置へ
       }
       refreshActions();
     }
@@ -347,6 +369,22 @@
     });
 
     scope.onLeave(() => { if (listening) listening.abort(); listening = null; });
+
+    // 声と文字の切り替え。文字にするときは、入力欄へ移る。声にもどすときは、ふたたび声を試す
+    if (typedToggle) {
+      typedToggle.addEventListener('click', () => {
+        if (working) return;
+        if (listening) listening.abort();
+        listening = null;
+        forceText = !forceText;
+        if (!forceText) sttFailed = false;
+        clear(statusSlot);
+        renderTranscript('', '');
+        renderNote();
+        refreshActions();
+        if (forceText) { reveal(question, typedWrap); textarea.focus({ preventScroll: true }); }
+      });
+    }
 
     // 質問を読み上げている間は、質問の札の印を動かす
     question.classList.toggle('is-speaking', S.isSpeaking());
