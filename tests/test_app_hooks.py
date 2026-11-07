@@ -142,6 +142,15 @@ class QuoteHallucinationTest(unittest.TestCase):
         self.assertTrue(reasons)
         self.assertIn("5", reasons[0])
 
+    def test_ids_in_value_are_not_numbers(self):
+        # 指定緊急避難場所のデータの ID（数字を含む）は、話した数値ではない
+        plan = make_plan()
+        plan["sources"]["src_utt1"]["text"] += "逃げる先は、宇佐の津波避難タワーにしちゅう。"
+        reasons = hooks.check_set_fields(plan, [{
+            "field": "shelter", "value": {"name": "宇佐津波避難タワー", "shelter_id": "E3920500119201"},
+            "source_id": "src_utt1", "quote": "宇佐の津波避難タワー"}])
+        self.assertEqual(reasons, [])
+
     def test_accepts_kanji_numeral_in_quote(self):
         plan = make_plan()
         reasons = hooks.check_set_fields(

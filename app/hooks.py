@@ -112,7 +112,8 @@ def numbers_in_value(value: Any) -> list[float]:
     if isinstance(value, str):
         return numbers_in_text(value)
     if isinstance(value, dict):
-        return [n for v in value.values() for n in numbers_in_value(v)]
+        # shelter_id などの ID（"E3920500119201"）は数値ではないので数えない
+        return [n for k, v in value.items() if not str(k).endswith("_id") for n in numbers_in_value(v)]
     if isinstance(value, (list, tuple)):
         return [n for v in value for n in numbers_in_value(v)]
     return []

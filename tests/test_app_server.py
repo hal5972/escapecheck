@@ -234,6 +234,30 @@ class FlowTest(ServerTestCase):
         self.assertTrue(any(e["tool"] == "plan.apply_fix" for e in entries["entries"]))
         self.assertTrue(any(e["tool"] == "plan.finalize" and e["decision"] == "deny" for e in entries["entries"]))
 
+    def test_check_that_cannot_compute_does_not_say_no_problem(self):
+        # どのシナリオも計算できないとき（津波到達時間の表が無いなど）、「問題なし」と表示しない
+        from app.session import PlanSession
+
+        class NoArrival(StubBackend):
+            def run_scenario(self, plan, scenario_id, premise_ids=None):
+                return {"scenario_id": scenario_id, "verdict": "cannot_compute", "need_min": None, "avail_min": None,
+                        "margin_min": None, "breakdown": [], "assumptions": [], "reason_code": "NO_ARRIVAL_TIME"}
+
+        def runner(session, role, prompt):
+            tools = mcp_inprocess.make_tools(session)
+            for sid in ("S1", "S6"):
+                asyncio.run(tools["sim"]["run_scenario"].handler({"scenario_id": sid}))
+            return agents.AgentRun(role=role)
+
+        restore = orchestrator.override(backend=NoArrival(), run_agent=runner)
+        try:
+            session = PlanSession(plan=sample_plan(), role="redteam", backend=NoArrival())
+            orchestrator.run_redteam(session)
+        finally:
+            restore()
+        self.assertIn("点検の計算ができませんでした", session.events[-1])
+        self.assertFalse(any("見つかりませんでした" in e for e in session.events))
+
     def test_approve_unknown_fix_is_400(self):
         token = self.login()
         status, _, data = self.request("POST", "/api/approve", {"plan": sample_plan(), "fix_id": "fix_none"}, token=token)

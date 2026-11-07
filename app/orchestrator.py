@@ -226,6 +226,25 @@ def prepare_for_check(plan: Plan) -> Plan:
     return plan
 
 
+#: 計算できない理由の表示（tools/sim.py の REASON_LABELS が使えないときの控え）
+_REASON_FALLBACK = {
+    "NO_HOME": "自宅の場所が未確認のため、計算できません",
+    "NO_ARRIVAL_TIME": "津波到達時間の表に値が無いため、計算できません",
+    "SHELTER_NOT_TSUNAMI": "避難先が、津波の指定緊急避難場所ではありません",
+    "SHELTER_UNKNOWN": "避難先が、指定緊急避難場所のデータに見つかりません",
+    "NO_SHELTER_AVAILABLE": "この人が利用できる津波の避難場所が見つかりません",
+    "NO_SUPPORTER": "避難支援者が登録されていないため、計算できません",
+}
+
+
+def reason_label(code: str | None) -> str:
+    try:
+        from tools.sim import REASON_LABELS  # type: ignore[attr-defined]
+    except (ImportError, AttributeError):
+        REASON_LABELS = {}
+    return REASON_LABELS.get(code or "") or _REASON_FALLBACK.get(code or "", "計算に必要な情報が足りません")
+
+
 def run_redteam(session: PlanSession) -> agents.AgentRun:
     """レッドチームエージェントを1回動かす（start_check と評価で共通）。"""
     session.add_event("計画を読んでいます")
@@ -236,12 +255,17 @@ def run_redteam(session: PlanSession) -> agents.AgentRun:
         findings = session.plan["findings"]
         session.plan["status"] = "checked"
         short = [f for f in findings if f["result"].get("verdict") == "short"]
-    if not findings:
+        results = dict(session.last_results)
+    computed = {s: r for s, r in results.items() if r.get("verdict") != "cannot_compute"}
+    if results and not computed:
+        # どのシナリオも計算できなかった。「問題なし」と誤解させない
+        reasons = sorted({reason_label(r.get("reason_code")) for r in results.values()})
+        session.add_event("点検の計算ができませんでした。" + " ".join(reasons))
+    elif not findings:
         session.add_event("点検が終わりました。間に合わないシナリオは見つかりませんでした")
     else:
         session.add_event(f"点検が終わりました。問題点は{len(findings)}件です")
-    computed = set(session.last_results)
-    if computed and all(session.last_results[s].get("verdict") == "short" for s in computed) and short:
+    if computed and short and all(r.get("verdict") == "short" for r in computed.values()):
         session.add_event("この人は、現在の条件では間に合いません。市や家族と話し合うための資料を印刷できます")
     return run
 
