@@ -25,9 +25,10 @@
   /** 点検の結果のうち、いちばん厳しいもの（余裕が最も小さい）。 */
   function worstFinding(plan) {
     const all = (plan.findings || []).filter((f) => f.result);
-    // 計画の避難先に上がれない問題点の時間は、別の避難先の分なので、ほかにあれば使わない
-    const usable = all.filter((f) => !EC.u.isBlockedShelter(plan, f));
-    const list = usable.length ? usable : all;
+    // 計画の避難先に上がれない問題点の時間は、別の避難先の分。避難支援者が来る場合（S5 など）の時間は、支援者が動く時間を含む。
+    // 本人用のカードには、本人だけの動きの時間を出す（ほかにあれば）
+    const own = all.filter((f) => !EC.u.isBlockedShelter(plan, f) && !(f.result.breakdown || []).some((s) => s.key === 'supporter_travel'));
+    const list = own.length ? own : all;
     if (!list.length) return null;
     return list.slice().sort((a, b) => {
       const ra = worstResult(a.result);
@@ -155,6 +156,10 @@
     const sName = shelterName(plan, T);
     const shelterField = plan.fields && plan.fields.shelter && plan.fields.shelter.value;
     sheet.append(h('p', { class: 'big-line' }, `避難先: ${sName || '未確認'}`));
+    // 計画の避難先に上がれないまま印刷するときは、カードに警告を出す
+    if ((plan.findings || []).some((f) => EC.u.isBlockedShelter(plan, f))) {
+      sheet.append(h('p', { class: 'strong' }, 'この避難先には、上がれません。避難先を相談してください。'));
+    }
     if (shelterField && typeof shelterField === 'object' && isNum(shelterField.distance_m)) {
       sheet.append(h('p', { class: 'sub' }, `家から ${EC.ui.distanceText(shelterField.distance_m)}（直線距離×1.3の概算）`));
     }
@@ -184,6 +189,12 @@
       const open = (plan.findings || []).filter((f) => ['short', 'unknown'].includes(verdictView(EC.u.findingResult(plan, f)).key));
       if (open.length) {
         sheet.append(h('p', { class: 'strong' }, '間に合わない場合があります。家族や市と相談してください。'));
+      }
+      // 避難支援者の判定（result.supporter_verdict）は、本人の時間とは別に出す
+      const supporterShort = (plan.findings || []).find((f) => f.result && f.result.supporter_verdict === 'short');
+      if (supporterShort) {
+        const alias = ((plan.supporters || [])[0] || {}).alias;
+        sheet.append(h('p', { class: 'strong' }, `避難支援者${alias ? `（${T(alias)}）` : ''}自身の避難が、間に合わないことがあります。`));
       }
     } else {
       sheet.append(h('p', { class: 'big-line' }, 'まだ点検していません。'));

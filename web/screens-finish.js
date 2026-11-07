@@ -74,8 +74,15 @@
         // サーバーのコードの点検が出す「◯のシナリオで間に合いません」は、上の「相談する」の確認で扱う。
         // 相談の印が付いていれば、その項目も確認ずみにする。付いていなければ、相談の確認が先に出るので、ここには出さない
         const short = /^chk_short_(S\d)$/.exec(i.issue_id);
-        if (short) {
-          const f = (rec.plan.findings || []).find((x) => x.scenario_id === short[1]);
+        // 計画の避難先に上がれない確認（chk_shelter_unusable）も、その問題点のカードの「相談する」の確認で扱う。
+        // 相談の確認が出ない（問題点のカードが無い）ときは、この項目で確認する
+        const unusable = i.issue_id === 'chk_shelter_unusable';
+        const target = short
+          ? (rec.plan.findings || []).find((x) => x.scenario_id === short[1])
+          : (unusable ? (rec.plan.findings || []).find((x) => x.hole_type === 'CANNOT_CLIMB') : null);
+        const viaConsult = Boolean(target) && ['short', 'unknown'].includes(verdictView(EC.u.findingResult(rec.plan, target)).key);
+        if (short || (unusable && viaConsult)) {
+          const f = target;
           if (f && issues.some((x) => x.issue_id === `consult_${f.finding_id}` && x.acknowledged)) {
             i.acknowledged = true;
             i.resolution = 'consult';
@@ -146,6 +153,22 @@
       }
 
       const issue = item.issue;
+      if (issue.issue_id === 'chk_shelter_unusable') {
+        // 計画の避難先に上がれない: 答える欄が無い。避難先を変える案を見るか、相談する
+        const fixTarget = (rec.plan.findings || []).find((x) => x.hole_type === 'CANNOT_CLIMB' && EC.checkScreen.isImprovable(rec.plan, x));
+        itemSlot.append(h('div', { class: 'card item-card' },
+          h('p', { class: 'strong' }, `確認 ${resolved + 1}／${resolved + queue.length}　避難先`),
+          h('span', { class: 'chip chip-none' }, issue.severity || '要確認'),
+          h('p', { class: 'explain' }, T(issue.message))));
+        A.say(issue.message);
+        A.setActions([
+          fixTarget
+            ? { id: 'fix', kind: 'primary', label: '避難先を変える案を見る', onClick: () => A.go('fix', { finding: fixTarget.finding_id }) }
+            : { id: 'check', kind: 'primary', label: '点検の画面へ', onClick: () => A.go('check') },
+          { id: 'consult', label: '本人・家族と相談する', onClick: () => { acknowledge(item.id, { resolution: 'consult' }); showItem(); } },
+        ]);
+        return;
+      }
       const fieldLabel = issue.field && L.FIELDS[issue.field] ? EC.u.splitLabel(L.FIELDS[issue.field]).title : '確認';
       // 欄に内容があるときは、いまの内容を見せる（検証エージェントの指摘の文は、短い定型の文のため）
       const current = issue.field ? rec.plan.fields[issue.field] : null;

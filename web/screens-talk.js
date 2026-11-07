@@ -189,9 +189,13 @@
       A.setActions([talkAction, { id: 'ok', kind: 'confirm', label: 'それでいい', disabled: working, onClick: () => A.go('check') }]);
     }
 
+    /** いまの質問を読む。決まった質問は、音声ファイル（audio/questions/<欄のキー>.wav）があれば再生する。 */
     function say() {
       const q = currentQuestion();
-      return A.say(q || DONE_TEXT);
+      if (!q) return A.sayClip('done', DONE_TEXT);
+      // 欄のキーは、サーバーの応答の next_field。最初の質問は initial（サンプルの人は、名前が入るので使わない）
+      const key = rec.askedField || (rec.stage === 'start' && !rec.sample ? 'initial' : null);
+      return key ? A.sayClip(key, q) : A.say(q);
     }
 
     // --- 聞き取り -------------------------------------------------------------
@@ -280,7 +284,7 @@
         if (first && first.scrollIntoView) first.scrollIntoView({ block: 'center', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
         working = false;
         refreshActions();
-        const said = A.say(rec.nextQuestion || DONE_TEXT);
+        const said = say();
         if (continuous && rec.nextQuestion) {
           await said;
           if (scope.alive && continuous && !listening && !working) {
@@ -308,7 +312,7 @@
       switchRow.querySelector('.switch-state').textContent = continuous ? '入' : '切';
       if (continuous && !listening && !working) {
         const q = currentQuestion();
-        Promise.resolve(q ? A.say(q) : false).then(() => { if (scope.alive && continuous && !listening && !working) startListening(); });
+        Promise.resolve(q ? say() : false).then(() => { if (scope.alive && continuous && !listening && !working) startListening(); });
       }
       if (!continuous && listening) listening.stop();
     });
@@ -327,7 +331,7 @@
     // 画面を開いたとき、質問を読み上げる。続けて聞くが入なら、そのまま聞き取りも始める
     const q = currentQuestion();
     if (q) {
-      A.say(q).then(() => {
+      say().then(() => {
         if (scope.alive && continuous && !listening && !working) startListening();
       });
     }

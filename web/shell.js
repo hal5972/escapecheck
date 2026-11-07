@@ -55,6 +55,12 @@
     return S.speak(S.usesRemoteVoice() ? rawText : T(rawText));
   }
 
+  /** 決まった質問の読み上げ。音声ファイル（audio/questions/<欄のキー>.wav）があれば再生し、無ければ読み上げる。 */
+  function sayClip(key, rawText) {
+    if (!state.settings.tts || !rawText) return Promise.resolve(false);
+    return S.speakQuestion(key, S.usesRemoteVoice() ? rawText : T(rawText));
+  }
+
   S.onSpeakingChange((speaking) => { $stop.hidden = !speaking; });
   $stop.addEventListener('click', () => S.cancel());
 
@@ -228,7 +234,7 @@
   window.addEventListener('hashchange', render);
 
   EC.app = {
-    state, $main, $actions, T, say, announce, go, setBack, setActions, setBanner, newScope,
+    state, $main, $actions, T, say, sayClip, announce, go, setBack, setActions, setBanner, newScope,
     save, openRecord, loadSessionRecord, mergeGeometry, ensureFacts, personLabel, auditLink,
     noticePrivacy, noticeSafety, statusBox, errorBox, errorText,
     register, render, parseHash,
