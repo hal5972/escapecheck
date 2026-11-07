@@ -168,7 +168,7 @@
 
   /**
    * シナリオの結果を、地図に描く。
-   * ctx: { plan, facts, T, shelterId（比べるときの別の避難先）, oldShelterId（いまの避難先を点線で出す） }
+   * ctx: { plan, facts, T, shelterId（比べるときの別の避難先）, oldShelterId（いまの避難先を点線で出す）, shelterLabel（避難先の印の文字） }
    */
   function scenarioMap(result, ctx) {
     const plan = ctx.plan;
@@ -235,7 +235,7 @@
       points.push(supporter.location);
     }
 
-    shapes.push({ t: 'marker', kind: 'shelter', at: shelter.point, label: ctx.shelterId ? '新しい避難先' : '避難先', pos: 't' });
+    shapes.push({ t: 'marker', kind: 'shelter', at: shelter.point, label: ctx.shelterLabel || (ctx.shelterId ? '新しい避難先' : '避難先'), pos: 't' });
     shapes.push({ t: 'marker', kind: 'home', at: home, label: '自宅', pos: 'b' });
 
     map.setShapes(shapes);

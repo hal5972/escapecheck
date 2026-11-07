@@ -2,6 +2,8 @@
  * 画面: 記録（AC-02）。エージェントが計画に書き込もうとしたとき、サーバーのコード（フック）が、
  * 出典・引用・数値・承認を確認する。止めた書き込みを、時刻・エージェント・理由で一覧にする（監査ログ）。
  * サーバーの GET /api/audit?plan_id= の entries を表示する。サーバーが無いときは、サンプルの記録を出す。
+ * 記録の判定（decision）は、deny（フックが止めた）・result（通した）・error（ツールが失敗・拒否した）・info（記録）。
+ * args と result は、短くした JSON の文字（途中で切れていることがある）。
  */
 (function () {
   'use strict';
@@ -27,9 +29,24 @@
     'plan.propose_fix': '改善案の提案',
     'plan.apply_fix': '改善案の反映',
     'plan.finalize': '完成にする',
+    'plan.get_plan': '計画の読み取り',
+    'sim.run_scenario': 'シナリオの計算',
+    'sim.try_fix': '改善案の計算',
+    'hazard.find_shelters': '避難先の検索',
+    Skill: 'Skill の読み込み',
+    StructuredOutput: '結果の提出',
+    agent: 'エージェントの実行',
   };
 
-  const DECISIONS = { deny: '止めた', allow: '通した', info: '記録' };
+  const DECISIONS = { stop: '止めた', fail: '失敗', ok: '通した', info: '記録' };
+
+  /** 記録の種類。フックが止めた（deny）ほか、計算のコードが危険な案を断った（error と理由）ものも「止めた」に入れる。 */
+  function kindOf(entry) {
+    if (entry.decision === 'deny') return 'stop';
+    if (entry.decision === 'error') return entry.reason && entry.tool !== 'agent' ? 'stop' : 'fail';
+    if (entry.decision === 'info') return 'info';
+    return 'ok';
+  }
 
   /** 時刻（ISO の文字、または秒・ミリ秒の数）を「時:分:秒」にする。 */
   function clock(at) {
@@ -41,28 +58,43 @@
     return `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
   }
 
-  /** 書き込もうとした欄（またはシナリオ）の名前。引数の形が違うときは、出さない。 */
+  /** 引数。オブジェクトのほか、短くした JSON の文字でも受ける（途中で切れていれば、欄・シナリオ・改善案の種類だけ拾う）。 */
+  function argsOf(entry) {
+    const raw = entry.args;
+    if (raw && typeof raw === 'object') return raw;
+    if (typeof raw !== 'string' || !raw) return {};
+    try {
+      const v = JSON.parse(raw);
+      if (v && typeof v === 'object') return v;
+    } catch (e) { /* 長いとき、途中で切れている */ }
+    const pick = (key) => { const m = new RegExp(`"${key}":\\s*"([^"]+)"`).exec(raw); return m ? m[1] : null; };
+    return { field: pick('field'), scenario_id: pick('scenario_id'), fix_type: pick('fix_type') };
+  }
+
+  /** 書き込もうとした欄・シナリオ・改善案の名前。引数の形が違うときは、出さない。 */
   function targetText(entry) {
-    const args = entry.args && typeof entry.args === 'object' ? entry.args : {};
+    const args = argsOf(entry);
     let key = typeof args.field === 'string' ? args.field : null;
     if (!key && Array.isArray(args.items) && args.items[0] && typeof args.items[0].field === 'string') key = args.items[0].field;
     if (key && L.FIELDS[key]) return `（${splitLabel(L.FIELDS[key]).title}）`;
+    if (typeof args.fix_type === 'string' && L.FIX_TYPES[args.fix_type]) return `（${L.FIX_TYPES[args.fix_type]}）`;
     if (typeof args.scenario_id === 'string' && L.SCENARIOS[args.scenario_id]) return `（${L.SCENARIOS[args.scenario_id]}）`;
     return '';
   }
 
   /** 1 件。止めた記録は、印（×）と文字（止めた）を付け、色だけで伝えない。 */
   function entryNode(entry, T) {
-    const deny = entry.decision === 'deny';
+    const kind = kindOf(entry);
+    const deny = kind === 'stop';
     const who = AGENTS[entry.agent] || (entry.agent ? String(entry.agent) : '');
     const what = TOOLS[entry.tool] || (entry.tool ? String(entry.tool) : '');
     return h('div', { class: `audit-entry${deny ? ' is-deny' : ''}` },
       h('p', { class: 'audit-head' },
-        h('span', { class: 'mark', 'aria-hidden': 'true' }, deny ? '×' : '○'),
-        h('span', null, DECISIONS[entry.decision] || '記録'),
+        h('span', { class: 'mark', 'aria-hidden': 'true' }, deny ? '×' : (kind === 'fail' ? '△' : '○')),
+        h('span', null, DECISIONS[kind]),
         h('span', { class: 'audit-time' }, clock(entry.at))),
       h('p', null, `${who}　${what}${targetText(entry)}`),
-      deny && entry.reason ? h('p', { class: 'audit-reason' }, T(String(entry.reason))) : null);
+      (deny || kind === 'fail') && entry.reason ? h('p', { class: 'audit-reason' }, T(String(entry.reason))) : null);
   }
 
   A.register('audit', ({ params, scope }) => {
@@ -80,7 +112,7 @@
     const listSlot = h('div', { class: 'audit-list' });
     const switchRow = h('button', { type: 'button', class: 'switch-row', role: 'switch', 'aria-checked': 'false' },
       h('span', { class: 'switch-box', 'aria-hidden': 'true' }),
-      h('span', null, '通した書き込みも見る'),
+      h('span', null, '通した記録も見る'),
       h('span', { class: 'switch-state' }, '切'));
 
     EC.u.add(A.$main,
@@ -93,12 +125,12 @@
     function render() {
       clear(summarySlot);
       clear(listSlot);
-      const denies = entries.filter((e) => e.decision === 'deny');
+      const denies = entries.filter((e) => kindOf(e) === 'stop');
       summarySlot.append(h('div', { class: 'card' },
-        h('p', { class: 'strong' }, `止めた書き込み: ${denies.length}件`),
+        h('p', { class: 'strong' }, `コードが止めたもの: ${denies.length}件`),
         h('p', { class: 'sub' }, `記録の全体: ${entries.length}件`)));
       const shown = (showAll ? entries : denies).slice().reverse(); // 新しい順
-      if (!shown.length) listSlot.append(h('p', null, showAll ? 'まだ記録がありません。' : '止めた書き込みは、まだありません。'));
+      if (!shown.length) listSlot.append(h('p', null, showAll ? 'まだ記録がありません。' : '止めたものは、まだありません。AI が出した書き込みや改善案は、コードの確認をすべて通りました。'));
       for (const e of shown) listSlot.append(entryNode(e, T));
     }
 

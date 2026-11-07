@@ -2,12 +2,13 @@
   "_notice": "デモ用のサンプルの記録です。サーバーが無いときの画面の確認に使います。実際の記録は、サーバーの /api/audit が返します。",
   "entries": [
     { "ago_sec": 900, "agent": "interview", "tool": "plan.set_fields", "decision": "deny", "args": { "field": "hearing_and_sight" }, "reason": "引用が発言の原文にありません: 「耳がよく聞こえない」。本人の話は、原文にある言葉のまま引用してください" },
-    { "ago_sec": 896, "agent": "interview", "tool": "plan.set_fields", "decision": "allow", "args": { "field": "hearing_and_sight" }, "reason": "" },
+    { "ago_sec": 896, "agent": "interview", "tool": "plan.set_fields", "decision": "result", "args": { "field": "hearing_and_sight" }, "reason": "" },
     { "ago_sec": 640, "agent": "interview", "tool": "plan.set_fields", "decision": "deny", "args": { "field": "mobility" }, "reason": "出典の ID がありません: mobility" },
-    { "ago_sec": 636, "agent": "interview", "tool": "plan.set_fields", "decision": "allow", "args": { "field": "mobility" }, "reason": "" },
+    { "ago_sec": 636, "agent": "interview", "tool": "plan.set_fields", "decision": "result", "args": { "field": "mobility" }, "reason": "" },
     { "ago_sec": 300, "agent": "redteam", "tool": "plan.add_finding", "decision": "deny", "args": { "scenario_id": "S1" }, "reason": "説明文に数値が直接書かれています（33分）。数値は {need_min} などのプレースホルダーで書いてください" },
-    { "ago_sec": 296, "agent": "redteam", "tool": "plan.add_finding", "decision": "allow", "args": { "scenario_id": "S1" }, "reason": "" },
+    { "ago_sec": 296, "agent": "redteam", "tool": "plan.add_finding", "decision": "result", "args": { "scenario_id": "S1" }, "reason": "" },
     { "ago_sec": 150, "agent": "redteam", "tool": "plan.add_premise", "decision": "deny", "args": {}, "reason": "引用が発言の原文にありません。聞き取りの中の言葉だけを引用してください" },
+    { "ago_sec": 200, "agent": "redteam", "tool": "sim.try_fix", "decision": "error", "args": { "scenario_id": "S5", "fix_type": "ADD_CALLER" }, "reason": "この改善案は使えません: この案では、避難支援者（Bさん）が間に合わなくなるため、出せません" },
     { "ago_sec": 60, "agent": "server", "tool": "plan.finalize", "decision": "deny", "args": {}, "reason": "未確認の欄が残っています: 避難に関わる心身の状況。聞き取るか、「未確認のまま」の印を付けてください" }
   ]
 }
