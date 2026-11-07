@@ -158,10 +158,25 @@
   function fillTemplate(template, result, extra) {
     if (!template) return '';
     const r = result || {};
+    // 区間（避難を始めるまで・歩く・上がる・声をかける）の分。所要時間なので、切り上げる
+    const part = (key) => {
+      const segs = (r.breakdown || []).filter((s) => s.key === key && isNum(s.minutes));
+      return segs.length ? String(ceilMin(segs.reduce((sum, s) => sum + s.minutes, 0))) : null;
+    };
+    const margin = isNum(r.margin_min) ? r.margin_min : null;
+    const sMargin = isNum(r.supporter_margin_min) ? r.supporter_margin_min : null;
     const values = {
       need_min: isNum(r.need_min) ? String(ceilMin(r.need_min)) : null,
       avail_min: isNum(r.avail_min) ? String(floorMin(r.avail_min)) : null,
-      margin_min: isNum(r.margin_min) ? String(r.margin_min < 0 ? ceilMin(-r.margin_min) : floorMin(r.margin_min)) : null,
+      // {margin_min} は、間に合うときの余裕。足りないときの古い書き方でも、不足の分を出す
+      margin_min: margin === null ? null : String(margin < 0 ? ceilMin(-margin) : floorMin(margin)),
+      shortage_min: margin !== null && margin < 0 ? String(ceilMin(-margin)) : null,
+      supporter_margin_min: sMargin !== null && sMargin >= 0 ? String(floorMin(sMargin)) : null,
+      supporter_shortage_min: sMargin !== null && sMargin < 0 ? String(ceilMin(-sMargin)) : null,
+      leave_min: part('leave'),
+      walk_min: part('walk'),
+      climb_min: part('climb'),
+      help_min: part('help'),
       ...(extra || {}),
     };
     return String(template).replace(/\{(\w+)\}/g, (all, key) => (values[key] != null ? values[key] : '？'));
