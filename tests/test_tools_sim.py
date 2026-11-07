@@ -401,6 +401,72 @@ class TryFixTest(SimTestCase):
         self.assertEqual({k: v for k, v in plan.items() if k != "sources"}, before)
 
 
+class InterviewValueFormatTest(SimTestCase):
+    """聞き取りエージェント（B）が書き込む形の値も読める（docs: B のメモの 1 節）。"""
+
+    def test_dict_values_with_numbers(self):
+        plan = make_plan({"walk_speed": {"text": "100mを3分くらい", "meters": 100, "minutes": 3},
+                          "time_to_leave_day": {"text": "3分くらい", "minutes": 3}},
+                         shelter={"text": "テスト避難タワー", "shelter_id": "A"})
+        result = sim.run_scenario(plan, "S8", premise_ids=[])
+        self.assertEqual(result["need_min"], 16.7)
+
+    def test_dict_values_with_text_only(self):
+        plan = make_plan({"walk_speed": {"text": "100mを3分くらい"}, "time_to_leave_day": {"text": "3分くらい"}},
+                         shelter={"text": "テスト避難タワー"})
+        result = sim.run_scenario(plan, "S8", premise_ids=[])
+        self.assertEqual(result["need_min"], 16.7)
+        self.assertEqual(result["shelter_name"], "テスト避難タワー")
+
+
+def add_fix(plan, fix_type, target_id=None, approved=True):
+    fix_id = f"fix_{fix_type.lower()}_{len(plan['fixes'])}"
+    fix = pm.Fix(fix_id=fix_id, finding_id="fd_x", fix_type=fix_type, explanation_template="", result={}, saved_min=None)
+    if target_id is not None:
+        fix["target_id"] = target_id
+    plan["fixes"].append(fix)
+    if approved:
+        plan["approvals"].append(pm.Approval(fix_id=fix_id, by="minsei", at="2026-11-08T10:00:00+09:00"))
+    return fix_id
+
+
+class ApprovedFixTest(SimTestCase):
+    """承認済みの改善案は、run_scenario にも反映する（承認 → もう一度点検 → 緑の流れ）。"""
+
+    def test_unapproved_fix_is_not_applied(self):
+        plan = make_plan()
+        add_fix(plan, "BEDSIDE_PREP", approved=False)
+        self.assertEqual(minutes(sim.run_scenario(plan, "S1"), "leave"), [12.0])
+
+    def test_approved_fix_is_applied(self):
+        plan = make_plan()
+        add_fix(plan, "BEDSIDE_PREP")
+        self.assertEqual(minutes(sim.run_scenario(plan, "S1"), "leave"), [9.0])
+
+    def test_try_fix_stacks_on_approved_fixes(self):
+        plan = make_plan({"sleep_place": "2階の寝室"})
+        add_fix(plan, "BEDSIDE_PREP")
+        # 夜間 10 + 冬 2 + 2階 3 − 枕元 3 = 12。さらに玄関の近くで就寝: 2階の 3 が無くなり −2 → 7
+        self.assertEqual(minutes(sim.run_scenario(plan, "S1"), "leave"), [12.0])
+        self.assertEqual(minutes(sim.try_fix(plan, "S1", "SLEEP_NEAR_EXIT"), "leave"), [7.0])
+
+    def test_approved_change_shelter(self):
+        plan = make_plan()
+        hazard.find_shelters(plan, "home", limit=3)
+        add_fix(plan, "CHANGE_SHELTER", "B")
+        self.assertEqual(sim.run_scenario(plan, "S8", premise_ids=[])["shelter_name"], "テスト高台")
+
+
+class ApprovedCallerTest(SimTestCase):
+    near_minutes = 35
+
+    def test_approved_add_caller_in_s4(self):
+        neighbor = supporter("sup_y", "Bさん", 120, age_band="60代")
+        plan = make_plan({"mobility": "車いすで、介助が必要"}, supporters=[neighbor])
+        add_fix(plan, "ADD_CALLER", "sup_y")
+        self.assertEqual(sim.run_scenario(plan, "S4")["need_min"], 26.7)
+
+
 class AddCallerAcceptedTest(SimTestCase):
     near_minutes = 35
 

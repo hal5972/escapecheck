@@ -21,6 +21,10 @@
   - route: {"points": [{"lat", "lon"}, ...]} なら折れ線の距離。それ以外は直線距離 × 1.3
 - 前提条件（plan["premises"]）: premise_ids を省略すると登録済みの前提条件をすべて使う。[] なら使わない。
   S7 は登録済みの CANNOT_CLIMB を常に使う。try_fix は run_scenario(plan, scenario_id) と同じ条件に改善案を加える
+- 承認済みの改善案（plan["approvals"] に fix_id がある plan["fixes"]）は、run_scenario と try_fix の両方に反映する
+  （承認 → もう一度点検の流れ。CHANGE_SHELTER は項目の書き換えが無くても反映される）
+- 項目の値は、聞き取りエージェントの形 {"text": ..., "minutes": ...}・{"text": ..., "meters": ..., "minutes": ...}・
+  {"text": ..., "shelter_id": ...} も読む（数値が無ければ text を読む）
 - S5 の need_min・margin_min・breakdown は、避難支援者の避難（支援者の自宅 → 本人の自宅 → 避難先）を表す
 - 結果には TypedDict に無いキーを加える: avail_source_ids・avail_version（津波到達時間の出典と版）、
   shelter_id・shelter_name（計算に使った避難先）、supporter_alias（計算に使った避難支援者）
@@ -124,7 +128,9 @@ def parse_minutes(value: object) -> float | None:
     if isinstance(value, (int, float)):
         return float(value) if value >= 0 else None
     if isinstance(value, dict):
-        return parse_minutes(value.get("minutes"))
+        # 聞き取りエージェントの形 {"text": "着替えて10分くらい", "minutes": 10}。数値が無ければ text を読む
+        number = parse_minutes(value.get("minutes")) if value.get("minutes") is not None else None
+        return number if number is not None else parse_minutes(value.get("text"))
     match = _RANGE_MINUTES.search(_text(value))
     if not match:
         return None
@@ -144,10 +150,11 @@ def parse_walk_speed(value: object) -> float | None:
     if isinstance(value, (int, float)):
         return float(value) if 0.05 <= value <= 3 else None
     if isinstance(value, dict):
+        # 聞き取りエージェントの形 {"text": "100mを3分くらい", "meters": 100, "minutes": 3}。数値が無ければ text を読む
         meters, minutes = value.get("meters"), value.get("minutes")
         if isinstance(meters, (int, float)) and isinstance(minutes, (int, float)) and meters > 0 and minutes > 0:
-            return meters / (minutes * 60)
-        return None
+            return parse_walk_speed(meters / (minutes * 60))
+        return parse_walk_speed(value.get("text")) if value.get("text") else None
     text = _text(value)
     match = _SPEED_DISTANCE_FIRST.search(text)
     if match:
@@ -224,8 +231,30 @@ class _Cond:
     detour: bool = False
     supporters: str = "planned"  # "planned" | "day_strict"（S2）| "none"（S4）
     premises: list[dict] = field(default_factory=list)
-    fix_type: str | None = None
-    fix_target: str | None = None
+    # 改善案（承認済みのものと、try_fix で試すもの）
+    bedside: bool = False
+    near_exit: bool = False
+    change_route: bool = False
+    callers: set[str] = field(default_factory=set)
+    shelter_override: str | None = None
+
+    def apply_fix(self, fix_type: str, target_id: str | None) -> None:
+        if fix_type == "BEDSIDE_PREP":
+            self.bedside = True
+        elif fix_type == "SLEEP_NEAR_EXIT":
+            self.near_exit = True
+        elif fix_type == "CHANGE_ROUTE":
+            self.change_route = True
+        elif fix_type == "ADD_CALLER" and target_id:
+            self.callers.add(str(target_id))
+        elif fix_type == "CHANGE_SHELTER" and target_id:
+            self.shelter_override = str(target_id)
+
+
+def approved_fixes(plan: Plan) -> list[dict]:
+    """承認の記録（plan["approvals"]）がある改善案。run_scenario と try_fix は、これを反映して計算する。"""
+    approved = {a.get("fix_id") for a in plan.get("approvals", [])}
+    return [f for f in plan.get("fixes", []) if f.get("fix_id") in approved and f.get("fix_type") in pm.FIX_TYPES]
 
 
 def _conditions(plan: Plan, scenario_id: str, premise_ids: list[str] | None) -> _Cond:
@@ -258,6 +287,8 @@ def _conditions(plan: Plan, scenario_id: str, premise_ids: list[str] | None) -> 
         cond.earliest = True
     elif scenario_id == "S8" and codes & NIGHT_PREMISES:
         cond.period, cond.dark = "night", True
+    for fix in approved_fixes(plan):
+        cond.apply_fix(fix["fix_type"], fix.get("target_id"))
     return cond
 
 
@@ -358,7 +389,7 @@ def _leave_time(plan: Plan, cond: _Cond, person: _Person, src: _Sources) -> _Leg
             total += ASSUMPTIONS["asm_winter_leave"].value
             sources.append(src.assume("asm_winter_leave"))
             parts.append("冬 +2分")
-        if person.upstairs and cond.fix_type != "SLEEP_NEAR_EXIT":
+        if person.upstairs and not cond.near_exit:
             total += ASSUMPTIONS["asm_upstairs"].value
             sources += person.sources.get("upstairs", []) + [src.assume("asm_upstairs")]
             parts.append("2階から下りる +3分")
@@ -366,11 +397,11 @@ def _leave_time(plan: Plan, cond: _Cond, person: _Person, src: _Sources) -> _Leg
             total += ASSUMPTIONS["asm_deep_sleep"].value
             sources += person.sources.get("deep_sleep", []) + [src.assume("asm_deep_sleep")]
             parts.append("眠りが深い +5分")
-        if cond.fix_type == "BEDSIDE_PREP":
+        if cond.bedside:
             total += ASSUMPTIONS["asm_fix_bedside"].value
             sources.append(src.assume("asm_fix_bedside"))
             parts.append("枕元の準備 −3分")
-        if cond.fix_type == "SLEEP_NEAR_EXIT":
+        if cond.near_exit:
             total += ASSUMPTIONS["asm_fix_sleep_near_exit"].value
             sources.append(src.assume("asm_fix_sleep_near_exit"))
             parts.append("玄関の近くで就寝 −2分")
@@ -416,18 +447,18 @@ def _route_points(plan: Plan) -> list[tuple[float, float]] | None:
 
 def _distance(plan: Plan, home: tuple[float, float], shelter: datasets.ShelterRecord, planned: bool,
               cond: _Cond, person: _Person, src: _Sources) -> tuple[float, list[str], str]:
-    points = _route_points(plan) if planned and cond.fix_type != "CHANGE_ROUTE" else None
+    points = _route_points(plan) if planned and not cond.change_route else None
     if points:
         meters = geo.polyline_m([home, *points, shelter.point])
         sources, method = _field_sources(plan, "route"), "地図で指定した経路"
     else:
         meters = geo.distance_m(home, shelter.point) * hazard.ROUTE_FACTOR
         sources, method = [src.assume("asm_route_factor")], "直線距離 × 1.3 の概算"
-    if (cond.detour or person.road_risk) and cond.fix_type != "CHANGE_ROUTE":
+    if (cond.detour or person.road_risk) and not cond.change_route:
         meters *= ASSUMPTIONS["asm_detour_factor"].value
         sources += person.sources.get("road_risk", []) + [src.assume("asm_detour_factor")]
         method += "、迂回 × 1.3"
-    if cond.fix_type == "CHANGE_ROUTE":
+    if cond.change_route:
         sources.append(src.assume("asm_fix_change_route"))
     return meters, sources, method
 
@@ -460,7 +491,7 @@ def _available_supporters(plan: Plan, cond: _Cond) -> list[dict]:
     key = "available_night" if cond.period == "night" else "available_day"
     result = []
     for s in plan.get("supporters", []):
-        if cond.fix_type == "ADD_CALLER" and s.get("supporter_id") == cond.fix_target:
+        if s.get("supporter_id") in cond.callers and s.get(key) is not False:
             result.append(s)
         elif cond.supporters == "none":
             continue
@@ -544,8 +575,9 @@ def _evaluate(plan: Plan, cond: _Cond, data: datasets.Dataset) -> ScenarioResult
 
     # 避難先
     status, planned = hazard.match_shelter((_field(plan, "shelter") or {}).get("value"), data) if _field(plan, "shelter") else ("unconfirmed", None)
-    if cond.fix_type == "CHANGE_SHELTER":
-        status, planned = "ok", data.shelter_by_id(str(cond.fix_target))
+    if cond.shelter_override:
+        planned = data.shelter_by_id(cond.shelter_override)
+        status = "unknown" if planned is None else ("ok" if planned.tsunami_ok else "not_tsunami")
     if status in ("home", "not_tsunami"):
         return _result(cond, "cannot_compute", src, reason_code="SHELTER_NOT_TSUNAMI", **common,
                        shelter_name=planned.name if planned else None)
@@ -562,7 +594,8 @@ def _evaluate(plan: Plan, cond: _Cond, data: datasets.Dataset) -> ScenarioResult
         shelter_sources += excluded[planned.shelter_id]
         is_planned = False
     else:
-        shelter, is_planned = planned, True
+        # 避難先を変える改善案のときは、地図で指定した経路（元の避難先への経路）を使わない
+        shelter, is_planned = planned, not cond.shelter_override
     if shelter is None:
         return _result(cond, "cannot_compute", src, reason_code="NO_SHELTER_AVAILABLE", **common)
     shelter_sources.append(hazard.register_shelter_source(plan, shelter, data))
@@ -682,7 +715,7 @@ def try_fix(plan: Plan, scenario_id: str, fix_type: str, target_id: str | None =
         if supporter.get(key) is False:
             raise ValueError(f"{supporter.get('alias', target_id)}は、このシナリオの時間帯には来られません")
     before = _evaluate(plan, cond, data)
-    cond.fix_type, cond.fix_target = fix_type, target_id
+    cond.apply_fix(fix_type, target_id)
     after = _evaluate(plan, cond, data)
     if after.get("supporter_verdict") == "short" and before.get("supporter_verdict") != "short":
         alias = after.get("supporter_alias", "避難支援者")

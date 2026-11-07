@@ -201,7 +201,7 @@ def match_shelter(value: object, data: datasets.Dataset) -> tuple[str, datasets.
             record = data.shelter_by_id(str(shelter_id))
             if record:
                 return ("ok" if record.tsunami_ok else "not_tsunami", record)
-        name = value.get("name")
+        name = value.get("name") or value.get("text")
     else:
         name = value
     if not name:
