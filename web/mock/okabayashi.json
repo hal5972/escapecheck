@@ -179,8 +179,8 @@
       },
       {
         "fix_id": "fix_s4_caller", "finding_id": "fnd_s4", "fix_type": "ADD_CALLER", "target_id": "sup_c",
-        "explanation_template": "近所のCさん（40代）にも、避難の手伝いを頼みます。Bさんが来られないときも、2人で車いすを押せるので、{need_min}分で避難できます。",
-        "explanation": "近所のCさん（40代）にも、避難の手伝いを頼みます。Bさんが来られないときも、2人で車いすを押せるので、21分で避難できます。",
+        "explanation_template": "近所のCさん（40代）にも、避難支援者をお願いします。Bさんが来られないときも、2人で車いすを押せるので、{need_min}分で避難できます。",
+        "explanation": "近所のCさん（40代）にも、避難支援者をお願いします。Bさんが来られないときも、2人で車いすを押せるので、21分で避難できます。",
         "saved_min": null,
         "mock_supporter": {
           "supporter_id": "sup_c", "alias": "Cさん", "relation": "近所", "age_band": "40代",

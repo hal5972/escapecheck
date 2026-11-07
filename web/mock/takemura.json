@@ -90,14 +90,14 @@
     "findings": [
       {
         "finding_id": "fnd_s1", "scenario_id": "S1", "hole_type": "TOO_FAR",
-        "explanation_template": "冬の午前3時は、避難を始めるまでに12分、{shelter_name}まで歩くのに24分、上がるのに3分で、合わせて{need_min}分かかります。津波は{avail_min}分で来るので、{margin_min}分足りません。",
-        "explanation": "冬の午前3時は、避難を始めるまでに12分、津波避難タワー（サンプル）まで歩くのに24分、上がるのに3分で、合わせて39分かかります。津波は24分で来るので、15分足りません。",
+        "explanation_template": "冬の午前3時は、避難を始めるまでに12分、{shelter_name}まで、支えてもらって歩くのに24分、上がるのに3分で、合わせて{need_min}分かかります。津波は{avail_min}分で来るので、{margin_min}分足りません。",
+        "explanation": "冬の午前3時は、避難を始めるまでに12分、津波避難タワー（サンプル）まで、支えてもらって歩くのに24分、上がるのに3分で、合わせて39分かかります。津波は24分で来るので、15分足りません。",
         "source_ids": ["src_asm_leave_night", "src_asm_winter", "src_asm_standup", "src_asm_dark", "src_route", "src_arrival"],
         "result": {
           "scenario_id": "S1", "verdict": "short", "need_min": 39, "avail_min": 24, "margin_min": -15,
           "breakdown": [
             { "key": "leave", "label": "避難を始めるまで", "minutes": 12, "source_ids": ["src_asm_leave_night", "src_asm_winter"] },
-            { "key": "walk", "label": "避難先まで歩く", "minutes": 24, "source_ids": ["src_route", "src_asm_standup", "src_asm_dark"] },
+            { "key": "walk", "label": "避難先まで、支えられて歩く", "minutes": 24, "source_ids": ["src_route", "src_asm_standup", "src_asm_dark"] },
             { "key": "climb", "label": "避難先で上がる", "minutes": 3, "source_ids": ["src_asm_climb"] }
           ],
           "assumptions": ["src_asm_leave_night", "src_asm_winter", "src_asm_standup", "src_asm_dark", "src_asm_climb", "src_route"]
@@ -112,7 +112,7 @@
           "scenario_id": "S2", "verdict": "short", "need_min": 27, "avail_min": 24, "margin_min": -3,
           "breakdown": [
             { "key": "leave", "label": "避難を始めるまで", "minutes": 5, "source_ids": ["src_asm_leave_day"] },
-            { "key": "walk", "label": "避難先まで歩く", "minutes": 19, "source_ids": ["src_route", "src_asm_standup"] },
+            { "key": "walk", "label": "避難先まで、支えられて歩く", "minutes": 19, "source_ids": ["src_route", "src_asm_standup"] },
             { "key": "climb", "label": "避難先で上がる", "minutes": 3, "source_ids": ["src_asm_climb"] }
           ],
           "assumptions": ["src_asm_leave_day", "src_asm_standup", "src_asm_climb", "src_route"]
@@ -127,7 +127,7 @@
           "scenario_id": "S6", "verdict": "short", "need_min": 27, "avail_min": 15, "margin_min": -12,
           "breakdown": [
             { "key": "leave", "label": "避難を始めるまで", "minutes": 5, "source_ids": ["src_asm_leave_day"] },
-            { "key": "walk", "label": "避難先まで歩く", "minutes": 19, "source_ids": ["src_route", "src_asm_standup"] },
+            { "key": "walk", "label": "避難先まで、支えられて歩く", "minutes": 19, "source_ids": ["src_route", "src_asm_standup"] },
             { "key": "climb", "label": "避難先で上がる", "minutes": 3, "source_ids": ["src_asm_climb"] }
           ],
           "assumptions": ["src_arrival_early", "src_asm_leave_day", "src_asm_standup", "src_asm_climb", "src_route"]
@@ -142,7 +142,7 @@
           "scenario_id": "S8", "verdict": "short", "need_min": 45, "avail_min": 24, "margin_min": -21,
           "breakdown": [
             { "key": "leave", "label": "立たせてもらうまで", "minutes": 18, "source_ids": ["src_asm_leave_night"] },
-            { "key": "walk", "label": "避難先まで歩く", "minutes": 24, "source_ids": ["src_route", "src_asm_standup", "src_asm_dark"] },
+            { "key": "walk", "label": "避難先まで、支えられて歩く", "minutes": 24, "source_ids": ["src_route", "src_asm_standup", "src_asm_dark"] },
             { "key": "climb", "label": "避難先で上がる", "minutes": 3, "source_ids": ["src_asm_climb"] }
           ],
           "assumptions": ["src_asm_leave_night", "src_asm_standup", "src_asm_dark", "src_asm_climb", "src_route"]

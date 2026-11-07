@@ -6,10 +6,11 @@
  *   POST /api/interview  { plan, utterance, speaker }         → { plan, next_question, changed_fields }
  *   POST /api/check      { plan }                             → { job_id }
  *   GET  /api/jobs/{id}                                       → { job_id, state, events, plan, error }
- *   POST /api/approve    { plan, fix_id, by }                 → { plan }
+ *   POST /api/approve    { plan, fix_id, by }                 → { plan, results }   （results: 承認の直後にコードが計算し直した結果）
  *   POST /api/verify     { plan }                             → { issues }
  *   POST /api/finalize   { plan }                             → { ok, reasons, plan }   （サーバーに無いときは画面で確認する）
  *   POST /api/facts      { plan, target }                     → { facts, shelters, sources }
+ *   GET  /api/samples, /api/samples/{id}                      → サンプルデータ（架空の人物）
  *
  * 計画（plan）には自宅などの座標が入るが、本名と電話番号は入れない（画面の端末だけが持つ）。
  * 利用者に見せるエラーの文には、キーや内部の情報を含めない（利用者向けの短い文だけを使う）。
@@ -102,7 +103,8 @@
       token = 'mock-token';
       return { mode };
     }
-    throw new ApiError('server', res.status);
+    // 合言葉の間違いが続いたときなど、サーバーが返す利用者向けの文があれば、それを見せる
+    throw new ApiError('server', res.status, res.data && typeof res.data.error === 'string' && res.data.error.length < 120 ? res.data.error : undefined);
   }
 
   function resume(savedToken, savedMode) {
@@ -128,10 +130,32 @@
     return call('GET', `api/jobs/${encodeURIComponent(jobId)}`, undefined, 15000);
   }
 
+  /** 承認。{ plan, results } を返す。results は、承認の直後にサーバーのコードが計算し直した結果（シナリオの ID → 結果）。無いこともある。 */
   async function approve(plan, fixId, by) {
     if (useMock()) return EC.mock.api.approve(plan, fixId, by);
     const data = await call('POST', 'api/approve', { plan, fix_id: fixId, by: by || 'minsei' }, 30000);
-    return data && data.plan ? data.plan : data;
+    if (data && data.plan) return { plan: data.plan, results: data.results && typeof data.results === 'object' ? data.results : null };
+    return { plan: data, results: null };
+  }
+
+  /** サーバーにあるサンプルデータ（架空の人物）。無いときは空。 */
+  async function listSamples() {
+    if (useMock()) return [];
+    try {
+      const data = await call('GET', 'api/samples', undefined, 10000);
+      return (data && data.samples) || [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  async function getSample(id) {
+    if (useMock()) return null;
+    try {
+      return await call('GET', `api/samples/${encodeURIComponent(id)}`, undefined, 10000);
+    } catch (e) {
+      return null;
+    }
   }
 
   async function verify(plan) {
@@ -176,6 +200,8 @@
     startCheck,
     getJob,
     approve,
+    listSamples,
+    getSample,
     verify,
     finalize,
     facts,

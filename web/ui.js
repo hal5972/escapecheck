@@ -224,7 +224,11 @@
 
     // 避難支援者が駆けつける区間（S5・S8）
     const usesSupporter = (result.breakdown || []).some((seg) => seg.key === 'supporter_travel');
-    const supporter = usesSupporter ? (plan.supporters || []).find((s) => s.location) : null;
+    const travel = (result.breakdown || []).find((seg) => seg.key === 'supporter_travel');
+    const supporter = usesSupporter
+      ? ((plan.supporters || []).find((s) => s.location && travel && travel.label && travel.label.includes(s.alias))
+        || (plan.supporters || []).find((s) => s.location))
+      : null;
     if (supporter) {
       shapes.push({ t: 'line', kind: 'plain', from: supporter.location, to: home });
       shapes.push({ t: 'marker', kind: 'supporter', at: supporter.location, label: `${T(supporter.alias).replace(/さん$/, '')}さん宅`, pos: 'r' });

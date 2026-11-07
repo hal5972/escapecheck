@@ -164,17 +164,125 @@
   }
 
   // ---------------------------------------------------------------------------
+  // サーバーのサンプルデータ（data/samples/*.json。架空の人物）から、計画を作る
+  // 形: { case_id, title, alias, area_label, home, talk: [{ id, speaker, text }],
+  //       form: { 欄: { value, from, quote } }, supporters: [{ ..., from }] }
+  // ---------------------------------------------------------------------------
+
+  // 名前ではなく、続柄・関係を表す言葉（「息子さん」「隣のさん」など）。仮名に置き換えない
+  const KINSHIP = new Set(['息子', '娘', '孫', '主人', '奥', '妻', '夫', '隣', '近所', '兄', '姉', '弟', '妹', '母', '父', '嫁', '婿', '長男', '長女', '次男', '次女', '友達', '先生']);
+
+  function deriveNames(c) {
+    const names = [];
+    const talk = c.talk || [];
+    const first = talk[0] ? String(talk[0].text) : '';
+    const head = /^([一-龥]{2,3})さん/.exec(first);
+    const display = c.person && c.person.display_name ? String(c.person.display_name) : '';
+    const personReal = (head && head[1]) || (display ? display.slice(0, 2) : '');
+    if (personReal) names.push({ alias: c.alias || 'Aさん', real: personReal, call: `${personReal}さん`, full: display || personReal, role: 'person' });
+    for (const s of c.supporters || []) {
+      const t = talk.find((x) => x.id === s.from);
+      if (!t) continue;
+      const re = /([一-龥]{2,3})さん/g;
+      let m;
+      while ((m = re.exec(String(t.text)))) {
+        if (KINSHIP.has(m[1]) || m[1] === personReal) continue;
+        names.push({ alias: s.alias || 'Bさん', real: m[1], call: `${m[1]}さん`, full: m[1], role: 'supporter' });
+        break;
+      }
+    }
+    return names;
+  }
+
+  function caseTitle(c) {
+    const m = /^([^（(:：]+)/.exec(String(c.title || c.case_id || ''));
+    return (m ? m[1] : String(c.title || c.case_id || '')).trim();
+  }
+
+  function caseSummary(c) {
+    const m = /^[^（(:：]+(?:[（(]([^）)]*)[）)])?\s*[:：]?\s*(.*)$/.exec(String(c.title || ''));
+    const rest = m ? m[2].trim() : '';
+    const paren = m && m[1] ? m[1].replace(/架空[、,]?\s*/, '').trim() : '';
+    const text = `${rest}${paren ? `（${paren}）` : ''}`;
+    return text || (c.person && c.person.description) || '';
+  }
+
+  function pseudoValue(value, names) {
+    // 「隣の西村さん（Bさん）」のように、仮名がすでに付いているときは、仮名を重ねない
+    if (typeof value === 'string') return pseudonymize(value, names).replace(/([A-Z]さん)（\1）/g, '$1');
+    if (Array.isArray(value)) return value.map((v) => pseudoValue(v, names));
+    if (value && typeof value === 'object') {
+      const out = {};
+      for (const [k, v] of Object.entries(value)) out[k] = pseudoValue(v, names);
+      return out;
+    }
+    return value;
+  }
+
+  function fromCase(c, stage) {
+    const id = String(c.case_id || 'sample').replace(/[^A-Za-z0-9_-]/g, '') || 'sample';
+    const plan = newPlan(c.alias || 'Aさん', c.area_label || '', c.home, `plan_sample_${id}_${uid('p').slice(2)}`);
+    plan.sources.src_home = { kind: 'map_tap', label: '自宅の場所（サンプルの位置）' };
+    const names = deriveNames(c);
+    const talk = c.talk || [];
+    const person = names.find((n) => n.role === 'person');
+    const ask = `${(person && person.call) || caseTitle(c)}について、思いつくままに話してください。`;
+    const record = {
+      id: uid('rec'), sample: id, title: caseTitle(c), summary: caseSummary(c), names,
+      initialQuestion: ask, nextQuestion: ask, examples: talk.map((t) => t.text), plan, versions: [], stage: 'start',
+    };
+    if (stage === 'start') return record;
+
+    // 途中から: 聞き取りが終わった計画。発言は出典として登録し、欄の値は、発言の引用つきで入れる
+    const at = new Date().toISOString();
+    for (const t of talk) {
+      const who = t.speaker === 'person' ? '本人' : t.speaker === 'family' ? '家族' : '民生委員';
+      plan.sources[`src_${t.id}`] = { kind: 'utterance', label: `${who}の発言（${formatClock()}）`, text: pseudonymize(t.text, names), speaker: t.speaker || 'minsei', at };
+    }
+    for (const [key, f] of Object.entries(c.form || {})) {
+      if (!(key in plan.fields)) continue;
+      const sid = f.source_id || (f.from ? `src_${f.from}` : null);
+      if (!sid || !plan.sources[sid]) continue;
+      const entry = { value: pseudoValue(f.value, names), status: 'filled', source_id: sid };
+      if (f.quote) entry.quote = pseudonymize(f.quote, names);
+      plan.fields[key] = entry;
+    }
+    plan.supporters = (c.supporters || []).map((s) => {
+      const { from, ...rest } = s;
+      return { ...rest, source_id: from ? `src_${from}` : undefined };
+    });
+    record.stage = 'talked';
+    record.nextQuestion = null;
+    return record;
+  }
+
+  // ---------------------------------------------------------------------------
   // サンプルデータ
   // ---------------------------------------------------------------------------
 
   const samples = {
+    /** サーバーにサンプルデータがあれば、それを出す。無ければ（サーバーが無いときを含む）、web/mock/ の JSON を出す。 */
     async list() {
+      if (EC.api.getMode() === 'server') {
+        const ids = await EC.api.listSamples();
+        const items = [];
+        for (const entry of ids) {
+          const c = await EC.api.getSample(entry.id);
+          if (c && c.talk && c.form) items.push({ id: entry.id, title: caseTitle(c), summary: caseSummary(c) });
+        }
+        if (items.length) return items;
+      }
       const index = await loadJson('mock/index.json');
       return index.samples;
     },
 
     /** stage: start（話す手順から）／talked（聞き取りのあと）／checked（点検のあと）／improved（改善のあと）／verified */
     async build(id, stage) {
+      if (EC.api.getMode() === 'server') {
+        // サーバーのサンプル（点検は、サーバーが実際に行うので、途中の状態は「聞き取りのあと」まで）
+        const c = await EC.api.getSample(id);
+        if (c && c.talk && c.form) return fromCase(c, stage === 'start' ? 'start' : 'talked');
+      }
       const sample = await loadJson(`mock/${id}.json`);
       const plan = newPlan('Aさん', sample.area_label, sample.home, `plan_sample_${id}_${uid('p').slice(2)}`);
       const record = {
@@ -205,10 +313,14 @@
       record.stage = 'checked';
       if (stage === 'checked') return record;
 
-      const first = plan.fixes[0];
-      if (!first) return record; // 改善案が無い計画（竹村さん）は、点検のままにする
-      plan.approvals.push({ fix_id: first.fix_id, by: 'minsei', at: new Date().toISOString() });
-      applyFixToPlan(plan, sample, first);
+      // 主な改善案（mock_primary）。無ければ、先頭の案だけ
+      const primary = plan.fixes.filter((f) => f.mock_primary);
+      const chosen = primary.length ? primary : plan.fixes.slice(0, 1);
+      if (!chosen.length) return record; // 改善案が無い計画（竹村さん）は、点検のままにする
+      for (const fix of chosen) {
+        plan.approvals.push({ fix_id: fix.fix_id, by: 'minsei', at: new Date().toISOString() });
+        applyFixToPlan(plan, sample, fix);
+      }
       applyApprovals(plan, sample);
       record.versions.push({ label: '改善後', at: new Date().toISOString(), plan: clone(plan) });
       record.stage = 'improved';
@@ -286,7 +398,12 @@
       applyFixToPlan(next, sample, fix);
       // 同じ種類・同じ対象の案は、反映したので、ほかの問題点の案からも外す（本物は、再点検で案を作り直す）
       next.fixes = next.fixes.filter((f) => f.fix_id === fixId || !(f.fix_type === fix.fix_type && f.target_id === fix.target_id));
-      return next;
+      // 承認の直後に、コードが計算し直した結果（サンプルの値）。サーバーの approve と同じく、シナリオの ID → 結果
+      const after = clone(next);
+      applyApprovals(after, sample);
+      const results = {};
+      for (const f of after.findings) results[f.scenario_id] = f.result;
+      return { plan: next, results };
     },
 
     async verify(plan) {

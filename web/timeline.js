@@ -28,7 +28,7 @@
     return seg.label || L.BREAKDOWN_LABELS[seg.key] || seg.key;
   }
 
-  /** 一覧の見本（小さな四角）。タイムラインと同じ模様を使う。 */
+  /** 一覧の記号（小さな四角）。タイムラインと同じ模様を使う。 */
   function swatch(fill) {
     return svg('svg', { class: 'tl-swatch', width: 36, height: 28, viewBox: '0 0 36 28', 'aria-hidden': 'true', focusable: 'false' },
       svg('rect', { x: 1.5, y: 1.5, width: 33, height: 25, rx: 4, fill, stroke: '#12161c', 'stroke-width': 2 }));
@@ -39,7 +39,7 @@
    * opts: { scale: 軸の最大の分（2 つを並べて比べるときに同じ値を渡す）, title: 見出し }
    */
   function render(result, opts) {
-    const o = Object.assign({ scale: null, title: null }, opts || {});
+    const o = Object.assign({ scale: null, title: null, footnote: true }, opts || {});
     const segs = ((result && result.breakdown) || []).filter((s) => isNum(s.minutes) && s.minutes > 0);
     const avail = result && isNum(result.avail_min) ? result.avail_min : null;
     const drawn = segs.reduce((sum, s) => sum + s.minutes, 0); // 描画の長さにだけ使う
@@ -51,11 +51,11 @@
     const xOf = (m) => PAD + m * k;
 
     const g = svg('svg', {
-      class: 'tl-svg', viewBox: `0 0 ${W} 146`, role: 'img', focusable: 'false',
+      class: 'tl-svg', viewBox: `0 0 ${W} 150`, role: 'img', focusable: 'false',
       'aria-label': `避難にかかる時間 ${ceilMin(need) ?? '不明'}分。津波が来るまで ${avail === null ? '不明' : floorMin(avail) + '分'}。${view.text}`,
     });
 
-    // 区間の帯（数字のラベルは、あとで最前面に描く）
+    // 区間の帯。すべて実際の長さで描く（津波の線をまたいでも隠さない）。数字のラベルは、あとで最前面に描く
     const labels = [];
     let acc = 0;
     segs.forEach((seg) => {
@@ -66,14 +66,16 @@
       acc += seg.minutes;
     });
 
-    // 余裕（緑）か不足（赤い斜線）
-    let xLine = null;
+    // 余裕（緑・黄）か不足（赤い枠と、下の赤い斜線の帯）
     if (avail !== null) {
       const xEnd = xOf(drawn);
-      xLine = xOf(avail);
+      const xLine = xOf(avail);
+      let lineBottom = BAR_Y + BAR_H + 10;
       if (drawn > avail) {
-        // 津波が来たあとの区間: 線の右にはみ出す部分を赤い斜線で覆う
-        g.appendChild(svg('rect', { x: xLine.toFixed(1), y: BAR_Y, width: (xEnd - xLine).toFixed(1), height: BAR_H, fill: 'url(#ec-pat-short)', stroke: '#9b1111', 'stroke-width': 3 }));
+        // 津波が来たあとの区間: 赤い太い枠で囲み、下に赤い斜線の帯を付ける（区間の模様は隠さない）
+        g.appendChild(svg('rect', { x: xLine.toFixed(1), y: BAR_Y - 3, width: (xEnd - xLine).toFixed(1), height: BAR_H + 6, fill: 'none', stroke: '#9b1111', 'stroke-width': 4 }));
+        g.appendChild(svg('rect', { x: xLine.toFixed(1), y: BAR_Y + BAR_H + 9, width: (xEnd - xLine).toFixed(1), height: 14, fill: 'url(#ec-pat-short)', stroke: '#9b1111', 'stroke-width': 2 }));
+        lineBottom = BAR_Y + BAR_H + 26;
       } else {
         const gap = xLine - xEnd;
         if (gap > 0.5) {
@@ -83,22 +85,20 @@
 
       // 津波到達時間の縦の線と名前
       const labelX = Math.min(Math.max(xLine, PAD + 76), W - PAD - 76);
-      g.appendChild(svg('line', { x1: xLine.toFixed(1), x2: xLine.toFixed(1), y1: 34, y2: BAR_Y + BAR_H + 10, stroke: '#12161c', 'stroke-width': 4 }));
+      g.appendChild(svg('line', { x1: xLine.toFixed(1), x2: xLine.toFixed(1), y1: 34, y2: lineBottom, stroke: '#12161c', 'stroke-width': 4 }));
       g.appendChild(svg('text', { class: 'tl-line-label', x: labelX.toFixed(1), y: 26, 'text-anchor': 'middle' }, `津波 ${floorMin(avail)}分`));
 
       // 余裕・不足の文字
-      const note = svg('text', { class: `tl-note tl-note-${view.key}`, y: 128 });
+      const note = svg('text', { class: `tl-note tl-note-${view.key}`, y: 140 });
       note.textContent = `${view.mark} ${view.detail || view.label}`;
       note.setAttribute('x', (view.key === 'short' ? W - PAD : Math.min(Math.max(xLine, 170), W - PAD)).toFixed(1));
       note.setAttribute('text-anchor', 'end');
       g.appendChild(note);
     }
 
-    // 区間の分の数字。線をまたぐ区間は、線より左（見える側）の中央に置く。幅が足りないときは出さない
+    // 区間の分の数字。幅が足りないときは出さない
     labels.forEach((l) => {
-      const right = xLine !== null ? Math.min(l.x + l.w, xLine) : l.x + l.w;
-      const visibleW = right - l.x;
-      if (visibleW >= 34) g.appendChild(svg('text', { class: 'tl-num', x: (l.x + visibleW / 2).toFixed(1), y: BAR_Y + 30, 'text-anchor': 'middle' }, l.text));
+      if (l.w >= 34) g.appendChild(svg('text', { class: 'tl-num', x: (l.x + l.w / 2).toFixed(1), y: BAR_Y + 30, 'text-anchor': 'middle' }, l.text));
     });
 
     // 文字の一覧
@@ -116,7 +116,9 @@
       h('span', null, `　津波が来るまで `),
       h('strong', null, avail === null ? '不明' : `${floorMin(avail)}分`));
 
-    return h('div', { class: 'timeline' }, o.title ? h('p', { class: 'tl-title' }, o.title) : null, g, sum, legend);
+    const note = o.footnote && segs.some((seg) => seg.key === 'climb')
+      ? h('p', { class: 'sub tl-foot' }, '「上がる」は、避難先の階段や坂を上がる時間です。') : null;
+    return h('div', { class: 'timeline' }, o.title ? h('p', { class: 'tl-title' }, o.title) : null, g, sum, legend, note);
   }
 
   EC.timeline = { render };

@@ -14,13 +14,6 @@
 
   const clone = (x) => JSON.parse(JSON.stringify(x));
 
-  async function ensureFacts(rec) {
-    if (A.state.facts) return A.state.facts;
-    const f = await api.facts(rec.plan);
-    A.state.facts = f || { facts: null, shelters: [], sources: {} };
-    return A.state.facts;
-  }
-
   // ---------------------------------------------------------------------------
   // 確認
   // ---------------------------------------------------------------------------
@@ -36,12 +29,13 @@
     const listSlot = h('div', { class: 'checklist-slot' });
     const itemSlot = h('div', { class: 'item-slot' });
     A.$main.append(
-      h('h1', null, '確認'),
+      h('h1', null, `${A.personLabel(rec)}の確認`),
       statusSlot, itemSlot, listSlot, A.noticeSafety());
 
     let listening = null;
     let working = false;
     let forceText = false;
+    let resolved = 0; // 確認ずみにした項目の数（「確認 2／3」の表示に使う）
     scope.onLeave(() => { if (listening) listening.abort(); listening = null; });
 
     // --- 確認の結果を計画に控える -------------------------------------------------
@@ -55,6 +49,7 @@
     }
 
     function acknowledge(issueId, patch) {
+      resolved += 1;
       const issues = rec.plan.issues || [];
       const found = issues.find((i) => i.issue_id === issueId);
       if (found) Object.assign(found, patch, { acknowledged: true });
@@ -65,16 +60,29 @@
 
     function buildQueue() {
       const queue = [];
+      const issues = rec.plan.issues || [];
       for (const f of rec.plan.findings || []) {
         const key = verdictView(worstResult(f.result)).key;
         if (key === 'short' || key === 'unknown') {
           const id = `consult_${f.finding_id}`;
-          const done = (rec.plan.issues || []).find((i) => i.issue_id === id && i.acknowledged);
+          const done = issues.find((i) => i.issue_id === id && i.acknowledged);
           if (!done) queue.push({ type: 'consult', id, finding: f });
         }
       }
-      for (const i of rec.plan.issues || []) {
-        if (!i.issue_id.startsWith('consult_') && !i.acknowledged) queue.push({ type: 'issue', id: i.issue_id, issue: i });
+      for (const i of issues) {
+        if (i.issue_id.startsWith('consult_') || i.acknowledged) continue;
+        // サーバーのコードの点検が出す「◯のシナリオで間に合いません」は、上の「相談する」の確認で扱う。
+        // 相談の印が付いていれば、その項目も確認ずみにする。付いていなければ、相談の確認が先に出るので、ここには出さない
+        const short = /^chk_short_(S\d)$/.exec(i.issue_id);
+        if (short) {
+          const f = (rec.plan.findings || []).find((x) => x.scenario_id === short[1]);
+          if (f && issues.some((x) => x.issue_id === `consult_${f.finding_id}` && x.acknowledged)) {
+            i.acknowledged = true;
+            i.resolution = 'consult';
+          }
+          continue;
+        }
+        queue.push({ type: 'issue', id: i.issue_id, issue: i });
       }
       return queue;
     }
@@ -115,7 +123,7 @@
         const v = verdictView(worstResult(item.finding.result));
         const text = `${ui.scenarioTopic(rec.plan, item.finding)}は、${v.label}${v.detail ? `（${v.detail}）` : ''}です。ご本人・ご家族・市と相談します。`;
         itemSlot.append(h('div', { class: 'card item-card' },
-          h('p', { class: 'strong' }, `残りの確認 ${queue.length}件`),
+          h('p', { class: 'strong' }, `確認 ${resolved + 1}／${resolved + queue.length}`),
           ui.verdictBadge(worstResult(item.finding.result)),
           h('p', { class: 'explain' }, text)));
         A.say(text);
@@ -130,9 +138,9 @@
       const fieldLabel = issue.field && L.FIELDS[issue.field] ? EC.u.splitLabel(L.FIELDS[issue.field]).title : '確認';
       const textarea = h('textarea', { class: 'textarea', id: 'answer', rows: '3', maxlength: '2000', placeholder: 'ここに文字で入力できます' });
       const typedWrap = h('div', { hidden: true }, h('label', { class: 'field-label-text', for: 'answer' }, '文字で答える'), textarea);
-      const transcript = h('div', { class: 'transcript' }, h('span', { class: 'placeholder' }, 'ここに、答えが文字で出ます'));
+      const transcript = h('div', { class: 'transcript' }, h('span', { class: 'placeholder' }, 'ここに、文字起こし（答えの文字）が出ます'));
       itemSlot.append(h('div', { class: 'card item-card' },
-        h('p', { class: 'strong' }, `残りの確認 ${queue.length}件　${fieldLabel}`),
+        h('p', { class: 'strong' }, `確認 ${resolved + 1}／${resolved + queue.length}　${fieldLabel}`),
         h('span', { class: 'chip chip-none' }, issue.severity || '要確認'),
         h('p', { class: 'explain' }, T(issue.message))),
       transcript, typedWrap,
@@ -270,11 +278,12 @@
     const slot = h('div', { class: 'sheets-slot' });
     A.$main.append(
       h('h1', null, '印刷'),
-      h('p', { class: 'lead' }, 'A4で2枚を印刷します。1枚目は市に出す様式、2枚目は本人用の避難カードです。'),
+      h('p', { class: 'lead' }, 'A4で2枚を印刷します。本人用の避難カードと、市に出す様式です。'),
+      h('p', { class: 'sub' }, '印刷の順は、1枚目が市の様式、2枚目が避難カードです。'),
       slot);
 
     (async () => {
-      await ensureFacts(rec);
+      await A.ensureFacts(rec);
       if (!scope.alive) return;
       const sheets = EC.print.buildSheets(rec, { T, facts: A.state.facts });
       slot.replaceWith(sheets);

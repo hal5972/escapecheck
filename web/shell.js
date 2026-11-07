@@ -154,6 +154,24 @@
     return next;
   }
 
+  /** 画面の見出しに使う、計画の人の呼び方（本名は端末の中だけ）。 */
+  function personLabel(rec) {
+    const person = (rec.names || []).find((n) => n.role === 'person');
+    return (person && person.call) || rec.title || rec.plan.alias;
+  }
+
+  /** 自宅の事実（浸水深・津波到達時間・標高）と、近くの避難先。取得できないときは facts を null にして、地図は点と線だけにする。 */
+  async function ensureFacts(rec) {
+    if (state.facts) return state.facts;
+    const f = await EC.api.facts(rec.plan);
+    state.facts = f || { facts: null, shelters: [], sources: {} };
+    // 出典の表示に使うので、計画に無い出典は、計画の出典リストに足す
+    for (const [id, source] of Object.entries(state.facts.sources || {})) {
+      if (rec.plan.sources && !rec.plan.sources[id]) rec.plan.sources[id] = source;
+    }
+    return state.facts;
+  }
+
   // --- 共通の表示 ----------------------------------------------------------
 
   const noticePrivacy = () => h('div', { class: 'notice' },
@@ -206,7 +224,7 @@
 
   EC.app = {
     state, $main, $actions, T, say, announce, go, setBack, setActions, setBanner, newScope,
-    save, openRecord, loadSessionRecord, mergeGeometry,
+    save, openRecord, loadSessionRecord, mergeGeometry, ensureFacts, personLabel,
     noticePrivacy, noticeSafety, statusBox, errorBox, errorText,
     register, render, parseHash,
     scope: () => scope,

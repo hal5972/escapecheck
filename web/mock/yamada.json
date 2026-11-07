@@ -220,7 +220,7 @@
     ],
     "fixes": [
       {
-        "fix_id": "fix_s1_tower", "finding_id": "fnd_s1", "fix_type": "CHANGE_SHELTER", "target_id": "sh_tower",
+        "fix_id": "fix_s1_tower", "finding_id": "fnd_s1", "fix_type": "CHANGE_SHELTER", "target_id": "sh_tower", "mock_primary": true,
         "explanation_template": "避難先を{shelter_name}に変えます。歩く時間が19分から7分になり、{saved_min}分短くなります。",
         "explanation": "避難先を「津波避難タワー（サンプル）」に変えます。歩く時間が19分から7分になり、12分短くなります。",
         "saved_min": 12,
@@ -304,6 +304,28 @@
             { "key": "climb", "label": "避難先で上がる", "minutes": 2, "source_ids": ["src_asm_climb"] }
           ],
           "assumptions": ["src_asm_sup_leave", "src_asm_sup_speed", "src_asm_help", "src_asm_dark", "src_asm_climb"]
+        }
+      },
+      {
+        "fix_id": "fix_s8_caller", "finding_id": "fnd_s8", "fix_type": "ADD_CALLER", "target_id": "sup_c", "mock_primary": true,
+        "explanation_template": "向かいの家のCさん（30代）にも、夜の声かけをお願いします。Bさんより近いので、避難を始める時刻が早まり、{margin_min}分の余裕ができます。",
+        "explanation": "向かいの家のCさん（30代）にも、夜の声かけをお願いします。Bさんより近いので、避難を始める時刻が早まり、1分の余裕ができます。",
+        "saved_min": 5,
+        "mock_supporter": {
+          "supporter_id": "sup_c", "alias": "Cさん", "relation": "向かいの家", "age_band": "30代",
+          "available_day": false, "available_night": true,
+          "location": { "lat": 33.44920, "lon": 133.43745 }
+        },
+        "result": {
+          "scenario_id": "S8", "verdict": "tight", "need_min": 23, "avail_min": 24, "margin_min": 1,
+          "breakdown": [
+            { "key": "leave", "label": "Cさんが出るまで", "minutes": 10, "source_ids": ["src_asm_sup_leave"] },
+            { "key": "supporter_travel", "label": "Cさんが駆けつける", "minutes": 1, "source_ids": ["src_asm_sup_speed"] },
+            { "key": "help", "label": "声をかけて、一緒に出る", "minutes": 3, "source_ids": ["src_asm_help"] },
+            { "key": "walk", "label": "避難先まで歩く", "minutes": 7, "source_ids": ["src_route", "src_asm_dark"] },
+            { "key": "climb", "label": "避難先で上がる", "minutes": 2, "source_ids": ["src_asm_climb"] }
+          ],
+          "assumptions": ["src_asm_sup_leave", "src_asm_sup_speed", "src_asm_help", "src_asm_dark", "src_asm_climb", "src_route"]
         }
       },
       {

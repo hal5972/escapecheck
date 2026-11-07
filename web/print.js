@@ -104,7 +104,7 @@
       }
       body.append(h('h3', null, '点検の結果（厳しい条件でのシミュレーション）'), h('table', { class: 'sheet-table' }, resultRows));
       const allShort = findings.every((f) => verdictView(worstResult(f.result)).key === 'short');
-      if (allShort) body.append(h('p', { class: 'strong' }, 'この人は、現在の条件では間に合いません。市や家族と話し合うための資料です。'));
+      if (allShort) body.append(h('p', { class: 'strong' }, 'この方は、現在の条件では間に合いません。市や家族と話し合うための資料です。'));
     }
 
     // 前提条件（聞き取りの中だけにある条件）

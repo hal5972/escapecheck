@@ -591,3 +591,35 @@ label.field-label-text { display: block; font-weight: 700; margin: 12px 0 6px; }
 .sheet-table td.src-cell { padding-top: 0; }
 .sheet-table td.src-cell:empty { display: none; }
 .sheet-table td.src-cell .chip { margin: 0; }
+
+/* --- 点検の概要・開閉する行・出典の札 ----------------------------------------- */
+
+.arrow { text-align: center; font-weight: 700; margin: 6px 0; }
+.count-row { display: flex; align-items: center; gap: 10px; padding: 2px 0; }
+.count-row .mark { flex: none; width: 1.4em; text-align: center; font-weight: 700; }
+.count-label { flex: 1; }
+.count-num { font-weight: 700; font-size: 1.3rem; min-width: 1.6em; text-align: right; }
+.count-short .count-num { color: var(--red-text); }
+.count-tight .count-num { color: var(--amber); }
+.count-ok .count-num { color: #0b4220; }
+.assumptions-block { margin: 10px 0 0; }
+.assumptions-block .btn-row { margin-bottom: 8px; font-weight: 700; }
+.phone-body[hidden] { display: none; }
+.person-bar .sub { margin: 0; }
+.tl-foot { margin: 6px 0 0; }
+
+/* 補助の文字は、本文と同じ 24px で、色を濃くする */
+.sub, .field-hint, .mode-note, .question-hint, .progress-pill { color: #2b323d; }
+
+/* 出典の札は、ボタンに見えないよう、角を小さくして「出典」の文字を付ける。押すのは、行の全体 */
+.field-row .chip { border-radius: 6px; }
+.field-row .chip::before { content: "出典: "; font-weight: 400; }
+
+/* 開閉する行: 右に矢印を付ける */
+.field-row, .btn-row[aria-expanded] { position: relative; }
+.field-row { padding-right: 48px; }
+.field-row::after { content: "▾"; position: absolute; right: 16px; top: 12px; font-size: 1.1rem; }
+.field-row[aria-expanded="true"]::after { content: "▴"; }
+.btn-row[aria-expanded] { padding-right: 48px; }
+.btn-row[aria-expanded]::after { content: "▾"; position: absolute; right: 16px; top: 50%; transform: translateY(-50%); }
+.btn-row[aria-expanded="true"]::after { content: "▴"; }

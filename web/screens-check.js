@@ -69,11 +69,34 @@
     return '';
   }
 
-  async function ensureFacts(rec) {
-    if (A.state.facts) return A.state.facts;
-    const f = await api.facts(rec.plan);
-    A.state.facts = f || { facts: null, shelters: [], sources: {} };
-    return A.state.facts;
+  /** 改善案を反映して計算し直した結果（コードが算出）の説明の文。数値は、結果の値だけを使う。 */
+  function afterSentence(result) {
+    const r = worstResult(result);
+    const v = verdictView(r);
+    const need = isNum(result.need_min) ? `${EC.u.ceilMin(result.need_min)}分` : null;
+    const avail = isNum(result.avail_min) ? `${floorMin(result.avail_min)}分` : null;
+    const head = '改善案を反映して、計算し直しました。';
+    const times = need && avail ? `避難にかかる時間は${need}、津波が来るまで${avail}で、` : '';
+    if (v.key === 'ok') return `${head}${times}間に合います${v.detail ? `（${v.detail}）` : ''}。`;
+    if (v.key === 'tight') return `${head}${times}余裕が少ない状態です${v.detail ? `（${v.detail}）` : ''}。`;
+    if (v.key === 'short') return `${head}${times}${v.detail ? `まだ${v.detail}です。` : 'まだ間に合いません。'}`;
+    return `${head}計算できませんでした。`;
+  }
+
+  /** 承認の直後に、サーバーが計算し直した結果（approve の results）を、点検の結果に反映する。 */
+  function applyResults(rec, prevFindings, results) {
+    rec.ui = rec.ui || {};
+    rec.ui.prevFindings = prevFindings;
+    rec.ui.afterText = rec.ui.afterText || {};
+    for (const f of rec.plan.findings || []) {
+      const next = results[f.scenario_id];
+      if (!next) continue;
+      const before = prevFindings.find((x) => x.finding_id === f.finding_id);
+      f.result = next;
+      if (!before || JSON.stringify(before.result) !== JSON.stringify(next)) rec.ui.afterText[f.finding_id] = afterSentence(next);
+    }
+    rec.versions = rec.versions || [];
+    rec.versions.push({ label: '改善後', at: new Date().toISOString(), plan: clone(rec.plan) });
   }
 
   // ---------------------------------------------------------------------------
@@ -94,13 +117,16 @@
     const premisesSlot = h('div', { class: 'premises-slot' });
     const introSlot = h('div', { class: 'intro-slot' });
     const cardsSlot = h('div', { class: 'cards' });
-    A.$main.append(h('h1', null, '点検'), introSlot, progressSlot, improvedSlot, summarySlot, premisesSlot, cardsSlot, factsSlot, A.noticeSafety());
+    A.$main.append(h('h1', null, `${A.personLabel(rec)}の点検`), introSlot, progressSlot, improvedSlot, summarySlot, cardsSlot, premisesSlot, factsSlot, A.noticeSafety());
 
-    const cards = new Map(); // finding_id → { el, setOpen }
+    const cards = new Map(); // finding_id → { el, setOpen, resultKey }
     let openCard = null;
     let revealToken = 0;
+    let viewPlan = rec.plan; // 画面に出している計画（点検の実行中は、サーバーから届いた途中の計画）
 
     // --- 結果の表示 -----------------------------------------------------------
+
+    const bodyText = (finding) => (rec.ui && rec.ui.afterText && rec.ui.afterText[finding.finding_id]) || explanationOf(viewPlan, finding, T);
 
     function prevResult(scenarioId) {
       const versions = rec.versions || [];
@@ -111,21 +137,33 @@
     }
 
     function assumptionsBlock(result) {
-      const ul = h('ul', { class: 'assumptions' });
+      const items = [];
       for (const id of result.assumptions || []) {
-        const info = ui.sourceInfo(rec.plan, id);
-        if (!info.source) continue;
-        ul.append(h('li', null, ui.chip(info), T(info.source.label)));
+        const info = ui.sourceInfo(viewPlan, id);
+        if (info.source) items.push(h('li', null, ui.chip(info), T(info.source.label)));
       }
-      if (!ul.firstChild) return null;
-      return h('div', null, h('p', { class: 'strong' }, '使った仮定と出典'), ul);
+      if (!items.length) return null;
+      const list = h('ul', { class: 'assumptions', hidden: true }, ...items);
+      const toggle = h('button', { type: 'button', class: 'btn-row', 'aria-expanded': 'false' }, `使った仮定と出典（${items.length}件）`);
+      toggle.addEventListener('click', () => {
+        const open = toggle.getAttribute('aria-expanded') === 'true';
+        toggle.setAttribute('aria-expanded', open ? 'false' : 'true');
+        list.hidden = open;
+      });
+      return h('div', { class: 'assumptions-block' }, toggle, list);
     }
 
     function buildBody(finding) {
       const result = finding.result;
       const wr = worstResult(result);
       const v = verdictView(wr);
-      const parts = [h('p', { class: 'explain' }, T(explanationOf(rec.plan, finding, T)))];
+      // 図（タイムライン）を先に出す。スマートフォンの 1 画面で、津波の線と不足が見えるように
+      const parts = [EC.timeline.render(result)];
+      parts.push(h('p', { class: 'explain' }, T(bodyText(finding))));
+      if (finding.scenario_id === 'S8') {
+        const premise = (viewPlan.premises || []).find((p) => p.code === finding.hole_type) || (viewPlan.premises || [])[0];
+        if (premise) parts.push(h('p', null, '話の中の言葉: ', h('span', { class: 'quote' }, `「${T(premise.quote)}」`)));
+      }
       if (finding.hole_type && L.HOLE_TYPES[finding.hole_type]) {
         parts.push(h('p', { class: 'sub' }, `問題点の種類: ${L.HOLE_TYPES[finding.hole_type]}`));
       }
@@ -134,17 +172,16 @@
         const bv = verdictView(worstResult(before));
         parts.push(h('p', { class: 'change-line' }, `前回: ${bv.mark} ${bv.text}　→　今回: ${v.mark} ${v.text}`));
       }
-      parts.push(EC.timeline.render(result));
       if (result.supporter_verdict) {
         const sv = verdictView({ verdict: result.supporter_verdict, margin_min: result.supporter_margin_min });
-        parts.push(h('p', { class: 'change-line' }, `避難支援者（${T((rec.plan.supporters[0] || {}).alias || '')}）: ${sv.mark} ${sv.text}`));
+        parts.push(h('p', { class: 'change-line' }, `避難支援者（${T(((viewPlan.supporters || [])[0] || {}).alias || '')}）: ${sv.mark} ${sv.text}`));
       }
-      const m = ui.scenarioMap(result, { plan: rec.plan, facts: A.state.facts, T });
+      const m = ui.scenarioMap(result, { plan: viewPlan, facts: A.state.facts, T });
       scope.onLeave(() => m.map.destroy());
       parts.push(m.el);
       const assumptions = assumptionsBlock(result);
       if (assumptions) parts.push(assumptions);
-      if (!fixesFor(rec.plan, finding).length && v.key !== 'ok') {
+      if (!fixesFor(viewPlan, finding).length && v.key !== 'ok') {
         parts.push(h('p', { class: 'strong' }, 'この問題点に使える改善案は、ありません。ご本人・ご家族・市と相談してください。'));
       }
       return parts;
@@ -155,7 +192,7 @@
       const v = verdictView(wr);
       const body = h('div', { class: 'scen-body', hidden: true });
       const head = h('button', { type: 'button', class: 'scen-head', 'aria-expanded': 'false' },
-        h('span', { class: 'scen-title' }, ui.scenarioTitle(rec.plan, finding)),
+        h('span', { class: 'scen-title' }, ui.scenarioTitle(viewPlan, finding)),
         ui.verdictBadge(wr));
       const el = h('article', { class: `scen scen-${v.key}${isNew ? ' is-new' : ''}`, dataset: { scenario: finding.scenario_id } }, head, body);
       const card = {
@@ -175,22 +212,41 @@
         if (willOpen && openCard && openCard !== card) openCard.setOpen(false);
         card.setOpen(willOpen);
         openCard = willOpen ? card : null;
-        if (willOpen) A.say(explanationOf(rec.plan, finding, T)); // 読み上げには、仮名のままの文を渡す（声の種類によって、本名に戻すかを決める）
+        if (willOpen) A.say(bodyText(finding)); // 読み上げには、仮名のままの文を渡す（声の種類によって、本名に戻すかを決める）
       });
       cards.set(finding.finding_id, card);
+      return card;
+    }
+
+    /** カードを加える。同じ問題点のカードが、違う結果で出ているときは、作り直す。 */
+    function addCard(finding, isNew) {
+      const key = JSON.stringify(finding.result);
+      const old = cards.get(finding.finding_id);
+      if (old && old.resultKey === key) return old;
+      const card = buildCard(finding, isNew);
+      card.resultKey = key;
+      if (old) {
+        old.el.replaceWith(card.el);
+        if (openCard === old) openCard = null;
+      } else {
+        cardsSlot.append(card.el);
+      }
       return card;
     }
 
     function summaryNode(findings) {
       const count = { short: 0, tight: 0, ok: 0, unknown: 0 };
       for (const f of findings) count[verdictView(worstResult(f.result)).key] += 1;
+      const row = (key, mark, label) => h('div', { class: `count-row count-${key}` },
+        h('span', { class: 'mark', 'aria-hidden': 'true' }, mark), h('span', { class: 'count-label' }, label), h('span', { class: 'count-num' }, String(count[key])));
       const box = h('div', { class: 'card summary-card' },
-        h('p', { class: 'strong' }, `点検したシナリオ: ${findings.length}つ`),
-        h('p', null, `× 間に合わない ${count.short}　△ 余裕が少ない ${count.tight}　○ 間に合う ${count.ok}`,
-          count.unknown ? `　？ 計算できない ${count.unknown}` : ''));
+        h('p', { class: 'strong' }, `点検したシナリオ（厳しい条件）: ${findings.length}つ`),
+        row('short', '×', '間に合わない'), row('tight', '△', '余裕が少ない'), row('ok', '○', '間に合う'),
+        count.unknown ? row('unknown', '？', '計算できない') : null,
+        h('p', { class: 'sub' }, '時間は、すべて、揺れてからの分です。'));
       if (findings.length && count.short === findings.length) {
         // E5: すべてのシナリオで間に合わない
-        box.append(h('p', { class: 'strong' }, 'この人は、現在の条件では間に合いません。'),
+        box.append(h('p', { class: 'strong' }, 'この方は、現在の条件では間に合いません。'),
           h('p', null, '市や家族と話し合うための資料として、どこで何分足りないかを印刷できます。'));
       }
       return box;
@@ -198,9 +254,9 @@
 
     function renderPremises() {
       clear(premisesSlot);
-      const list = rec.plan.premises || [];
+      const list = viewPlan.premises || [];
       if (!list.length) return;
-      premisesSlot.append(h('h2', null, '話の中にだけあった条件'),
+      premisesSlot.append(h('h2', null, '話の中にだけあった前提条件'),
         h('p', { class: 'sub' }, '様式の欄には書かれていない、聞き取りの中の話です。点検の前提に使いました。'));
       for (const p of list) {
         premisesSlot.append(h('div', { class: 'premise' },
@@ -222,64 +278,44 @@
       }
     }
 
-    async function showResults(animate) {
-      const findings = rec.plan.findings || [];
-      clear(cardsSlot);
-      clear(summarySlot);
-      clear(introSlot);
-      cards.clear();
-      openCard = null;
-      const token = ++revealToken;
-
-      await ensureFacts(rec);
-      if (!scope.alive || token !== revealToken) return;
+    /** 概要・前提条件・場所の事実を出す。結果がそろってから呼ぶ。 */
+    async function renderFixedParts() {
+      await A.ensureFacts(rec);
+      if (!scope.alive) return false;
       clear(factsSlot);
       factsSlot.append(ui.factsPanel(A.state.facts.facts));
       renderPremises();
+      clear(summarySlot);
+      const findings = rec.plan.findings || [];
+      if (findings.length) summarySlot.append(summaryNode(findings));
+      else summarySlot.append(h('div', { class: 'card' }, h('p', null, '問題点は見つかりませんでした。')));
+      return true;
+    }
 
-      if (!findings.length) {
-        summarySlot.append(h('div', { class: 'card' }, h('p', null, '問題点は見つかりませんでした。')));
-        setResultActions();
-        return;
-      }
-      summarySlot.append(summaryNode(findings));
-
-      const firstOpen = findings.find((f) => isImprovable(rec.plan, f)) || findings[0];
-      if (!animate) {
-        for (const f of findings) cards.get(f.finding_id) || cardsSlot.append(buildCard(f, false).el);
-        const c = cards.get(firstOpen.finding_id);
-        c.setOpen(true);
-        openCard = c;
-        setResultActions();
-        return;
-      }
-
-      // 1 枚ずつ表示し、読み上げる（U-03）。止めるボタンで、残りをすぐに表示する
-      A.setActions([{ id: 'wait', kind: 'primary', label: '結果を表示しています', disabled: true }]);
-      let skip = false;
-      const stopHandler = () => { skip = true; };
-      document.getElementById('btn-voice-stop').addEventListener('click', stopHandler);
-      scope.onLeave(() => document.getElementById('btn-voice-stop').removeEventListener('click', stopHandler));
-      for (let i = 0; i < findings.length; i++) {
-        if (!scope.alive || token !== revealToken) return;
-        const f = findings[i];
-        const card = buildCard(f, true);
-        cardsSlot.append(card.el);
-        if (i === 0) { card.setOpen(true); openCard = card; }
-        if (card.el.scrollIntoView) card.el.scrollIntoView({ block: 'nearest', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
-        if (!skip) {
-          await Promise.race([A.say(shortSpeech(rec.plan, f)), sleep(6000)]);
-          if (!skip) await sleep(250);
-        }
-      }
-      if (!scope.alive || token !== revealToken) return;
-      const first = cards.get(firstOpen.finding_id);
-      if (first && openCard !== first) {
+    /** いちばん先に見せるカード（改善できる問題点の先頭。無ければ最初）を開き、下のボタンを出す。 */
+    function finishResults() {
+      const findings = rec.plan.findings || [];
+      const target = findings.find((f) => isImprovable(rec.plan, f)) || findings[0];
+      const card = target && cards.get(target.finding_id);
+      if (card && openCard !== card) {
         if (openCard) openCard.setOpen(false);
-        first.setOpen(true);
-        openCard = first;
+        card.setOpen(true);
+        openCard = card;
       }
       setResultActions();
+    }
+
+    /** 保存ずみの結果や、改善のあとの結果を、すぐに全部表示する。 */
+    async function showResults() {
+      const token = ++revealToken;
+      clear(cardsSlot);
+      clear(introSlot);
+      cards.clear();
+      openCard = null;
+      viewPlan = rec.plan;
+      for (const f of rec.plan.findings || []) if (f.result) addCard(f, false);
+      if (!(await renderFixedParts()) || token !== revealToken) return;
+      finishResults();
     }
 
     // --- 改善の結果（前 → 後） ---------------------------------------------------
@@ -328,13 +364,46 @@
       clear(introSlot);
       cards.clear();
       openCard = null;
-      revealToken += 1;
+      const token = ++revealToken;
       const prevFindings = clone(rec.plan.findings || []);
+      viewPlan = rec.plan;
       A.setActions([{ id: 'run', kind: 'primary', label: '点検しています', disabled: true }]);
       const box = A.statusBox(recheck ? 'もう一度、点検しています' : '点検の準備をしています');
       const log = h('ul', { class: 'event-log' });
       progressSlot.append(box, log);
       A.announce(box.textContent);
+
+      // 結果は、届いたものから 1 枚ずつ出し、読み上げる（U-03）。止めるボタンで、残りをすぐに表示する
+      const queue = [];
+      const queued = new Set();
+      let draining = null;
+      let skip = false;
+      const stopButton = document.getElementById('btn-voice-stop');
+      const onStop = () => { skip = true; };
+      stopButton.addEventListener('click', onStop);
+      scope.onLeave(() => stopButton.removeEventListener('click', onStop));
+      const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      const drain = async () => {
+        while (queue.length && scope.alive && token === revealToken) {
+          const f = queue.shift();
+          const card = addCard(f, true);
+          if (cards.size === 1) { card.setOpen(true); openCard = card; }
+          if (card.el.scrollIntoView) card.el.scrollIntoView({ block: 'nearest', behavior: reduceMotion ? 'auto' : 'smooth' });
+          if (!skip) {
+            await Promise.race([A.say(shortSpeech(viewPlan, f)), sleep(6000)]);
+            if (!skip) await sleep(250);
+          }
+        }
+      };
+      const enqueue = (list) => {
+        for (const f of list || []) {
+          if (!f || !f.finding_id || !f.result || !f.result.verdict || queued.has(f.finding_id)) continue;
+          queued.add(f.finding_id);
+          queue.push(f);
+        }
+        if (queue.length && !draining) draining = drain().finally(() => { draining = null; });
+      };
 
       let jobId;
       try {
@@ -346,7 +415,7 @@
       let seen = 0;
       let lastProgress = Date.now();
       for (;;) {
-        if (!scope.alive) return;
+        if (!scope.alive || token !== revealToken) return;
         let job;
         try {
           job = await api.getJob(jobId);
@@ -354,7 +423,7 @@
           if (scope.alive) fail(e, () => runCheck(recheck));
           return;
         }
-        if (!scope.alive) return;
+        if (!scope.alive || token !== revealToken) return;
         if (job.events && job.events.length > seen) {
           for (const ev of job.events.slice(seen)) log.append(h('li', null, ev));
           seen = job.events.length;
@@ -362,18 +431,29 @@
           const latest = job.events[seen - 1];
           box.update(latest);
           A.announce(latest);
-          if (!S.isSpeaking()) A.say(latest);
+          if (!S.isSpeaking() && !draining && cards.size === 0) A.say(latest);
+        }
+        if (job.plan) {
+          // 実行中でも、サーバーの計画に結果が入っていれば、すぐに出す
+          viewPlan = A.mergeGeometry(job.plan, rec.plan);
+          if (job.state !== 'failed') enqueue(viewPlan.findings);
         }
         if (job.state === 'done' && job.plan) {
-          rec.plan = A.mergeGeometry(job.plan, rec.plan);
+          rec.plan = viewPlan;
+          rec.ui = rec.ui || {};
+          rec.ui.afterText = {}; // 新しい点検の説明を使う
           rec.versions = rec.versions || [];
           rec.versions.push({ label: recheck ? '改善後' : '点検', at: new Date().toISOString(), plan: clone(rec.plan) });
           A.save();
           clear(progressSlot);
-          S.cancel();
           if (recheck) showImprovement(prevFindings);
-          await showResults(!recheck);
-          if (recheck && scope.alive) A.$main.scrollTop = 0;
+          enqueue(rec.plan.findings);
+          if (draining) await draining;
+          if (!scope.alive || token !== revealToken) return;
+          for (const f of rec.plan.findings || []) if (f.result) addCard(f, false); // 実行中のものと違う結果は、作り直す
+          if (!(await renderFixedParts()) || token !== revealToken) return;
+          finishResults();
+          if (recheck) A.$main.scrollTop = 0;
           return;
         }
         if (job.state === 'failed') {
@@ -392,11 +472,16 @@
 
     scope.onLeave(() => { revealToken += 1; });
 
-    if (params.recheck === '1') {
+    if (params.improved === '1') {
+      // 改善案を承認した直後: サーバーが計算し直した結果を、すぐに出す
+      window.history.replaceState(null, '', '#/check');
+      showImprovement((rec.ui && rec.ui.prevFindings) || []);
+      showResults().then(() => { if (scope.alive) A.$main.scrollTop = 0; });
+    } else if (params.recheck === '1') {
       window.history.replaceState(null, '', '#/check');
       runCheck(true);
     } else if ((rec.plan.findings || []).length) {
-      showResults(false);
+      showResults();
     } else {
       introSlot.append(
         h('p', { class: 'lead' }, '津波が来る前に避難できるかを、厳しい条件で確かめます。'),
@@ -425,10 +510,10 @@
     let index = 0;
     let busy = false;
     const body = h('div', { class: 'fix-body' });
-    A.$main.append(h('h1', null, '改善案'), body, A.noticeSafety());
+    A.$main.append(h('h1', null, `${A.personLabel(rec)}の改善案`), body, A.noticeSafety());
 
     async function renderFix() {
-      const facts = await ensureFacts(rec);
+      const facts = await A.ensureFacts(rec);
       if (!scope.alive) return;
       clear(body);
       const fix = fixes[index];
@@ -451,20 +536,17 @@
 
       body.append(
         h('div', { class: 'fix-card' },
-          h('p', { class: 'fix-count' }, `案 ${index + 1}／${fixes.length}`),
+          h('p', { class: 'fix-count' }, `案 ${index + 1}／${fixes.length}${isNum(fix.saved_min) ? `　${floorMin(fix.saved_min)}分、短くなります` : ''}`),
           h('p', { class: 'fix-title' }, title),
           h('p', { class: 'explain' }, T(fixExplanation(plan, fix, name))),
-          isNum(fix.saved_min) ? h('p', { class: 'saved-line' }, `${floorMin(fix.saved_min)}分、短くなります`) : null,
-          h('p', { class: 'strong' }, 'この案にすると'),
+          h('p', { class: 'sub' }, `いまの点検の結果: ${ui.scenarioTitle(plan, finding)}`),
+          ui.verdictBadge(wr),
+          h('p', { class: 'arrow' }, '↓ この案にすると'),
           ui.verdictBadge(worstResult(fix.result))),
-        h('div', { class: 'card' },
-          h('p', { class: 'strong' }, '直したい点検の結果'),
-          h('p', null, ui.scenarioTitle(plan, finding)),
-          ui.verdictBadge(wr)),
-        h('h2', null, 'いまと、この案の比べ方'),
+        h('h2', null, 'いまと、この案を比べる'),
         h('div', { class: 'compare' },
           EC.timeline.render(finding.result, { scale, title: 'いま' }),
-          EC.timeline.render(fix.result, { scale, title: 'この案にすると' })),
+          EC.timeline.render(fix.result, { scale, title: 'この案にすると', footnote: false })),
         h('h2', null, '地図'),
         m.el,
         h('div', { class: 'notice' }, h('p', null, '選ぶのは、民生委員と本人です。AI は決めません。選ぶまで、計画は変わりません。')));
@@ -487,11 +569,19 @@
       const box = A.statusBox('計画を変更しています');
       body.prepend(box);
       try {
-        const next = await api.approve(rec.plan, fixes[index].fix_id, 'minsei');
+        const prevFindings = clone(rec.plan.findings || []);
+        const res = await api.approve(rec.plan, fixes[index].fix_id, 'minsei');
         if (!scope.alive) return;
-        rec.plan = A.mergeGeometry(next, rec.plan);
-        A.save();
-        A.go('check', { recheck: '1' });
+        rec.plan = A.mergeGeometry(res.plan, rec.plan);
+        if (res.results) {
+          // サーバーが、承認の直後にコードで計算し直した結果。すぐに点検の画面へ出す（もう一度、Claude に点検させない）
+          applyResults(rec, prevFindings, res.results);
+          A.save();
+          A.go('check', { improved: '1' });
+        } else {
+          A.save();
+          A.go('check', { recheck: '1' });
+        }
       } catch (e) {
         if (!scope.alive) return;
         busy = false;

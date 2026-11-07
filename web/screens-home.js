@@ -85,7 +85,7 @@
   A.register('home', () => {
     A.setBack(null);
     A.$main.append(
-      h('h1', null, 'ホーム'),
+      h('h1', null, '逃げ道の点検屋'),
       h('p', { class: 'lead' }, '下の大きなボタンから、選んでください。'),
       A.noticePrivacy());
 
@@ -129,7 +129,7 @@
 
     A.setActions([
       { label: 'サンプルデータで試す', kind: 'primary', id: 'samples', onClick: () => A.go('samples') },
-      { label: '新しい人', id: 'new', onClick: () => A.go('new') },
+      { label: '新しい方', id: 'new', onClick: () => A.go('new') },
     ]);
   });
 
@@ -207,11 +207,13 @@
     const personInput = h('input', { class: 'input', id: 'name-person', type: 'text', autocomplete: 'off', placeholder: '例: 山田' });
     const supporterInput = h('input', { class: 'input', id: 'name-supporter', type: 'text', autocomplete: 'off', placeholder: '例: 西村（なくてもよい）' });
     const factsSlot = h('div', { class: 'facts-slot' });
+    const pickHint = h('p', { class: 'strong', id: 'pick-hint' }, '地図をさわると、下の「ここに決める」を押せるようになります。');
 
     const map = EC.map.create({
       interactive: true, height: 340, center: DEFAULT_CENTER, zoom: 16, label: '自宅の場所を決める地図',
       onTap(point) {
         pick = point;
+        pickHint.hidden = true;
         map.setShapes([{ t: 'marker', kind: 'home', at: point, label: '自宅', pos: 'r' }]);
         enable();
         loadFacts(point);
@@ -230,11 +232,11 @@
     };
 
     A.$main.append(
-      h('h1', null, '新しい人'),
+      h('h1', null, '新しい方'),
       h('p', null, '地図をさわって、自宅の場所を決めてください。指でなぞると、地図が動きます。'),
-      map.el, map.credit, factsSlot,
+      map.el, map.credit, pickHint, factsSlot,
       h('h2', null, 'お名前（なくてもよい）'),
-      h('p', { class: 'sub' }, '実在の人の名前は入れないでください。この端末にだけ保存します。サーバーと Claude には、仮名（Aさん）で送ります。'),
+      h('p', { class: 'sub' }, 'デモ用の架空の名前を入れてください。実在の人の名前は入れないでください。この端末にだけ保存し、サーバーと AI（Claude）には、仮名（Aさん）で送ります。'),
       h('label', { class: 'field-label-text', for: 'name-person' }, '本人（苗字だけ）'),
       personInput,
       h('label', { class: 'field-label-text', for: 'name-supporter' }, '避難支援者（苗字だけ）'),

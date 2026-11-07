@@ -38,6 +38,10 @@
     let lastChanged = new Set();
     let retryText = null;
     let lastText = '';
+    // 前に話した内容があれば、文字起こしの欄に、薄く出しておく
+    const spoken = Object.values(rec.plan.sources || {}).filter((src) => src.kind === 'utterance' && src.text);
+    spoken.sort((a, b) => String(a.at || '').localeCompare(String(b.at || '')));
+    if (spoken.length) lastText = `前に話した内容: ${T(spoken[spoken.length - 1].text)}`;
 
     const typedMode = () => !S.sttSupported || forceText;
     const currentQuestion = () => (rec.nextQuestion !== undefined ? rec.nextQuestion : (rec.stage === 'start' ? rec.initialQuestion : null));
@@ -46,10 +50,11 @@
 
     const person = (rec.names || []).find((n) => n.role === 'person');
     const personBar = h('div', { class: 'person-bar' },
-      h('span', { class: 'person-name' }, `${(person && person.call) || rec.title || rec.plan.alias}${rec.sample ? '（デモ用の架空の人物）' : ''}`),
+      h('span', { class: 'person-name' }, (person && person.call) || rec.title || rec.plan.alias),
+      rec.sample ? h('span', { class: 'sub' }, 'デモ用の架空の人物') : null,
       h('span', { class: 'progress-pill', id: 'progress' }));
 
-    const questionTag = h('span', { class: 'question-tag' }, 'つぎの質問');
+    const questionTag = h('span', { class: 'question-tag' }, '最初の質問');
     const questionText = h('span', { class: 'question-text' });
     const question = h('button', { type: 'button', class: 'question-box', 'aria-describedby': 'question-hint', onclick: () => say() },
       questionTag, questionText, h('span', { class: 'question-hint', id: 'question-hint' }, 'さわると、もう一度読みます'));
@@ -66,13 +71,24 @@
       h('span', { class: 'switch-box', 'aria-hidden': 'true' }),
       h('span', null, '続けて聞く（質問を読んだあと、自動で聞き取ります）'),
       h('span', { class: 'switch-state' }, continuous ? '入' : '切'));
+    // 電話で聞き取るときの設定（続けて聞く）は、ふだんは閉じておく
+    const phoneBody = h('div', { class: 'phone-body', hidden: !continuous },
+      switchRow,
+      h('p', { class: 'sub' }, '電話では、スピーカーにして使います。質問を読み上げたあと、答えを自動で聞き取ります。'));
+    const phoneToggle = h('button', { type: 'button', class: 'btn-row', 'aria-expanded': String(continuous) }, '電話で聞き取るときの設定');
+    phoneToggle.addEventListener('click', () => {
+      const open = phoneToggle.getAttribute('aria-expanded') === 'true';
+      phoneToggle.setAttribute('aria-expanded', open ? 'false' : 'true');
+      phoneBody.hidden = open;
+    });
+    const phoneSettings = h('div', { class: 'phone-settings' }, phoneToggle, phoneBody);
     const premisesSlot = h('div', { class: 'premises-slot' });
     const fieldsList = h('div', { class: 'fields-list' });
     const examplesSlot = h('div', { class: 'examples-slot' });
 
     A.$main.append(
       personBar, statusSlot, question, transcript, typedWrap, modeNote,
-      S.sttSupported ? switchRow : null,
+      S.sttSupported ? phoneSettings : null,
       premisesSlot,
       h('div', { class: 'fields-head' }, h('h2', null, '計画の欄')),
       fieldsList, examplesSlot, A.noticeSafety());
@@ -81,7 +97,8 @@
 
     function renderQuestion() {
       const q = currentQuestion();
-      questionTag.textContent = q ? 'つぎの質問' : '聞き取りの状況';
+      const anyFilled = Object.values(rec.plan.fields || {}).some((f) => ui.isFilled(f));
+      questionTag.textContent = q ? (anyFilled ? '追加の質問' : '最初の質問') : '聞き取りの状況';
       questionText.textContent = q ? T(q) : DONE_TEXT;
     }
 
@@ -89,7 +106,7 @@
       clear(transcript);
       transcript.classList.toggle('is-live', Boolean(listening));
       if (!finalText && !interim) {
-        transcript.append(h('span', { class: 'placeholder' }, lastText || 'ここに、お話が文字で出ます'));
+        transcript.append(h('span', { class: 'placeholder' }, lastText || 'ここに、文字起こし（話した内容の文字）が出ます'));
         return;
       }
       transcript.append(finalText, interim ? h('span', { class: 'interim' }, interim) : null);
@@ -121,7 +138,7 @@
         const btn = h('button', { type: 'button', class: 'field-row', 'aria-expanded': 'false' },
           h('span', { class: 'field-title' }, '自宅の場所'),
           h('span', { class: 'field-value' }, '地図で決めた位置'),
-          h('span', { class: 'field-hint' }, '住所の文字は保存せず、Claude にも送りません。'),
+          h('span', { class: 'field-hint' }, '住所の文字は保存せず、AI（Claude）にも送りません。'),
           ui.chip(ui.sourceInfo(plan, 'src_home')));
         btn.addEventListener('click', () => {
           const open = btn.getAttribute('aria-expanded') === 'true';
