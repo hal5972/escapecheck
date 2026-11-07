@@ -3,7 +3,7 @@
   "entries": [
     { "ago_sec": 900, "agent": "interview", "tool": "plan.set_fields", "decision": "deny", "args": { "field": "hearing_and_sight" }, "reason": "引用が発言の原文にありません: 「耳がよく聞こえない」。本人の話は、原文にある言葉のまま引用してください" },
     { "ago_sec": 896, "agent": "interview", "tool": "plan.set_fields", "decision": "result", "args": { "field": "hearing_and_sight" }, "reason": "" },
-    { "ago_sec": 640, "agent": "interview", "tool": "plan.set_fields", "decision": "deny", "args": { "field": "mobility" }, "reason": "出典の ID がありません: mobility" },
+    { "ago_sec": 640, "agent": "interview", "tool": "plan.set_fields", "decision": "deny", "args": { "field": "mobility" }, "reason": "出典 ID がありません: mobility" },
     { "ago_sec": 636, "agent": "interview", "tool": "plan.set_fields", "decision": "result", "args": { "field": "mobility" }, "reason": "" },
     { "ago_sec": 300, "agent": "redteam", "tool": "plan.add_finding", "decision": "deny", "args": { "scenario_id": "S1" }, "reason": "説明文に数値が直接書かれています（33分）。数値は {need_min} などのプレースホルダーで書いてください" },
     { "ago_sec": 296, "agent": "redteam", "tool": "plan.add_finding", "decision": "result", "args": { "scenario_id": "S1" }, "reason": "" },

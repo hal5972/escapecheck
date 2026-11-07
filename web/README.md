@@ -78,7 +78,7 @@
 | `POST /api/verify` | `{ plan }` | `{ issues, plan }`（`issues` だけ、または配列でもよい）。`chk_short_◯` の項目は、点検のカードごとの「相談する」の確認（`issue_id` が `consult_<finding_id>`）で扱う |
 | `POST /api/finalize` | `{ plan }` | `{ ok, reasons, plan }`（サーバーが提供する）。サーバーに無い（404・405・501）ときは、未解決の項目が残っていないかを画面で確認する |
 | `POST /api/facts` | `{ plan, target: "home" }` | `{ facts, shelters, sources }`（計画（座標を含む）を送るため POST）。失敗したときは、地図は点と線だけにする |
-| `GET /api/audit?plan_id=` | | `{ entries: [{ at, agent, tool, decision, args, result, reason }] }`。「記録」の画面に、フックが止めた書き込み（`decision` が `deny`）を、時刻・エージェント・理由で出す。`agent` は interview・redteam・verify・server。サーバーが無いときは、サンプルの記録（`mock/audit.json`） |
+| `GET /api/audit?plan_id=` | | `{ entries: [{ at, agent, tool, decision, args, result, reason }] }`。「記録」の画面に、コードが止めたものを、時刻・エージェント・理由で出す。`decision` は、`deny`（フックが止めた）・`result`（通した）・`error`・`info`。`error` で理由があるもの（計算のコードが危険な改善案を断った）も、止めたものに入れる。`args` と `result` は、短くした JSON の文字（途中で切れていることがある）。`agent` は interview・redteam・verify・server。サーバーが無いときは、サンプルの記録（`mock/audit.json`） |
 | `GET /api/samples`、`GET /api/samples/{id}` | | サンプルデータ（架空の人物）。`{ case_id, title, alias, area_label, home, talk[], form{}, supporters[] }` の形（A の `data/samples/`）。画面は、これから計画を作る（「話す手順から」は、`talk` を話す内容の例にする。「途中から」は、`form` を欄に入れ、`talk` を出典にする）。無いときは `mock/` の JSON |
 
 画面が前提にしている計画の形:

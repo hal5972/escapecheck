@@ -129,7 +129,10 @@
       summarySlot.append(h('div', { class: 'card' },
         h('p', { class: 'strong' }, `コードが止めたもの: ${denies.length}件`),
         h('p', { class: 'sub' }, `記録の全体: ${entries.length}件`)));
-      const shown = (showAll ? entries : denies).slice().reverse(); // 新しい順
+      // 新しい順。同じ秒の記録は、あとから書かれたものを先に出す
+      const shown = (showAll ? entries : denies).map((e, i) => ({ e, i }))
+        .sort((a, b) => ((Date.parse(b.e.at) || 0) - (Date.parse(a.e.at) || 0)) || (b.i - a.i))
+        .map((x) => x.e);
       if (!shown.length) listSlot.append(h('p', null, showAll ? 'まだ記録がありません。' : '止めたものは、まだありません。AI が出した書き込みや改善案は、コードの確認をすべて通りました。'));
       for (const e of shown) listSlot.append(entryNode(e, T));
     }

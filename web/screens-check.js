@@ -84,7 +84,7 @@
     return `${head}計算できませんでした。`;
   }
 
-  /** 結果の、画面に出る内容（判定・時間・避難先・区間の分）だけを比べるための文字。出典の ID の違いは、変わったことにしない。 */
+  /** 結果の、画面に出る内容（判定・時間・避難先・区間の分）だけを比べるための文字。出典 ID の違いは、変わったことにしない。 */
   function resultSignature(r) {
     if (!r) return '';
     return JSON.stringify([r.verdict, r.need_min, r.avail_min, r.margin_min, r.supporter_verdict, r.supporter_margin_min, r.shelter_id,
@@ -504,7 +504,7 @@
       showResults();
     } else {
       introSlot.append(
-        h('p', { class: 'lead' }, '津波が来る前に避難できるかを、厳しい条件で確かめます。'),
+        h('p', { class: 'lead' }, '津波が来る前に避難できるかを、厳しい条件で点検します。'),
         h('p', null, 'たとえば、冬の深夜、家族がいない昼、道がふさがったとき、避難支援者が来られないときです。'),
         h('p', { class: 'sub' }, '数値は、プログラムのコードが計算します。AI は計算しません。'));
       A.setActions([{ id: 'run', kind: 'primary', label: '点検する', onClick: () => runCheck(false) }]);
