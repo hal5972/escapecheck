@@ -49,12 +49,17 @@ def _sum_breakdown(result: pm.ScenarioResult, key: str) -> float | None:
 
 
 def shelter_text(plan: pm.Plan) -> str | None:
-    """計画の避難先の欄の名前（{"text": ...} の形にも、文字列にも対応する）。"""
+    """計算に使われた避難先の名前。
+
+    避難先の欄が、データの避難先（shelter_id）と結び付いているときだけ返す。結び付いていないと、
+    計算（sim）は別の避難先（近い避難場所の仮定など）を使うことがあり、話した名前を出すと計算と食い違うため None にする。
+    """
     field = plan.get("fields", {}).get("shelter") or {}
     value = field.get("value")
-    if isinstance(value, dict):
-        value = value.get("text")
-    return value if isinstance(value, str) and value.strip() else None
+    if not isinstance(value, dict) or not value.get("shelter_id"):
+        return None
+    text = value.get("text")
+    return text if isinstance(text, str) and text.strip() else None
 
 
 def placeholder_values(

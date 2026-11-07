@@ -54,8 +54,9 @@ MAX_VALUE_CHARS = 300
 MAX_EXPLANATION_CHARS = 400
 MAX_FIXES_PER_FINDING = 3
 
-#: Skills を読む組み込みツールだけは許可する（X-02。ほかの組み込みツールはオプションでも外している）
-ALLOWED_BUILTIN_TOOLS = frozenset({"Skill"})
+#: 許可する組み込みツール: Skills を読む Skill と、構造化出力を返す StructuredOutput だけ
+#: （X-02。ほかの組み込みツールはオプションでも外している）
+ALLOWED_BUILTIN_TOOLS = frozenset({"Skill", "StructuredOutput"})
 
 # ---------------------------------------------------------------------------
 # 数値と引用の照合
@@ -317,6 +318,8 @@ def _placeholder_hints(missing: list[str], values: dict[str, str | None]) -> str
         hints.append("避難支援者は間に合うので {supporter_margin_min} を使ってください")
     if "supporter_margin_min" in missing and values.get("supporter_shortage_min") is not None:
         hints.append("避難支援者は間に合わないので {supporter_shortage_min} を使ってください")
+    if "shelter_name" in missing:
+        hints.append("計画の避難先がデータの避難先と結び付いていないため、{shelter_name} は使えません。「避難先」と書いてください")
     return "。".join(hints)
 
 

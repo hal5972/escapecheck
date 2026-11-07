@@ -29,6 +29,8 @@ class PlanSession:
     known_shelters: dict[str, pm.Shelter] = field(default_factory=dict)
     #: sim.run_scenario の直近の結果（scenario_id → ScenarioResult）
     last_results: dict[str, pm.ScenarioResult] = field(default_factory=dict)
+    #: 処理中に起きたこと（"tools_not_ready" など）。orchestrator が利用者向けの文に変える
+    flags: set[str] = field(default_factory=set)
 
     @property
     def plan_id(self) -> str:
