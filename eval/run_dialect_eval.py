@@ -120,6 +120,10 @@ def run_variant(name: str, cases: list[dict]) -> dict:
             runs.clear()
     finally:
         restore()
+    return summarize_variant(name, model, skills, rows)
+
+
+def summarize_variant(name: str, model: str, skills: list[str], rows: list[dict]) -> dict:
     checks = [c for r in rows for c in r["checks"]]
     costs = [r["cost_usd"] for r in rows if r["cost_usd"] is not None]
     return {
@@ -133,6 +137,22 @@ def run_variant(name: str, cases: list[dict]) -> dict:
     }
 
 
+def rescore(recorded: dict, cases: list[dict]) -> list[dict]:
+    """記録した実行の値を、今の正解の規則で判定し直す（Claude は呼び出さない。判定の誤りを直したとき用）。"""
+    by_id = {c["case_id"]: c for c in cases}
+    results = []
+    for result in recorded["results"]:
+        rows = []
+        for row in result["rows"]:
+            fields = {}
+            for check in row["checks"]:
+                value = check.get("value")
+                fields[check["field"]] = {"value": value, "status": "filled" if value is not None else "unconfirmed"}
+            rows.append({**row, "checks": score_case(by_id[row["case_id"]], fields)})
+        results.append(summarize_variant(result["variant"], result["model"], result["skills"], rows))
+    return results
+
+
 def main() -> int:
     for stream in (sys.stdout, sys.stderr):
         stream.reconfigure(encoding="utf-8")
@@ -141,19 +161,25 @@ def main() -> int:
     parser.add_argument("--variants", default=",".join(VARIANTS), help="例: sonnet+tosa,haiku")
     parser.add_argument("--cases", default=None, help="例: d01,d02")
     parser.add_argument("--real-tools", action="store_true", help="計算を tools/ の実装で行う（既定はテスト用の仮の値）")
+    parser.add_argument("--rescore", default=None, help="記録した実行（eval/runs/ の JSON）を、今の規則で判定し直す")
     args = parser.parse_args()
-    if not args.real_tools:
-        os.environ["ESCAPECHECK_STUB_TOOLS"] = "1"
-    from app import agents
-
-    agents.scrub_host_env()
 
     data = json.loads(CASES_PATH.read_text(encoding="utf-8"))
     cases = data["cases"]
     if args.cases:
         wanted = set(args.cases.split(","))
         cases = [c for c in cases if c["case_id"] in wanted]
-    results = [run_variant(name, cases) for name in args.variants.split(",")]
+    if args.rescore:
+        recorded = json.loads(Path(args.rescore).read_text(encoding="utf-8"))
+        results = rescore(recorded, data["cases"])
+        args.label = f"{recorded.get('label', 'v')}-rescored"
+    else:
+        if not args.real_tools:
+            os.environ["ESCAPECHECK_STUB_TOOLS"] = "1"
+        from app import agents
+
+        agents.scrub_host_env()
+        results = [run_variant(name, cases) for name in args.variants.split(",")]
 
     print(f"# 土佐弁の聞き取りの評価: label={args.label}（{len(cases)}件、{data['status'][:20]}…）")
     print("| 聞き取りエージェントのモデル | 土佐弁の Skill | 欄の正答率 | 推測で記入した欄 | 1件あたりの時間 | 1件あたりの費用 | 失敗 |")

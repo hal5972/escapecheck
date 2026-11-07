@@ -24,6 +24,23 @@ class CheckFieldTest(unittest.TestCase):
         self.assertFalse(dialect.check_field(filled("よく聞こえる"), rule)[0])  # 「よう聞かん」の取り違え
         self.assertFalse(dialect.check_field(filled("問題なし"), rule)[0])
 
+    def test_dataset_none_words_do_not_reject_correct_negations(self):
+        # 判定の誤りの再発防止: 「よく聞こえない」「よく見えない」は正しい答え（none の語に含まれてはいけない）
+        data = json.loads((ROOT / "eval" / "dialect_cases" / "dialect_cases.json").read_text(encoding="utf-8"))
+        rules = {c["case_id"]: c["expect"]["hearing_and_sight"] for c in data["cases"] if c["case_id"] in ("d02", "d10")}
+        self.assertTrue(dialect.check_field(filled("耳が遠く、防災無線はよく聞こえない"), rules["d02"])[0])
+        self.assertFalse(dialect.check_field(filled("耳はよく聞こえる"), rules["d02"])[0])
+        self.assertTrue(dialect.check_field(filled("目がよく見えない"), rules["d10"])[0])
+        self.assertFalse(dialect.check_field(filled("目はよく見える"), rules["d10"])[0])
+
+    def test_rescore_uses_recorded_values(self):
+        cases = [{"case_id": "x1", "expect": {"sleep_place": {"any": ["2階"]}}, "unfilled": ["walk_speed"]}]
+        recorded = {"results": [{"variant": "v", "model": "m", "skills": [], "rows": [
+            {"case_id": "x1", "seconds": 1.0, "error": None, "cost_usd": 0.01, "checks": [
+                {"field": "sleep_place", "value": "2階で寝ている"}, {"field": "walk_speed", "value": None}]}]}]}
+        result = dialect.rescore(recorded, cases)[0]
+        self.assertEqual(result["correct"], "2/2")
+
     def test_numbers(self):
         rule = {"meters": 100, "minutes": 5}
         self.assertTrue(dialect.check_field(filled({"text": "100mに5分", "meters": 100, "minutes": 5}), rule)[0])
