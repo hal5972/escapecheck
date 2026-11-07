@@ -3,7 +3,8 @@
  * 代わりの API（mock-api.js）で動く。画面は、どちらで動いているかを意識しない。
  *
  *   POST /api/login      { passphrase }                       → { token }
- *   POST /api/interview  { plan, utterance, speaker }         → { plan, next_question, changed_fields }
+ *   POST /api/interview  { plan, utterance, speaker, asked_field? } → { plan, next_question, changed_fields, next_field }
+ *                        asked_field には、前の応答の next_field を送る（答えが得られなかった欄を、同じ質問で繰り返さない）
  *   POST /api/check      { plan }                             → { job_id }
  *   GET  /api/jobs/{id}                                       → { job_id, state, events, plan, error }
  *   POST /api/approve    { plan, fix_id, by }                 → { plan, results }   （results: 承認の直後にコードが計算し直した結果）
@@ -11,6 +12,7 @@
  *   POST /api/finalize   { plan }                             → { ok, reasons, plan }   （サーバーに無いときは画面で確認する）
  *   POST /api/facts      { plan, target }                     → { facts, shelters, sources }
  *   GET  /api/samples, /api/samples/{id}                      → サンプルデータ（架空の人物）
+ *   GET  /api/audit?plan_id=                                  → { entries: [{ at, agent, tool, decision, args, result, reason }] }（フックの拒否の記録）
  *
  * 計画（plan）には自宅などの座標が入るが、本名と電話番号は入れない（画面の端末だけが持つ）。
  * 利用者に見せるエラーの文には、キーや内部の情報を含めない（利用者向けの短い文だけを使う）。
@@ -114,9 +116,19 @@
 
   const useMock = () => mode === 'mock';
 
-  async function interview(plan, utterance, speaker) {
+  /** askedField: 前の応答の next_field。送ると、答えが得られなかった欄を、同じ質問で繰り返さない（E2）。 */
+  async function interview(plan, utterance, speaker, askedField) {
     if (useMock()) return EC.mock.api.interview(plan, utterance, speaker);
-    return call('POST', 'api/interview', { plan, utterance, speaker: speaker || 'minsei' }, 60000);
+    const body = { plan, utterance, speaker: speaker || 'minsei' };
+    if (askedField) body.asked_field = askedField;
+    return call('POST', 'api/interview', body, 60000);
+  }
+
+  /** 監査ログ（エージェントが計画に書き込もうとして、フックが止めた記録など）。 */
+  async function audit(planId) {
+    if (useMock()) return EC.mock.api.audit(planId);
+    const data = await call('GET', `api/audit?plan_id=${encodeURIComponent(planId)}`, undefined, 15000);
+    return data && Array.isArray(data.entries) ? data.entries : [];
   }
 
   async function startCheck(plan) {
@@ -197,6 +209,7 @@
     login,
     resume,
     interview,
+    audit,
     startCheck,
     getJob,
     approve,

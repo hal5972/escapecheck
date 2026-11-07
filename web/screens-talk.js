@@ -91,7 +91,7 @@
       S.sttSupported ? phoneSettings : null,
       premisesSlot,
       h('div', { class: 'fields-head' }, h('h2', null, '計画の欄')),
-      fieldsList, examplesSlot, A.noticeSafety());
+      fieldsList, examplesSlot, A.auditLink('talk'), A.noticeSafety());
 
     // --- 表示の更新 -----------------------------------------------------------
 
@@ -259,9 +259,10 @@
       const before = snapshot(rec.plan);
       try {
         const pseudo = pseudonymize(text, rec.names);
-        const res = await api.interview(rec.plan, pseudo, 'minsei');
+        const res = await api.interview(rec.plan, pseudo, 'minsei', rec.askedField);
         if (!scope.alive) return;
         rec.plan = A.mergeGeometry(res.plan, rec.plan);
+        rec.askedField = res.next_field || null; // 次の応答で asked_field として送る
         rec.nextQuestion = res.next_question === undefined ? null : res.next_question;
         A.save();
         const changed = res.changed_fields && res.changed_fields.length ? res.changed_fields : diffFields(before, rec.plan);

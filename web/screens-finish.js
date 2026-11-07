@@ -30,7 +30,7 @@
     const itemSlot = h('div', { class: 'item-slot' });
     A.$main.append(
       h('h1', null, `${A.personLabel(rec)}の確認`),
-      statusSlot, itemSlot, listSlot, A.noticeSafety());
+      statusSlot, itemSlot, listSlot, A.auditLink('verify'), A.noticeSafety());
 
     let listening = null;
     let working = false;
@@ -164,10 +164,11 @@
         statusSlot.append(A.statusBox('答えを、欄に入れています'));
         refresh();
         try {
-          const res = await api.interview(rec.plan, pseudonymize(String(text).slice(0, 2000), rec.names), 'minsei');
+          const res = await api.interview(rec.plan, pseudonymize(String(text).slice(0, 2000), rec.names), 'minsei', issue.field);
           if (!scope.alive) return;
           const issues = rec.plan.issues;
           rec.plan = A.mergeGeometry(res.plan, rec.plan);
+          rec.askedField = res.next_field || null;
           rec.plan.issues = rec.plan.issues && rec.plan.issues.length ? rec.plan.issues : issues;
           working = false;
           acknowledge(item.id, { resolution: 'answered' });
