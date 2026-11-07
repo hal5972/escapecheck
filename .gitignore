@@ -17,6 +17,9 @@ video/
 *.m4a
 *.wav
 *.webm
+*.mp3
+# 合成音声で作るアプリの音声（scripts/make_voice.py が作る。manifest.json も含めて除く）
+web/audio/
 
 # 実行時に生成されるファイル
 app/logs/

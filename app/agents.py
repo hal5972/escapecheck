@@ -75,6 +75,16 @@ def effort_for(role: str) -> str:
 
 def skills_for(role: str) -> list[str]:
     return _role_setting("SKILLS", role, SKILLS[role])
+
+
+def system_prompt_for(role: str, skills: list[str]) -> str:
+    """システムプロンプト。聞き取りエージェントは、使える Skill だけを読むよう指示する（評価で Skill を外したときのため）。"""
+    prompt = SYSTEM_PROMPTS[role]
+    if role == "interview":
+        names = [s for s in ("kobetsu-plan-form", "tosa-ben") if s in skills]
+        line = (" と ".join(names) + " の Skill を読みます（同じセッションで一度だけ）。") if names else "様式の欄は、下の決まりに従って書き込みます。"
+        prompt = prompt.replace("<<READ_SKILLS>>", line)
+    return prompt
 MAX_TURNS = {"interview": config.MAX_TURNS_INTERVIEW, "redteam": config.MAX_TURNS_REDTEAM, "verify": config.MAX_TURNS_VERIFY}
 TIMEOUTS = {"interview": config.TIMEOUT_INTERVIEW_SEC, "redteam": config.TIMEOUT_REDTEAM_SEC, "verify": config.TIMEOUT_VERIFY_SEC}
 
@@ -115,7 +125,7 @@ SYSTEM_PROMPTS = {
 高知県土佐市の民生委員が、要支援者の個別避難計画（南海トラフ地震の津波を前提にする）を作成するのを手伝います。
 
 手順:
-1. kobetsu-plan-form と tosa-ben の Skill を読みます（同じセッションで一度だけ）。
+1. <<READ_SKILLS>>
 2. 新しい発言を読み、話した内容だけを plan.set_fields で様式の欄に書き込みます。避難支援者の話は plan.set_supporter でも登録します。
    昼・夜に来られるか（available_day・available_night）は、話から分かるときだけ入れます。
    話した避難先の名前があれば hazard.find_shelters で近くの津波避難場所を調べ、同じものがあるときだけ shelter_id を入れます。
@@ -242,9 +252,10 @@ def build_options(session: PlanSession, role: str, run: AgentRun | None = None) 
         if run is not None:
             run.stderr_tail = (run.stderr_tail + [privacy.redact_secrets(line)[:300]])[-20:]
 
+    skills = skills_for(role)
     options = ClaudeAgentOptions(
         model=model_for(role),
-        system_prompt=SYSTEM_PROMPTS[role],
+        system_prompt=system_prompt_for(role, skills),
         tools=["Skill"],
         allowed_tools=allowed,
         disallowed_tools=DISALLOWED_BUILTIN_TOOLS,
@@ -253,7 +264,7 @@ def build_options(session: PlanSession, role: str, run: AgentRun | None = None) 
         hooks=hooks.build_hooks(session),
         cwd=str(config.AGENT_HOME),
         setting_sources=["project"],
-        skills=skills_for(role),
+        skills=skills,
         permission_mode="dontAsk",
         max_turns=MAX_TURNS[role],
         max_budget_usd=config.MAX_BUDGET_USD_PER_CALL,
@@ -303,7 +314,9 @@ async def run_agent(session: PlanSession, role: str, prompt: str, timeout: float
         raise AgentFailed("Claude に接続できませんでした。少し待ってから、もう一度お試しください") from None
     session.audit.record(
         plan_id=session.plan_id, agent=role, tool="agent", decision="info",
-        result={"subtype": run.subtype, "turns": run.num_turns, "cost_usd": run.cost_usd, "ms": run.duration_ms},
+        # 費用は小数第3位まで（桁の多い小数は、ログで座標として伏せられるため）
+        result={"subtype": run.subtype, "turns": run.num_turns,
+                "cost_usd": round(run.cost_usd, 3) if run.cost_usd is not None else None, "ms": run.duration_ms},
     )
     if run.is_error and run.subtype not in ("success", "error_max_structured_output_retries"):
         log.warning("agent %s ended with %s (%s)", role, run.subtype, run.stop_reason)
