@@ -6,7 +6,7 @@
  * 共通の動きと再生の部品は、はじめに（../intro/）と同じ player.css・player.js を使う。
  */
 
-:root { --total: 10.5s; }
+:root { --total: 11.5s; }
 
 .sub { font-weight: 500; }
 .mono { font-family: ui-monospace, "Cascadia Mono", Consolas, Menlo, monospace; font-weight: 600; }
@@ -53,19 +53,19 @@
 
 .reject { animation: reject 1.7s ease-in-out 5.7s both; }
 @keyframes reject {
-  0%   { opacity: 0; transform: translateY(-20px); }
+  0%   { opacity: 0; transform: translateY(-14px); }
   12%  { opacity: 1; }
-  40%  { transform: translateY(58px); }
-  55%  { transform: translateY(30px); }
-  72%  { transform: translateY(58px); }
-  88%  { opacity: 1; transform: translateY(40px); }
-  100% { opacity: 0; transform: translateY(40px); }
+  40%  { transform: translateY(4px); }
+  55%  { transform: translateY(-10px); }
+  72%  { transform: translateY(4px); }
+  88%  { opacity: 1; transform: translateY(-4px); }
+  100% { opacity: 0; transform: translateY(-4px); }
 }
 .stop { animation: pop 0.5s ease-out 6.5s both; }
 
 /* --- 区切りごとの文（1つの区切りに1文） ---------------------------------------- */
 
-.cap { left: 4cqw; top: 3.2cqw; max-width: 80cqw; }
+.cap { left: 4cqw; top: 3.2cqw; max-width: 68cqw; }
 .cap-s1 { animation: cap-in 0.6s ease-out 0.3s both, cap-out 0.4s ease-in 2.15s forwards; }
 .cap-s2 { animation: cap-in 0.6s ease-out 2.6s both, cap-out 0.4s ease-in 4.85s forwards; }
 .cap-s3 { animation: cap-in 0.6s ease-out 5.2s both, cap-out 0.4s ease-in 7.25s forwards; }
