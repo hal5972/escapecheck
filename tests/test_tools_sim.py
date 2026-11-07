@@ -429,7 +429,7 @@ class TryFixTest(SimTestCase):
 
 
 class InterviewValueFormatTest(SimTestCase):
-    """聞き取りエージェント（B）が書き込む形の値も読める（docs: B のメモの 1 節）。"""
+    """聞き取りエージェントが書き込む形の値（{text, minutes} など）も読める。"""
 
     def test_dict_values_with_numbers(self):
         plan = make_plan({"walk_speed": {"text": "100mを3分くらい", "meters": 100, "minutes": 3},

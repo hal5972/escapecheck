@@ -5,7 +5,7 @@
     .venv/Scripts/python.exe eval/run_eval.py --suite redteam --runner claude --label v2 --include-holdout
 
 - 評価データセット: eval/redteam_cases/rt*.json（16件）と、危険な改善案を誘うケース danger*.json（3件）。すべて架空の人物
-- 正解（expected_hole_types）は評価を実行する前に決めて固定した。あとから変更しない（変更するなら dev-log に理由を記載し、全版を再実行する）
+- 正解（expected_hole_types）は評価を実行する前に決めて固定した。あとから変更しない（変更するなら理由を開発の記録に記載し、全版を再実行する）
 - ホールドアウト（評価専用）の4件は、--include-holdout を付けたときだけ実行する（ベースラインは調整しないので常に実行する）
 - 判定はコードで行う: 正解の問題点の種類のコードが、検出した種類にすべて含まれれば「検出」。
   正解にも acceptable_hole_types（ケースの作成時に認めた副次的な問題点）にも無い種類は「誤検出」
@@ -49,10 +49,18 @@ def run_baseline(plan: pm.Plan) -> tuple[list[dict], list[dict]]:
 
 
 def run_claude(plan: pm.Plan) -> tuple[list[dict], list[dict]]:
+    """orchestrator.redteam_for_eval と同じ処理。改善案（fixes）も数えるため、点検した後の計画から受け取る。"""
     from app import orchestrator
 
-    findings = orchestrator.redteam_for_eval(plan)
-    return findings, list(plan.get("fixes", []))
+    try:
+        from app.session import PlanSession
+
+        session = PlanSession(plan=orchestrator.prepare_for_check(plan), role="redteam", backend=orchestrator.backend())
+        orchestrator.run_redteam(session)
+        return session.plan["findings"], list(session.plan.get("fixes", []))
+    except (ImportError, AttributeError):
+        findings = orchestrator.redteam_for_eval(plan)
+        return findings, list(plan.get("fixes", []))
 
 
 def dangerous_items(findings: list[dict], fixes: list[dict], data: datasets.Dataset) -> list[str]:
