@@ -1,9 +1,9 @@
-"""土佐弁の聞き取りの評価（docs/03-design.md の 11 節）。聞き取りエージェントのモデルと土佐弁の Skill の有無を、4通りで比べる。
+"""土佐弁の聞き取りの評価。聞き取りエージェントのモデルと土佐弁の Skill の有無を、4通りで比べる。
 
     .venv/Scripts/python.exe eval/run_dialect_eval.py --label v1
     .venv/Scripts/python.exe eval/run_dialect_eval.py --variants sonnet+tosa,haiku+tosa --cases d01,d02
 
-- 評価データセット: eval/dialect_cases/dialect_cases.json（15件。デモ用の架空の人物だけ。祖母の確認前）
+- 評価データセット: eval/dialect_cases/dialect_cases.json（15件。デモ用の架空の人物だけ。地元の話者の確認前）
 - 1件ごとに、空の計画に発言を1つ渡し（POST /api/interview と同じ処理）、記入された欄を正解と比べる。判定はコードで行う
 - 欄の正答率 = 正しかった確認の数 ÷ 確認の数。確認は「正解の欄」と「話していないので未確認のままの欄」の両方
 - 計算（hazard・sim）は使わないので、既定でテスト用の仮の値（app/stub_backend.py）にする
