@@ -135,8 +135,9 @@
     }
     if (v === 'blocked') {
       // 計画の避難先に上がれない（findingResult が付ける）。時間の数値は、上がれる別の避難先の分なので、ここには出さない
-      const name = result && result.planned_shelter_name ? `（${result.planned_shelter_name}）` : '';
-      return { key: 'short', mark: '×', label: '計画の避難先に上がれません', detail: name, text: `計画の避難先${name}には上がれません` };
+      const shelter = result && result.planned_shelter_name ? String(result.planned_shelter_name) : '';
+      const name = shelter ? `（${shelter}）` : '';
+      return { key: 'short', mark: '×', label: '計画の避難先に上がれません', detail: shelter, text: `計画の避難先${name}には上がれません` };
     }
     const reason = (result && REASONS[result.reason_code]) || '必要な値が足りません';
     return { key: 'unknown', mark: '？', label: L.VERDICT_LABELS.cannot_compute, detail: reason, text: `計算できない（${reason}）` };
