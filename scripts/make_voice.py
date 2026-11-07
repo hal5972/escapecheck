@@ -7,7 +7,8 @@
   --dry-run を付けると、送る文を表示するだけで、API は呼ばない。--limit 1 で、最初の1件だけを作る（声の試し）
 
 - 合成音声に送るのは、読み（ひらがな）の文だけにする。漢字は読み誤りがあるため。外来語はカタカナでよい。
-  漢字・数字・英字が残っている読みがあれば、作らずに止める
+  漢字・数字・英字が残っている読みがあれば、作らずに止める。ひらがなでは聞き取りにくい語は、《津波到達時間》のように
+  《》で囲むと、漢字のまま送る（《》の印は外して送る）
 - 台本は Markdown の表で、見出しに「表示の文」と「読み」の列を持つ。表示の文は画面と字幕に出す文、読みは合成音声に送る文。
   「#」の列があれば、その番号を音声のファイル名にする。「確認」の列に「要確認」とある行は、音声を作らない。
   アプリの決まった文の台本は scripts/voice_app.md。アプリの文が台本に無ければ、作らずに止める
@@ -52,6 +53,8 @@ SCREEN_TEXTS = [
 
 #: 読みに残っていてはいけない文字（漢字、数字、英字）
 NOT_KANA = re.compile(r"[㐀-䶿一-鿿豈-﫿々〆0-9０-９A-Za-zＡ-Ｚａ-ｚ]")
+#: 読みの中で、漢字のまま送る部分（ひらがなでは聞き取りにくかった語。例:《津波到達時間》）
+AS_WRITTEN = re.compile(r"《([^《》]+)》")
 
 
 class VoiceError(RuntimeError):
@@ -116,10 +119,21 @@ def read_script(path: Path) -> list[Line]:
 
 
 def check_speech(speech: str) -> None:
-    """読みに漢字・数字・英字が残っていれば止める（読み誤りを防ぐため、送る文はひらがなとカタカナだけにする）。"""
-    bad = "".join(sorted(set(NOT_KANA.findall(speech))))
+    """読みに漢字・数字・英字が残っていれば止める（読み誤りを防ぐため、送る文はひらがなとカタカナだけにする）。
+
+    《》で囲んだ部分は、漢字のまま送ると決めた語なので、確かめない。
+    """
+    rest = AS_WRITTEN.sub("", speech)
+    if "《" in rest or "》" in rest:
+        raise VoiceError(f"読みの《》の対応が正しくありません: {speech}")
+    bad = "".join(sorted(set(NOT_KANA.findall(rest))))
     if bad:
         raise VoiceError(f"読みに漢字・数字・英字が残っています（{bad}）: {speech}")
+
+
+def to_send(speech: str) -> str:
+    """合成音声に送る文（《》の印を外す）。"""
+    return AS_WRITTEN.sub(r"\1", speech)
 
 
 def question_templates(path: Path | None = None) -> dict[str, str]:
@@ -293,7 +307,7 @@ def generate(items: list[tuple[str, str, str]], out_dir: Path, synth: Callable[[
         if dry_run:
             continue
         out_dir.mkdir(parents=True, exist_ok=True)
-        (out_dir / name).write_bytes(synth(speech))
+        (out_dir / name).write_bytes(synth(to_send(speech)))
         entries[text] = entry
         manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=1), encoding="utf-8")
         made += 1

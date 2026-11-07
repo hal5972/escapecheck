@@ -97,6 +97,14 @@ class SpeechCheckTest(unittest.TestCase):
             with self.subTest(speech=speech), self.assertRaises(mv.VoiceError):
                 mv.check_speech(speech)
 
+    def test_words_in_double_angle_brackets_are_sent_as_written(self):
+        speech = "《津波到達時間》と、ひなんさきは、くにのデータをつかいます。"
+        mv.check_speech(speech)
+        self.assertEqual(mv.to_send(speech), "津波到達時間と、ひなんさきは、くにのデータをつかいます。")
+        for bad in ("《津波》到達じかん", "《津波到達時間と", "津波到達時間》と", "《》なし"):
+            with self.subTest(speech=bad), self.assertRaises(mv.VoiceError):
+                mv.check_speech(bad)
+
 
 class AppScriptTest(unittest.TestCase):
     def test_every_app_text_has_a_kana_reading_in_the_app_script(self):
@@ -161,6 +169,20 @@ class GenerateTest(unittest.TestCase):
             self.assertEqual(mv.generate(items, out, synth, meta=dict(meta, voice="v2")), 2)
             items[1] = ("間に合います。", "まにあいますよ。", "b.wav")
             self.assertEqual(mv.generate(items, out, synth, meta=dict(meta, voice="v2")), 1)
+
+    def test_the_marks_are_removed_before_sending(self):
+        sent = []
+
+        def synth(speech):
+            sent.append(speech)
+            return b"RIFF"
+
+        with tempfile.TemporaryDirectory() as d, mock.patch("sys.stdout", io.StringIO()):
+            items = [("津波到達時間と避難先", "《津波到達時間》と、ひなんさき", "a.wav")]
+            self.assertEqual(mv.generate(items, Path(d), synth, meta={}), 1)
+            manifest = json.loads((Path(d) / "manifest.json").read_text(encoding="utf-8"))
+        self.assertEqual(sent, ["津波到達時間と、ひなんさき"])
+        self.assertEqual(manifest["items"]["津波到達時間と避難先"]["speech"], "《津波到達時間》と、ひなんさき")
 
     def test_a_reading_with_kanji_stops_before_any_audio_is_made(self):
         def synth(speech):
