@@ -340,7 +340,7 @@ class ExplanationNumberTest(unittest.TestCase):
 
 
 class ApplyFixApprovalTest(unittest.TestCase):
-    """F-11: 祖母（民生委員）の承認の記録が無ければ、改善案を反映しない。"""
+    """F-11: 民生委員の承認の記録が無ければ、改善案を反映しない。"""
 
     def setUp(self):
         self.plan = make_plan()

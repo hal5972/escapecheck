@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "escapecheck-tools": {
+      "type": "stdio",
+      "command": ".venv/Scripts/python.exe",
+      "args": ["-m", "tools.mcp_stdio"]
+    }
+  }
+}

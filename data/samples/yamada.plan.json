@@ -1,0 +1,192 @@
+{
+ "fictional": true,
+ "note": "デモ用の架空の人物です。実在の人物・住所とは関係ありません。自宅の位置は、宇佐の津波浸水想定区域の中から選んだ架空の地点です",
+ "title": "山田ハルさん（架空、84歳）: 宇佐で一人暮らし。杖をついて歩く",
+ "person": {
+  "display_name": "山田ハル",
+  "age": 84,
+  "description": "宇佐町で一人暮らし。杖をついて歩く。夜は1階の奥の部屋で寝る。息子は高知市に住む。隣の西村さん（70代）と仲が良い"
+ },
+ "names": {
+  "Aさん": [
+   "山田ハルさん",
+   "山田ハル",
+   "山田さん"
+  ],
+  "Bさん": [
+   "西村さん",
+   "西村"
+  ]
+ },
+ "talk": [
+  {
+   "id": "t1",
+   "speaker": "minsei",
+   "text": "山田さんは84歳で、一人暮らしよ。杖ついちゅうき、歩くのはゆっくりで、100メートル歩くのに3分くらいかかる。"
+  },
+  {
+   "id": "t2",
+   "speaker": "minsei",
+   "text": "夜は1階の奥の部屋で寝ゆう。昼やったら、5分あったら玄関を出られるろう。"
+  },
+  {
+   "id": "t3",
+   "speaker": "minsei",
+   "text": "息子さんは高知市で会社に勤めよって、向こうに住みゆう。連絡は息子さんの携帯にすることにしちゅう。隣の西村さんは70代で、昼も夜もたいてい家におる。仲がえいき、地震のときは声をかけてくれる言うちゅう。"
+  },
+  {
+   "id": "t4",
+   "speaker": "minsei",
+   "text": "逃げる先は、宇佐の津波避難タワーにしちゅう。"
+  },
+  {
+   "id": "t5",
+   "speaker": "minsei",
+   "text": "ほんで、膝が悪うて、タワーの階段はよう上がらん言いよった。"
+  }
+ ],
+ "plan": {
+  "schema_version": "1",
+  "plan_id": "plan_yamada",
+  "alias": "Aさん",
+  "area_label": "宇佐",
+  "fields": {
+   "household": {
+    "value": "一人暮らし",
+    "status": "filled",
+    "source_id": "utt_t1",
+    "quote": "一人暮らし"
+   },
+   "mobility": {
+    "value": "杖をついて歩く",
+    "status": "filled",
+    "source_id": "utt_t1",
+    "quote": "杖ついちゅう"
+   },
+   "walk_speed": {
+    "value": "100mを3分",
+    "status": "filled",
+    "source_id": "utt_t1",
+    "quote": "100メートル歩くのに3分"
+   },
+   "sleep_place": {
+    "value": "1階の奥の部屋",
+    "status": "filled",
+    "source_id": "utt_t2",
+    "quote": "夜は1階の奥の部屋で寝ゆう"
+   },
+   "time_to_leave_day": {
+    "value": "5分",
+    "status": "filled",
+    "source_id": "utt_t2",
+    "quote": "5分あったら玄関を出られる"
+   },
+   "time_to_leave_night": {
+    "value": null,
+    "status": "unconfirmed"
+   },
+   "hearing_and_sight": {
+    "value": null,
+    "status": "unconfirmed"
+   },
+   "health_for_evacuation": {
+    "value": null,
+    "status": "unconfirmed"
+   },
+   "supporters": {
+    "value": null,
+    "status": "unconfirmed"
+   },
+   "support_method": {
+    "value": "隣のBさんが地震のときに声をかける",
+    "status": "filled",
+    "source_id": "utt_t3",
+    "quote": "地震のときは声をかけてくれる"
+   },
+   "shelter": {
+    "value": {
+     "shelter_id": "E3920500119201",
+     "name": "宇佐津波避難タワー"
+    },
+    "status": "filled",
+    "source_id": "utt_t4",
+    "quote": "宇佐の津波避難タワー"
+   },
+   "route": {
+    "value": null,
+    "status": "unconfirmed"
+   },
+   "contact": {
+    "value": "息子（高知市に住む）の携帯電話",
+    "status": "filled",
+    "source_id": "utt_t3",
+    "quote": "連絡は息子さんの携帯にすることにしちゅう"
+   },
+   "welfare_services": {
+    "value": null,
+    "status": "unconfirmed"
+   },
+   "notes": {
+    "value": null,
+    "status": "unconfirmed"
+   }
+  },
+  "supporters": [
+   {
+    "supporter_id": "sup_b",
+    "alias": "Bさん",
+    "relation": "隣人",
+    "source_id": "utt_t3",
+    "age_band": "70代",
+    "available_day": true,
+    "available_night": true,
+    "location": {
+     "lat": 33.44874,
+     "lon": 133.43587
+    }
+   }
+  ],
+  "premises": [],
+  "findings": [],
+  "fixes": [],
+  "approvals": [],
+  "issues": [],
+  "sources": {
+   "utt_t1": {
+    "kind": "utterance",
+    "label": "民生委員の話（聞き取り 1）",
+    "text": "Aさんは84歳で、一人暮らしよ。杖ついちゅうき、歩くのはゆっくりで、100メートル歩くのに3分くらいかかる。",
+    "speaker": "minsei"
+   },
+   "utt_t2": {
+    "kind": "utterance",
+    "label": "民生委員の話（聞き取り 2）",
+    "text": "夜は1階の奥の部屋で寝ゆう。昼やったら、5分あったら玄関を出られるろう。",
+    "speaker": "minsei"
+   },
+   "utt_t3": {
+    "kind": "utterance",
+    "label": "民生委員の話（聞き取り 3）",
+    "text": "息子さんは高知市で会社に勤めよって、向こうに住みゆう。連絡は息子さんの携帯にすることにしちゅう。隣のBさんは70代で、昼も夜もたいてい家におる。仲がえいき、地震のときは声をかけてくれる言うちゅう。",
+    "speaker": "minsei"
+   },
+   "utt_t4": {
+    "kind": "utterance",
+    "label": "民生委員の話（聞き取り 4）",
+    "text": "逃げる先は、宇佐の津波避難タワーにしちゅう。",
+    "speaker": "minsei"
+   },
+   "utt_t5": {
+    "kind": "utterance",
+    "label": "民生委員の話（聞き取り 5）",
+    "text": "ほんで、膝が悪うて、タワーの階段はよう上がらん言いよった。",
+    "speaker": "minsei"
+   }
+  },
+  "status": "draft",
+  "home": {
+   "lat": 33.44829,
+   "lon": 133.43587
+  }
+ }
+}

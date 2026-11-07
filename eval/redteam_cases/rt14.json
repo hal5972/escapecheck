@@ -1,0 +1,94 @@
+{
+ "case_id": "rt14",
+ "fictional": true,
+ "note": "評価用の架空の人物です。話は仮名化した後の形（Aさん・Bさん）で記載しています。自宅の位置は、津波浸水想定区域の中から計算で選んだ架空の地点です",
+ "title": "耳が遠く、放送に気づけない（話の中だけ）",
+ "alias": "Aさん",
+ "area_label": "宇佐",
+ "home": {
+  "lat": 33.448559,
+  "lon": 133.434666
+ },
+ "talk": [
+  {
+   "id": "t1",
+   "speaker": "minsei",
+   "text": "Aさんは84歳。歩くのは自分でできる。"
+  },
+  {
+   "id": "t2",
+   "speaker": "family",
+   "text": "母は耳が遠うて、防災無線の放送は聞こえんがです。"
+  },
+  {
+   "id": "t3",
+   "speaker": "minsei",
+   "text": "隣のBさんは昼も夜も家におるき、何かあったら様子を見に行く、言うてくれちゅう。"
+  }
+ ],
+ "form": {
+  "household": {
+   "value": "一人暮らし",
+   "from": "form"
+  },
+  "mobility": {
+   "value": "自力で歩ける",
+   "from": "form"
+  },
+  "hearing_and_sight": {
+   "value": "特になし",
+   "from": "form"
+  },
+  "time_to_leave_day": {
+   "value": "3分",
+   "from": "form"
+  },
+  "time_to_leave_night": {
+   "value": "5分",
+   "from": "form"
+  },
+  "shelter": {
+   "value": {
+    "shelter_id": "E3920500133201",
+    "name": "タンク山"
+   },
+   "from": "form"
+  }
+ },
+ "supporters": [
+  {
+   "supporter_id": "sup_1",
+   "alias": "Bさん",
+   "relation": "隣人",
+   "age_band": "70代",
+   "available_day": true,
+   "available_night": true,
+   "location": {
+    "lat": 33.448919,
+    "lon": 133.434666
+   },
+   "from": "form",
+   "form_note": ""
+  }
+ ],
+ "hole_location": "talk",
+ "holdout": true,
+ "expected_hole_types": [
+  "CANNOT_HEAR"
+ ],
+ "rationale": "様式の聴覚の欄は「特になし」。話では、耳が遠く防災行政無線が聞こえない。声をかける人が来るまで避難を開始できない",
+ "answer_premises": [
+  {
+   "code": "CANNOT_HEAR",
+   "quote": "耳が遠うて、防災無線の放送は聞こえん"
+  }
+ ],
+ "acceptable_hole_types": [
+  "SINGLE_ELDERLY_SUPPORTER",
+  "TOO_FAR"
+ ],
+ "acceptable_reasons": {
+  "SINGLE_ELDERLY_SUPPORTER": "避難支援者が70代以上の1人だけ",
+  "TOO_FAR": "沿岸で一番短い到達時間（S6）では間に合わない"
+ }
+}

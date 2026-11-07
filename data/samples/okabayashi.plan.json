@@ -1,0 +1,182 @@
+{
+ "fictional": true,
+ "note": "デモ用の架空の人物です。実在の人物・住所とは関係ありません。自宅の位置は、宇佐の津波浸水想定区域の中から選んだ架空の地点です",
+ "title": "岡林さん夫婦（架空）: 車いすの夫（86歳）を、82歳の妻が一人で支える",
+ "person": {
+  "display_name": "岡林 茂",
+  "age": 86,
+  "description": "宇佐町で妻と二人暮らし。脳梗塞の後、車いすを使う。避難支援者は妻（82歳）だけ。向かいの家に40代の漁師が住む"
+ },
+ "names": {
+  "Aさん": [
+   "岡林茂さん",
+   "岡林 茂",
+   "岡林さん",
+   "茂さん"
+  ],
+  "Bさん": [
+   "和子さん",
+   "和子"
+  ],
+  "Cさん": [
+   "浜田さん",
+   "浜田"
+  ]
+ },
+ "talk": [
+  {
+   "id": "t1",
+   "speaker": "minsei",
+   "text": "岡林さんとこは夫婦二人暮らしで、旦那さんの茂さんが86で、脳梗塞をしてから車いすよ。ベッドから車いすに移るがも介助がいる。"
+  },
+  {
+   "id": "t2",
+   "speaker": "minsei",
+   "text": "奥さんの和子さんが82で、いつも家におって、一人で世話しゆう。逃げるときは奥さんが車いすを押して、東郷の裏山へ行く言いゆう。"
+  },
+  {
+   "id": "t3",
+   "speaker": "family",
+   "text": "夜中やったら、主人を起こして車いすに乗せるまで10分はかかる。昼は5分くらいやね。"
+  },
+  {
+   "id": "t4",
+   "speaker": "minsei",
+   "text": "向かいの家に40代の漁師の浜田さんがおって、夜はたいてい家におるらしい。まだ頼んではないけんど。"
+  }
+ ],
+ "plan": {
+  "schema_version": "1",
+  "plan_id": "plan_okabayashi",
+  "alias": "Aさん",
+  "area_label": "宇佐",
+  "fields": {
+   "household": {
+    "value": "夫婦二人暮らし",
+    "status": "filled",
+    "source_id": "utt_t1",
+    "quote": "夫婦二人暮らし"
+   },
+   "mobility": {
+    "value": "車いす。移るときは介助が必要",
+    "status": "filled",
+    "source_id": "utt_t1",
+    "quote": "車いすよ。ベッドから車いすに移るがも介助がいる"
+   },
+   "walk_speed": {
+    "value": null,
+    "status": "unconfirmed"
+   },
+   "sleep_place": {
+    "value": null,
+    "status": "unconfirmed"
+   },
+   "time_to_leave_day": {
+    "value": "5分",
+    "status": "filled",
+    "source_id": "utt_t3",
+    "quote": "昼は5分くらい"
+   },
+   "time_to_leave_night": {
+    "value": "10分",
+    "status": "filled",
+    "source_id": "utt_t3",
+    "quote": "車いすに乗せるまで10分はかかる"
+   },
+   "hearing_and_sight": {
+    "value": null,
+    "status": "unconfirmed"
+   },
+   "health_for_evacuation": {
+    "value": null,
+    "status": "unconfirmed"
+   },
+   "supporters": {
+    "value": null,
+    "status": "unconfirmed"
+   },
+   "support_method": {
+    "value": "妻（Bさん）が車いすを押して避難する",
+    "status": "filled",
+    "source_id": "utt_t2",
+    "quote": "逃げるときは奥さんが車いすを押して"
+   },
+   "shelter": {
+    "value": {
+     "shelter_id": "E3920500136201",
+     "name": "東郷裏山"
+    },
+    "status": "filled",
+    "source_id": "utt_t2",
+    "quote": "東郷の裏山へ行く"
+   },
+   "route": {
+    "value": null,
+    "status": "unconfirmed"
+   },
+   "contact": {
+    "value": null,
+    "status": "unconfirmed"
+   },
+   "welfare_services": {
+    "value": null,
+    "status": "unconfirmed"
+   },
+   "notes": {
+    "value": null,
+    "status": "unconfirmed"
+   }
+  },
+  "supporters": [
+   {
+    "supporter_id": "sup_b",
+    "alias": "Bさん",
+    "relation": "妻",
+    "source_id": "utt_t2",
+    "age_band": "80代",
+    "available_day": true,
+    "available_night": true,
+    "location": {
+     "lat": 33.454036,
+     "lon": 133.449031
+    }
+   }
+  ],
+  "premises": [],
+  "findings": [],
+  "fixes": [],
+  "approvals": [],
+  "issues": [],
+  "sources": {
+   "utt_t1": {
+    "kind": "utterance",
+    "label": "民生委員の話（聞き取り 1）",
+    "text": "Aさんとこは夫婦二人暮らしで、旦那さんのAさんが86で、脳梗塞をしてから車いすよ。ベッドから車いすに移るがも介助がいる。",
+    "speaker": "minsei"
+   },
+   "utt_t2": {
+    "kind": "utterance",
+    "label": "民生委員の話（聞き取り 2）",
+    "text": "奥さんのBさんが82で、いつも家におって、一人で世話しゆう。逃げるときは奥さんが車いすを押して、東郷の裏山へ行く言いゆう。",
+    "speaker": "minsei"
+   },
+   "utt_t3": {
+    "kind": "utterance",
+    "label": "家族の話（聞き取り 3）",
+    "text": "夜中やったら、主人を起こして車いすに乗せるまで10分はかかる。昼は5分くらいやね。",
+    "speaker": "family"
+   },
+   "utt_t4": {
+    "kind": "utterance",
+    "label": "民生委員の話（聞き取り 4）",
+    "text": "向かいの家に40代の漁師のCさんがおって、夜はたいてい家におるらしい。まだ頼んではないけんど。",
+    "speaker": "minsei"
+   }
+  },
+  "status": "draft",
+  "home": {
+   "lat": 33.454036,
+   "lon": 133.449031
+  }
+ }
+}

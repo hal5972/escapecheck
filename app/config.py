@@ -16,7 +16,7 @@ AGENT_HOME = APP_DIR / "agent_home"
 SAMPLES_DIR = ROOT / "data" / "samples"
 LOG_DIR = APP_DIR / "logs"  # .gitignore 済み。デモの記録のときだけ使う
 
-# 作品の中のモデル（docs/03-design.md の 6.1 節。変更するときは評価の結果を根拠にする）
+# 作品の中のモデル（変更するときは評価の結果を根拠にする）
 MODEL_INTERVIEW = "claude-sonnet-5-5"
 MODEL_REDTEAM = "claude-opus-5-5"
 MODEL_VERIFY = "claude-sonnet-5-5"

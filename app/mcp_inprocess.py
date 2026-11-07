@@ -1,4 +1,4 @@
-"""Agent SDK のプロセス内の MCP サーバー（docs/03-design.md の 6.3 節）。
+"""Agent SDK のプロセス内の MCP サーバー。
 
 MCP ツールは座標と本当の名前を引数に取らない。「home」や避難支援者の supporter_id のような呼び名を受け取り、
 サーバーが PlanSession の計画から座標を取得して tools/ の関数（app/backend.py）を呼ぶ。
@@ -22,7 +22,7 @@ from app.audit import now_iso
 from app.session import PlanSession
 from tools import plan_model as pm
 
-#: エージェントごとに使える MCP ツール（docs/03-design.md の 6.1 節。plan.set_supporter と hazard.find_shelters
+#: エージェントごとに使える MCP ツール（plan.set_supporter と hazard.find_shelters
 #: の聞き取りエージェントへの追加は B の判断: 避難支援者と避難先を、話から計画の形に入れるため）
 TOOL_SETS: dict[str, dict[str, list[str]]] = {
     "interview": {"plan": ["get_plan", "set_fields", "set_supporter"], "hazard": ["get_facts", "find_shelters"]},

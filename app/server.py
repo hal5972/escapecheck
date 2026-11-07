@@ -1,4 +1,4 @@
-"""逃げ道の点検屋のサーバー（標準ライブラリの http.server。docs/03-design.md の 8 節）。
+"""逃げ道の点検屋のサーバー（標準ライブラリの http.server）。
 
 依頼者の PC の中だけで動かす（X-05）。既定では 127.0.0.1 だけで待ち受ける。
 起動: .venv/Scripts/python.exe -m app.server [--port 8000] [--stub-tools] [--lan]
