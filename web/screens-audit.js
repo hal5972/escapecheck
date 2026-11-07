@@ -87,7 +87,9 @@
   function plain(text) {
     let out = String(text);
     for (const key of FIELD_KEYS) out = out.replace(new RegExp(`\\b${key}\\b`, 'g'), splitLabel(L.FIELDS[key]).title);
-    return out;
+    // 説明文の数値の差し込み（{need_min} などのプレースホルダー）は、変数の名前を出さずに言い換える
+    out = out.replace(/数値は\s*\{\w+\}\s*などの?プレースホルダーで書いてください/g, '数値は、コードが計算した値が入る形で書いてください');
+    return out.replace(/\{\w+\}/g, '（値）');
   }
 
   /** 1 件。止めた記録は、印（×）と文字（止めた）を付け、色だけで伝えない。 */

@@ -100,6 +100,12 @@
     return `聞き取り中（${filled}欄）`;
   }
 
+  /** 「11/8」の形の日付（時刻は出さない）。 */
+  function shortDate(iso) {
+    const d = iso ? new Date(iso) : new Date();
+    return Number.isNaN(d.getTime()) ? '' : `${d.getMonth() + 1}/${d.getDate()}`;
+  }
+
   function openRecord(rec) {
     A.openRecord(rec);
     const plan = rec.plan;
@@ -108,10 +114,11 @@
 
   A.register('home', () => {
     A.setBack(null);
-    A.$main.append(hero('民生委員が、話して津波の個別避難計画を作り、厳しい条件で点検して、改善します。下の大きなボタンから、選んでください。'));
-
     const all = store.listPlans();
     const plans = all.slice(0, 5); // 新しい順に 5 件まで
+    // 保存した計画があるときは、続きをする入口（前の計画）も、説明に入れる
+    A.$main.append(hero(`民生委員が、話して津波の個別避難計画を作り、厳しい条件で点検して、改善します。${plans.length ? '前の計画の続きか、下の大きなボタンから、選んでください。' : '下の大きなボタンから、選んでください。'}`));
+
     // 保存した計画があるときは、続きをする入口を、はじめの説明より先に出す
     if (plans.length) {
       A.$main.append(h('h2', null, '前の計画'));
@@ -123,8 +130,9 @@
           h('button', { type: 'button', class: 'btn-row nav-row saved-open', onclick: () => openRecord(rec) },
             EC.icon('person', { size: 26 }),
             h('span', { class: 'row-text' },
-              h('span', { class: 'field-title' }, `${title}${rec.sample ? '（架空の人物）' : ''}`),
-              h('span', { class: 'field-hint' }, `${recStatus(rec)}　${formatClock(rec.updated)}`))),
+              h('span', { class: 'field-title' }, title),
+              rec.sample ? h('span', { class: 'field-hint' }, '架空の人物') : null,
+              h('span', { class: 'field-hint' }, `${recStatus(rec)}　${shortDate(rec.updated)}`))),
           h('button', {
             type: 'button', class: 'btn-row saved-delete', 'aria-label': `${title}の計画を消す`,
             onclick: async () => {
@@ -245,7 +253,8 @@
     const pickHint = h('p', { class: 'strong', id: 'pick-hint' }, '地図をタップすると、下の「ここに決める」を押せるようになります。');
 
     const map = EC.map.create({
-      interactive: true, height: 340, center: DEFAULT_CENTER, zoom: 16, label: '自宅の場所を決める地図',
+      // 地図の下の拡大・縮小のボタンが、下のボタンの帯に隠れないよう、画面の高さに合わせる（最大 340px）
+      interactive: true, height: Math.max(240, Math.min(340, Math.round((A.$main.clientHeight || 600) - 250))), center: DEFAULT_CENTER, zoom: 16, label: '自宅の場所を決める地図',
       onTap(point) {
         pick = point;
         pickHint.hidden = true;

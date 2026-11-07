@@ -565,7 +565,8 @@ label.field-label-text { display: block; font-weight: 700; margin: var(--sp-3) 0
 
 .saved-row { display: flex; gap: var(--sp-2); align-items: stretch; margin: 0 0 var(--sp-2); }
 .saved-row .btn-row { margin: 0; }
-.saved-open { flex: 1; min-width: 0; }
+.saved-open { flex: 1; min-width: 0; padding-right: 14px; }
+.saved-open::after { display: none; }
 .saved-delete { display: grid; place-items: center; flex: none; width: var(--tap); padding: 0; color: var(--short-ink); border-color: var(--short-line); }
 .sample-list { margin: 0 0 var(--sp-3); }
 .sample-list .btn-row { padding-top: 12px; padding-bottom: 12px; }
@@ -634,7 +635,12 @@ label.field-label-text { display: block; font-weight: 700; margin: var(--sp-3) 0
 .transcript .placeholder { color: var(--ink-sub); }
 .transcript .interim { color: var(--ink-sub); text-decoration: underline dotted; }
 .mode-note { margin: 0 0 var(--sp-3); color: var(--ink-sub); }
-.typed-wrap[hidden], .examples-body[hidden], .source-detail-wrap[hidden], .phone-body[hidden] { display: none; }
+.typed-wrap[hidden], .examples-body[hidden], .source-detail-wrap[hidden], .phone-body[hidden], .typed-reason[hidden] { display: none; }
+.typed-reason {
+  margin: 0 0 var(--sp-2); padding: 8px 12px; font-weight: 700; color: var(--short-ink);
+  background: var(--short-bg); border-left: 6px solid var(--short); border-radius: var(--r-sm);
+}
+.row-icon { display: grid; place-items: center; }
 .examples-slot { margin: var(--sp-3) 0; }
 
 .fields-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
@@ -787,8 +793,8 @@ label.field-label-text { display: block; font-weight: 700; margin: var(--sp-3) 0
 }
 .count-row .mark .ic { width: 22px; height: 22px; }
 .count-row .mark-char { display: none; }
-.count-label { flex: 1; }
-.count-num { min-width: 1.6em; font-size: var(--fs-lg); font-weight: 700; text-align: right; color: var(--v-ink, var(--ink)); }
+.count-label { flex: 1; white-space: nowrap; }
+.count-num { min-width: 1.6em; font-size: var(--fs-md); font-weight: 700; text-align: right; white-space: nowrap; color: var(--v-ink, var(--ink)); }
 .arrow { margin: 6px 0; text-align: center; font-weight: 700; }
 
 /* 改善の結果（前 → 後） */
@@ -856,7 +862,8 @@ label.field-label-text { display: block; font-weight: 700; margin: var(--sp-3) 0
   font-size: 24px; font-weight: 700; fill: var(--ink);
   stroke: #fff; stroke-width: 6px; paint-order: stroke; stroke-linejoin: round;
 }
-.map-zoom { position: absolute; right: 8px; bottom: 8px; display: grid; gap: var(--sp-2); }
+/* 拡大・縮小のボタンは、地図の右上に置く（地図の下の部分が、下のボタンの帯に隠れても、押せるように） */
+.map-zoom { position: absolute; right: 8px; top: 8px; display: grid; gap: var(--sp-2); }
 .map-zoom-btn {
   width: var(--tap); height: var(--tap);
   font: inherit; font-size: 32px; font-weight: 700; line-height: 1;

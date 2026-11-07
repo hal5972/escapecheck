@@ -72,14 +72,18 @@
     const statusSlot = h('div', { class: 'status-slot' });
     const modeNote = h('p', { class: 'mode-note' });
     const textarea = h('textarea', { class: 'textarea', id: 'typed', rows: '4', maxlength: String(MAX_CHARS), placeholder: 'ここに文字で入力できます' });
+    // 音声入力が使えなかった理由。文字の入力欄のすぐ上に出す（上の失敗の表示が、画面の外へ動いても分かるように）
+    const typedReason = h('p', { class: 'typed-reason', hidden: true }, '音声入力が使えませんでした。文字で入力してください。');
     const typedWrap = h('div', { class: 'typed-wrap' },
+      typedReason,
       h('label', { class: 'field-label-text', for: 'typed' }, '文字で入力する'),
       textarea,
       h('p', { class: 'sub' }, 'キーボードのマイクのボタンで、話して入力することもできます。'));
     // 声と文字の切り替え（声がうまくいかないときの入口）。音声入力が使えない環境では、文字だけなので出さない
     const typedToggleText = h('span', null, '文字で入力する');
+    const typedToggleIcon = h('span', { class: 'row-icon', 'aria-hidden': 'true' }, EC.icon('keyboard', { size: 26 }));
     const typedToggle = S.sttSupported
-      ? h('button', { type: 'button', class: 'btn-row row-action' }, EC.icon('keyboard', { size: 26 }), typedToggleText)
+      ? h('button', { type: 'button', class: 'btn-row row-action' }, typedToggleIcon, typedToggleText)
       : null;
     const switchRow = h('button', { type: 'button', class: 'switch-row', role: 'switch', 'aria-checked': String(continuous) },
       h('span', { class: 'switch-box', 'aria-hidden': 'true' }),
@@ -137,7 +141,12 @@
         modeNote.append(S.sttNotice());
       }
       typedWrap.hidden = !typedMode();
-      if (typedToggle) typedToggleText.textContent = forceText ? '声で話す' : '文字で入力する';
+      typedReason.hidden = !(sttFailed && S.sttSupported);
+      if (typedToggle) {
+        typedToggleText.textContent = forceText ? '声で話す' : '文字で入力する';
+        clear(typedToggleIcon);
+        typedToggleIcon.append(EC.icon(forceText ? 'mic' : 'keyboard', { size: 26 }));
+      }
     }
 
     function renderFields() {
