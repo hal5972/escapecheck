@@ -1,0 +1,113 @@
+/*
+ * 印刷用のスタイル（F-13）。A4 で 2 枚: 1 枚目は市に出す様式、2 枚目は本人用の避難カード（大きな文字）。
+ * 印刷するのは「印刷」の画面の #sheets-root だけ。ほかの画面の部品は印刷しない。
+ * 色だけで伝えないため、判定には印（○△×）と文字が付いている。白黒で印刷しても区別できる。
+ */
+
+@page { size: A4; margin: 12mm; }
+
+@media print {
+  html { font-size: 12pt; }
+
+  body {
+    background: #fff;
+    color: #000;
+    font-size: 10.5pt;
+    line-height: 1.5;
+  }
+
+  /* 画面の操作の部品は印刷しない */
+  .topbar, .banner, .actions, .overlay, .btn, .btn-row, .map-zoom, .switch-row,
+  .sheet-toggle, .map-screen, .defs-hidden { display: none !important; }
+
+  .app {
+    display: block;
+    height: auto;
+    max-width: none;
+    margin: 0;
+    background: #fff;
+    box-shadow: none;
+  }
+  .main { display: block; height: auto; overflow: visible; padding: 0; }
+  .main > *:not(#sheets-root) { display: none !important; }
+
+  .sheets-preview { display: block; }
+  .sheet {
+    display: block;
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+    margin: 0;
+    background: #fff;
+    break-after: page;
+    page-break-after: always;
+  }
+  .sheet:last-child { break-after: auto; page-break-after: auto; }
+  .sheet-form, .sheet-card { order: 0; }
+  .sheet-body, .sheet-body[hidden] { display: block !important; }
+
+  h2, h3 { break-after: avoid; }
+  .sheet-title { font-size: 16pt; margin: 0 0 4mm; }
+  .sheet h3 { font-size: 12pt; margin: 5mm 0 2mm; }
+  .sub { color: #333; }
+
+  /* 1 枚目: 表 */
+  .sheet-table { width: 100%; border-collapse: collapse; margin: 0 0 3mm; font-size: 10pt; }
+  .sheet-table th, .sheet-table td { border: 1px solid #000; padding: 1.5mm 2mm; text-align: left; vertical-align: top; }
+  .sheet-table th { width: 32%; background: #eee; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .sheet-table tr { break-inside: avoid; }
+  .chip { font-size: 8.5pt; padding: 0 2mm; border-width: 1px; margin-top: 0.5mm; background: #fff; color: #000; border-color: #000; }
+  .chip-data { border-width: 2px; padding: 0 1.5mm; }
+  .sheet-foot { margin-top: 4mm; font-size: 9pt; }
+  .sheet-foot p { margin: 0 0 1.5mm; }
+
+  /* 2 枚目: 避難カード（大きな文字） */
+  .sheet-card { font-size: 16pt; }
+  .card-banner {
+    font-size: 32pt;
+    padding: 4mm;
+    margin: 0 0 4mm;
+    color: #fff;
+    background: #8b0000;
+    border-radius: 3mm;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .card-name { font-size: 26pt; margin: 0 0 3mm; }
+  .sheet-card .big-line { font-size: 20pt; line-height: 1.4; margin: 0 0 2mm; font-weight: 700; }
+  .sheet-card .sub { font-size: 12pt; }
+  .sheet-card .strong { font-size: 16pt; }
+
+  .print-map { position: static; left: auto; width: 100%; margin: 3mm 0; line-height: 0; }
+  .print-map .gsimap { width: 100%; border: 1px solid #000; border-radius: 0; }
+  .print-map .gsimap-svg { width: 100%; height: auto; }
+  .print-map .map-key { font-size: 12pt; line-height: 1.4; }
+  .print-map .map-credit { font-size: 9pt; line-height: 1.4; }
+  .map-credit p { margin: 0; }
+
+  .verdict {
+    display: flex;
+    margin: 2mm 0 3mm;
+    padding: 2mm 4mm;
+    border: 2px solid #000;
+    border-radius: 2mm;
+    font-size: 20pt;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .verdict .mark { font-size: 24pt; }
+  .verdict .vtext { font-size: 20pt; }
+  .verdict-ok { background: #dff0e4; }
+  .verdict-tight { background: #fff1c9; }
+  .verdict-short { background: #fde8e6; }
+
+  .notice, .notice-safety {
+    margin: 4mm 0;
+    padding: 3mm 4mm;
+    border: 2px solid #000;
+    border-left-width: 2mm;
+    background: #fff;
+    font-size: 13pt;
+    font-weight: 700;
+  }
+}

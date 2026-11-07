@@ -1,0 +1,350 @@
+{
+  "_notice": "デモ用の架空の人物です。実在の人物・住所・避難場所とは関係ありません。数値はすべて、画面の動作を確認するためのサンプルの値です。サーバーができるまで、この JSON で画面を動かします。",
+  "id": "yamada",
+  "title": "山田さん",
+  "summary": "84歳・一人暮らし・杖を使う（架空の人物）",
+  "area_label": "宇佐",
+  "home": { "lat": 33.44901, "lon": 133.43726 },
+  "names": [
+    { "alias": "Aさん", "real": "山田", "call": "山田さん", "full": "山田 ハル", "role": "person" },
+    { "alias": "Bさん", "real": "西村", "call": "西村さん", "full": "西村", "role": "supporter" }
+  ],
+  "supporters": [
+    {
+      "supporter_id": "sup_b",
+      "alias": "Bさん",
+      "relation": "隣人",
+      "age_band": "70代",
+      "available_day": true,
+      "available_night": true,
+      "location": { "lat": 33.44795, "lon": 133.43861 },
+      "source_id": "src_u1"
+    }
+  ],
+  "initial_question": "山田さんについて、思いつくままに話してください。",
+  "interview": [
+    {
+      "utterance": "山田さんは一人暮らしで、杖ついちゅう。夜は1階の奥の部屋で寝ゆう。耳が遠うて、放送は聞こえんがよ。息子さんは高知市で働きゆう。隣の西村さんと仲がええき、よう声かけてくれゆう。",
+      "fields": {
+        "household": { "value": "一人暮らし", "quote": "一人暮らし" },
+        "mobility": { "value": "杖をついて歩く", "quote": "杖ついちゅう" },
+        "sleep_place": { "value": "1階の奥の部屋", "quote": "夜は1階の奥の部屋で寝ゆう" },
+        "hearing_and_sight": { "value": "耳が遠く、放送が聞こえない", "quote": "耳が遠うて、放送は聞こえんがよ" },
+        "supporters": { "value": "Bさん（隣人）", "quote": "隣のBさんと仲がええき、よう声かけてくれゆう" },
+        "support_method": { "value": "Bさんが声をかける", "quote": "よう声かけてくれゆう" },
+        "notes": { "value": "息子さんは高知市で働いている（平日の昼は不在）", "quote": "息子さんは高知市で働きゆう" }
+      },
+      "with_supporters": true,
+      "next_question": "歩く速さを教えてください。100メートルを、何分くらいで歩けますか。"
+    },
+    {
+      "utterance": "100メートルを歩くのに、3分くらいかかるのう。",
+      "fields": {
+        "walk_speed": { "value": "100mを3分くらい", "quote": "100メートルを歩くのに、3分くらいかかる" }
+      },
+      "next_question": "夜に地震が来たら、家を出るまでに、何分くらいかかりそうですか。"
+    },
+    {
+      "utterance": "夜は、着替えて出るまで10分くらいかかるのう。",
+      "fields": {
+        "time_to_leave_night": { "value": "10分くらい（着替えてから出る）", "quote": "着替えて出るまで10分くらいかかる" }
+      },
+      "next_question": "避難先は、決まっていますか。"
+    },
+    {
+      "utterance": "避難先は、あっちの高台やと思うけんど、よう分からんのう。",
+      "fields": {
+        "shelter": {
+          "value": { "shelter_id": "sh_hill", "name": "高台の避難場所（サンプル）", "kind": "高台", "distance_m": 507, "distance_method": "straight_x1.3" },
+          "source_id": "src_shelters"
+        },
+        "route": { "value": "自宅から高台の避難場所まで（直線距離×1.3の概算で約510m）", "source_id": "src_route" }
+      },
+      "next_question": null
+    }
+  ],
+  "sources": {
+    "src_shelters": {
+      "kind": "dataset",
+      "label": "国土地理院 指定緊急避難場所データ（サンプルの値）",
+      "name": "指定緊急避難場所データ",
+      "version": "サンプルの値",
+      "url": "https://hinanmap.gsi.go.jp/",
+      "value": "高台の避難場所（サンプル）"
+    },
+    "src_arrival": {
+      "kind": "dataset",
+      "label": "津波到達時間（サンプルの値）",
+      "name": "津波浸水予測時間図（浸水30cmに達するまで）",
+      "version": "サンプルの値。実際の予測の版は、データを取り込んだあとに表示する",
+      "value": 24,
+      "unit": "分"
+    },
+    "src_inund": {
+      "kind": "dataset",
+      "label": "津波浸水想定（サンプルの値）",
+      "name": "津波浸水想定",
+      "version": "サンプルの値",
+      "value": "5〜10m"
+    },
+    "src_elev": {
+      "kind": "dataset",
+      "label": "国土地理院 標高 API（サンプルの値）",
+      "name": "標高",
+      "version": "サンプルの値",
+      "url": "https://maps.gsi.go.jp/",
+      "value": 3.2,
+      "unit": "m"
+    },
+    "src_route": {
+      "kind": "tool",
+      "label": "距離の概算（直線距離×1.3）",
+      "name": "直線距離に係数 1.3 を掛けた概算",
+      "value": 507,
+      "unit": "m",
+      "basis": "直線距離 390m に、道なりにする係数 1.3（仮定）を掛けた概算。道路のデータは使っていない"
+    },
+    "src_asm_winter": { "kind": "assumption", "label": "冬は、避難を始めるまでに2分を加える", "value": 2, "unit": "分", "basis": "冬の防寒の支度に必要な時間（仮定）" },
+    "src_asm_dark": { "kind": "assumption", "label": "夜は、暗いので歩く速さを0.8倍にする", "value": 0.8, "unit": "倍", "basis": "足元が見えにくい（仮定）" },
+    "src_asm_climb": { "kind": "assumption", "label": "避難先で上がる時間は2分", "value": 2, "unit": "分", "basis": "階段のある避難先の場合（仮定）" },
+    "src_asm_help": { "kind": "assumption", "label": "声をかけて、一緒に出るまで3分", "value": 3, "unit": "分", "basis": "避難支援者が着いてから出発するまで（仮定）" },
+    "src_asm_sup_speed": { "kind": "assumption", "label": "避難支援者の歩く速さは0.62 m/秒", "value": 0.62, "unit": "m/秒", "basis": "東日本大震災の調べの平均に近い値（仮定）" },
+    "src_asm_sup_leave": { "kind": "assumption", "label": "避難支援者が出るまでの時間（昼5分、夜10分）", "value": 5, "unit": "分", "basis": "避難を始めるまでの時間の例（2〜5分）をもとにした仮定。夜は倍にした" },
+    "src_asm_leave_day": { "kind": "assumption", "label": "日中の避難開始時間は5分", "value": 5, "unit": "分", "basis": "聞き取れていないため、避難を始めるまでの時間の例（2〜5分）から置いた仮定" }
+  },
+  "facts": {
+    "target": "home",
+    "inundation_rank": "5〜10m（サンプルの値）",
+    "arrival_min": 24,
+    "arrival_version": "サンプルの値（実際の予測の版は、データを取り込んだあとに表示する）",
+    "elevation_m": 3.2,
+    "source_ids": ["src_inund", "src_arrival", "src_elev"],
+    "notes": []
+  },
+  "shelters": [
+    {
+      "shelter_id": "sh_hill", "name": "高台の避難場所（サンプル）", "tsunami_ok": true, "kind": "高台",
+      "distance_m": 507, "distance_method": "straight_x1.3", "elevation_m": 31,
+      "local_notes": [], "point": { "lat": 33.45010, "lon": 133.43326 }, "source_id": "src_shelters"
+    },
+    {
+      "shelter_id": "sh_tower", "name": "津波避難タワー（サンプル）", "tsunami_ok": true, "kind": "津波避難タワー",
+      "distance_m": 187, "distance_method": "straight_x1.3", "elevation_m": 3,
+      "local_notes": [], "point": { "lat": 33.44950, "lon": 133.43583 }, "source_id": "src_shelters"
+    }
+  ],
+  "check": {
+    "events": [
+      "計画を読んでいます",
+      "地図で、津波の浸水と避難先を調べています",
+      "冬の深夜のシナリオで点検しています",
+      "平日の日中のシナリオで点検しています",
+      "避難支援者の安全確保を点検しています",
+      "話の中だけにある条件を探しています",
+      "改善案を考えています",
+      "改善の効き目を、計算ツールで確かめています"
+    ],
+    "recheck_events": ["計画を変更しました", "もう一度、点検しています", "結果をまとめています"],
+    "premises": [
+      {
+        "premise_id": "pre_1", "code": "CANNOT_HEAR",
+        "quote": "耳が遠うて、放送は聞こえんがよ", "source_id": "src_u1"
+      }
+    ],
+    "findings": [
+      {
+        "finding_id": "fnd_s1", "scenario_id": "S1", "hole_type": "NIGHT_PREP",
+        "explanation_template": "冬の午前3時は、避難を始めるまでに12分、{shelter_name}まで歩くのに19分、上がるのに2分で、合わせて{need_min}分かかります。津波は{avail_min}分で来るので、{margin_min}分足りません。",
+        "explanation": "冬の午前3時は、避難を始めるまでに12分、高台の避難場所まで歩くのに19分、上がるのに2分で、合わせて33分かかります。津波は24分で来るので、9分足りません。",
+        "source_ids": ["src_u3", "src_u2", "src_route", "src_asm_winter", "src_asm_dark", "src_asm_climb", "src_arrival"],
+        "result": {
+          "scenario_id": "S1", "verdict": "short", "need_min": 33, "avail_min": 24, "margin_min": -9,
+          "breakdown": [
+            { "key": "leave", "label": "避難を始めるまで", "minutes": 12, "source_ids": ["src_u3", "src_asm_winter"] },
+            { "key": "walk", "label": "避難先まで歩く", "minutes": 19, "source_ids": ["src_route", "src_u2", "src_asm_dark"] },
+            { "key": "climb", "label": "避難先で上がる", "minutes": 2, "source_ids": ["src_asm_climb"] }
+          ],
+          "assumptions": ["src_asm_winter", "src_asm_dark", "src_asm_climb", "src_route"]
+        }
+      },
+      {
+        "finding_id": "fnd_s8", "scenario_id": "S8", "hole_type": "CANNOT_HEAR",
+        "explanation_template": "Aさんは耳が遠く、夜の放送に気づけません。Bさんが来て声をかけるまで避難を始められず、{need_min}分かかります。津波は{avail_min}分で来るので、{margin_min}分足りません。",
+        "explanation": "Aさんは耳が遠く、夜の放送に気づけません。Bさんが来て声をかけるまで避難を始められず、40分かかります。津波は24分で来るので、16分足りません。",
+        "source_ids": ["src_u1", "src_asm_sup_leave", "src_asm_sup_speed", "src_asm_help", "src_arrival"],
+        "result": {
+          "scenario_id": "S8", "verdict": "short", "need_min": 40, "avail_min": 24, "margin_min": -16,
+          "breakdown": [
+            { "key": "leave", "label": "Bさんが出るまで", "minutes": 10, "source_ids": ["src_asm_sup_leave"] },
+            { "key": "supporter_travel", "label": "Bさんが駆けつける", "minutes": 6, "source_ids": ["src_asm_sup_speed"] },
+            { "key": "help", "label": "声をかけて、一緒に出る", "minutes": 3, "source_ids": ["src_asm_help"] },
+            { "key": "walk", "label": "避難先まで歩く", "minutes": 19, "source_ids": ["src_route", "src_asm_dark"] },
+            { "key": "climb", "label": "避難先で上がる", "minutes": 2, "source_ids": ["src_asm_climb"] }
+          ],
+          "assumptions": ["src_asm_sup_leave", "src_asm_sup_speed", "src_asm_help", "src_asm_dark", "src_asm_climb"]
+        }
+      },
+      {
+        "finding_id": "fnd_s5", "scenario_id": "S5", "hole_type": "SUPPORTER_AT_RISK",
+        "explanation_template": "昼に避難を支援するBさんは、Aさんの家に寄ってから一緒に避難するので、{need_min}分かかります。津波は{avail_min}分で来るので、Bさん自身も{margin_min}分、間に合いません。",
+        "explanation": "昼に避難を支援するBさんは、Aさんの家に寄ってから一緒に避難するので、31分かかります。津波は24分で来るので、Bさん自身も7分、間に合いません。",
+        "source_ids": ["src_asm_sup_leave", "src_asm_sup_speed", "src_asm_help", "src_route", "src_arrival"],
+        "result": {
+          "scenario_id": "S5", "verdict": "short", "need_min": 31, "avail_min": 24, "margin_min": -7,
+          "supporter_verdict": "short", "supporter_margin_min": -7,
+          "breakdown": [
+            { "key": "leave", "label": "Bさんが出るまで", "minutes": 5, "source_ids": ["src_asm_sup_leave"] },
+            { "key": "supporter_travel", "label": "Bさんが駆けつける", "minutes": 6, "source_ids": ["src_asm_sup_speed"] },
+            { "key": "help", "label": "声をかけて、一緒に出る", "minutes": 3, "source_ids": ["src_asm_help"] },
+            { "key": "walk", "label": "避難先まで歩く", "minutes": 15, "source_ids": ["src_route", "src_u2"] },
+            { "key": "climb", "label": "避難先で上がる", "minutes": 2, "source_ids": ["src_asm_climb"] }
+          ],
+          "assumptions": ["src_asm_sup_leave", "src_asm_sup_speed", "src_asm_help", "src_asm_climb", "src_route"]
+        }
+      },
+      {
+        "finding_id": "fnd_s2", "scenario_id": "S2", "hole_type": "SUPPORTER_ABSENT",
+        "explanation_template": "平日の昼は、息子さんが高知市で働いていて、家にいません。Aさん1人で避難すると{need_min}分で、津波の{avail_min}分まで、あと{margin_min}分しかありません。",
+        "explanation": "平日の昼は、息子さんが高知市で働いていて、家にいません。Aさん1人で避難すると22分で、津波の24分まで、あと2分しかありません。",
+        "source_ids": ["src_asm_leave_day", "src_u2", "src_route", "src_asm_climb", "src_arrival"],
+        "result": {
+          "scenario_id": "S2", "verdict": "tight", "need_min": 22, "avail_min": 24, "margin_min": 2,
+          "breakdown": [
+            { "key": "leave", "label": "避難を始めるまで", "minutes": 5, "source_ids": ["src_asm_leave_day"] },
+            { "key": "walk", "label": "避難先まで歩く", "minutes": 15, "source_ids": ["src_route", "src_u2"] },
+            { "key": "climb", "label": "避難先で上がる", "minutes": 2, "source_ids": ["src_asm_climb"] }
+          ],
+          "assumptions": ["src_asm_leave_day", "src_asm_climb", "src_route"]
+        }
+      }
+    ],
+    "fixes": [
+      {
+        "fix_id": "fix_s1_tower", "finding_id": "fnd_s1", "fix_type": "CHANGE_SHELTER", "target_id": "sh_tower",
+        "explanation_template": "避難先を{shelter_name}に変えます。歩く時間が19分から7分になり、{saved_min}分短くなります。",
+        "explanation": "避難先を「津波避難タワー（サンプル）」に変えます。歩く時間が19分から7分になり、12分短くなります。",
+        "saved_min": 12,
+        "result": {
+          "scenario_id": "S1", "verdict": "ok", "need_min": 21, "avail_min": 24, "margin_min": 3,
+          "breakdown": [
+            { "key": "leave", "label": "避難を始めるまで", "minutes": 12, "source_ids": ["src_u3", "src_asm_winter"] },
+            { "key": "walk", "label": "避難先まで歩く", "minutes": 7, "source_ids": ["src_route", "src_asm_dark"] },
+            { "key": "climb", "label": "避難先で上がる", "minutes": 2, "source_ids": ["src_asm_climb"] }
+          ],
+          "assumptions": ["src_asm_winter", "src_asm_dark", "src_asm_climb", "src_route"]
+        },
+        "mock_also": {
+          "S2": { "scenario_id": "S2", "verdict": "ok", "need_min": 13, "avail_min": 24, "margin_min": 11,
+            "breakdown": [
+              { "key": "leave", "label": "避難を始めるまで", "minutes": 5, "source_ids": ["src_asm_leave_day"] },
+              { "key": "walk", "label": "避難先まで歩く", "minutes": 6, "source_ids": ["src_route", "src_u2"] },
+              { "key": "climb", "label": "避難先で上がる", "minutes": 2, "source_ids": ["src_asm_climb"] }
+            ], "assumptions": ["src_asm_leave_day", "src_asm_climb", "src_route"] },
+          "S5": { "scenario_id": "S5", "verdict": "tight", "need_min": 22, "avail_min": 24, "margin_min": 2,
+            "supporter_verdict": "tight", "supporter_margin_min": 2,
+            "breakdown": [
+              { "key": "leave", "label": "Bさんが出るまで", "minutes": 5, "source_ids": ["src_asm_sup_leave"] },
+              { "key": "supporter_travel", "label": "Bさんが駆けつける", "minutes": 6, "source_ids": ["src_asm_sup_speed"] },
+              { "key": "help", "label": "声をかけて、一緒に出る", "minutes": 3, "source_ids": ["src_asm_help"] },
+              { "key": "walk", "label": "避難先まで歩く", "minutes": 6, "source_ids": ["src_route", "src_u2"] },
+              { "key": "climb", "label": "避難先で上がる", "minutes": 2, "source_ids": ["src_asm_climb"] }
+            ], "assumptions": ["src_asm_sup_leave", "src_asm_sup_speed", "src_asm_help", "src_asm_climb", "src_route"] },
+          "S8": { "scenario_id": "S8", "verdict": "short", "need_min": 28, "avail_min": 24, "margin_min": -4,
+            "breakdown": [
+              { "key": "leave", "label": "Bさんが出るまで", "minutes": 10, "source_ids": ["src_asm_sup_leave"] },
+              { "key": "supporter_travel", "label": "Bさんが駆けつける", "minutes": 6, "source_ids": ["src_asm_sup_speed"] },
+              { "key": "help", "label": "声をかけて、一緒に出る", "minutes": 3, "source_ids": ["src_asm_help"] },
+              { "key": "walk", "label": "避難先まで歩く", "minutes": 7, "source_ids": ["src_route", "src_asm_dark"] },
+              { "key": "climb", "label": "避難先で上がる", "minutes": 2, "source_ids": ["src_asm_climb"] }
+            ], "assumptions": ["src_asm_sup_leave", "src_asm_sup_speed", "src_asm_help", "src_asm_dark", "src_asm_climb"] }
+        }
+      },
+      {
+        "fix_id": "fix_s1_bedside", "finding_id": "fnd_s1", "fix_type": "BEDSIDE_PREP",
+        "explanation_template": "寝る前に、枕元に靴・ライト・上着を用意します。避難を始めるまでの時間が{saved_min}分短くなります（仮定。実際に何分で出られるかを、ご本人に聞いて置き換えます）。",
+        "explanation": "寝る前に、枕元に靴・ライト・上着を用意します。避難を始めるまでの時間が3分短くなります（仮定。実際に何分で出られるかを、ご本人に聞いて置き換えます）。",
+        "saved_min": 3,
+        "result": {
+          "scenario_id": "S1", "verdict": "short", "need_min": 30, "avail_min": 24, "margin_min": -6,
+          "breakdown": [
+            { "key": "leave", "label": "避難を始めるまで", "minutes": 9, "source_ids": ["src_u3", "src_asm_winter"] },
+            { "key": "walk", "label": "避難先まで歩く", "minutes": 19, "source_ids": ["src_route", "src_asm_dark"] },
+            { "key": "climb", "label": "避難先で上がる", "minutes": 2, "source_ids": ["src_asm_climb"] }
+          ],
+          "assumptions": ["src_asm_winter", "src_asm_dark", "src_asm_climb", "src_route"]
+        }
+      },
+      {
+        "fix_id": "fix_s1_exit", "finding_id": "fnd_s1", "fix_type": "SLEEP_NEAR_EXIT",
+        "explanation_template": "寝る場所を、玄関の近くに移します。避難を始めるまでの時間が{saved_min}分短くなります（仮定）。",
+        "explanation": "寝る場所を、玄関の近くに移します。避難を始めるまでの時間が2分短くなります（仮定）。",
+        "saved_min": 2,
+        "result": {
+          "scenario_id": "S1", "verdict": "short", "need_min": 31, "avail_min": 24, "margin_min": -7,
+          "breakdown": [
+            { "key": "leave", "label": "避難を始めるまで", "minutes": 10, "source_ids": ["src_u3", "src_asm_winter"] },
+            { "key": "walk", "label": "避難先まで歩く", "minutes": 19, "source_ids": ["src_route", "src_asm_dark"] },
+            { "key": "climb", "label": "避難先で上がる", "minutes": 2, "source_ids": ["src_asm_climb"] }
+          ],
+          "assumptions": ["src_asm_winter", "src_asm_dark", "src_asm_climb", "src_route"]
+        }
+      },
+      {
+        "fix_id": "fix_s8_tower", "finding_id": "fnd_s8", "fix_type": "CHANGE_SHELTER", "target_id": "sh_tower",
+        "explanation_template": "避難先を{shelter_name}に変えます。歩く時間が19分から7分になり、{saved_min}分短くなります。まだ{margin_min}分足りないので、ご本人・ご家族と相談が必要です。",
+        "explanation": "避難先を「津波避難タワー（サンプル）」に変えます。歩く時間が19分から7分になり、12分短くなります。まだ4分足りないので、ご本人・ご家族と相談が必要です。",
+        "saved_min": 12,
+        "result": {
+          "scenario_id": "S8", "verdict": "short", "need_min": 28, "avail_min": 24, "margin_min": -4,
+          "breakdown": [
+            { "key": "leave", "label": "Bさんが出るまで", "minutes": 10, "source_ids": ["src_asm_sup_leave"] },
+            { "key": "supporter_travel", "label": "Bさんが駆けつける", "minutes": 6, "source_ids": ["src_asm_sup_speed"] },
+            { "key": "help", "label": "声をかけて、一緒に出る", "minutes": 3, "source_ids": ["src_asm_help"] },
+            { "key": "walk", "label": "避難先まで歩く", "minutes": 7, "source_ids": ["src_route", "src_asm_dark"] },
+            { "key": "climb", "label": "避難先で上がる", "minutes": 2, "source_ids": ["src_asm_climb"] }
+          ],
+          "assumptions": ["src_asm_sup_leave", "src_asm_sup_speed", "src_asm_help", "src_asm_dark", "src_asm_climb"]
+        }
+      },
+      {
+        "fix_id": "fix_s5_tower", "finding_id": "fnd_s5", "fix_type": "CHANGE_SHELTER", "target_id": "sh_tower",
+        "explanation_template": "避難先を{shelter_name}に変えます。Bさんの避難も{saved_min}分短くなり、{margin_min}分の余裕ができます。",
+        "explanation": "避難先を「津波避難タワー（サンプル）」に変えます。Bさんの避難も9分短くなり、2分の余裕ができます。",
+        "saved_min": 9,
+        "result": {
+          "scenario_id": "S5", "verdict": "tight", "need_min": 22, "avail_min": 24, "margin_min": 2,
+          "supporter_verdict": "tight", "supporter_margin_min": 2,
+          "breakdown": [
+            { "key": "leave", "label": "Bさんが出るまで", "minutes": 5, "source_ids": ["src_asm_sup_leave"] },
+            { "key": "supporter_travel", "label": "Bさんが駆けつける", "minutes": 6, "source_ids": ["src_asm_sup_speed"] },
+            { "key": "help", "label": "声をかけて、一緒に出る", "minutes": 3, "source_ids": ["src_asm_help"] },
+            { "key": "walk", "label": "避難先まで歩く", "minutes": 6, "source_ids": ["src_route", "src_u2"] },
+            { "key": "climb", "label": "避難先で上がる", "minutes": 2, "source_ids": ["src_asm_climb"] }
+          ],
+          "assumptions": ["src_asm_sup_leave", "src_asm_sup_speed", "src_asm_help", "src_asm_climb", "src_route"]
+        }
+      },
+      {
+        "fix_id": "fix_s2_tower", "finding_id": "fnd_s2", "fix_type": "CHANGE_SHELTER", "target_id": "sh_tower",
+        "explanation_template": "避難先を{shelter_name}に変えます。{saved_min}分短くなり、{margin_min}分の余裕ができます。",
+        "explanation": "避難先を「津波避難タワー（サンプル）」に変えます。9分短くなり、11分の余裕ができます。",
+        "saved_min": 9,
+        "result": {
+          "scenario_id": "S2", "verdict": "ok", "need_min": 13, "avail_min": 24, "margin_min": 11,
+          "breakdown": [
+            { "key": "leave", "label": "避難を始めるまで", "minutes": 5, "source_ids": ["src_asm_leave_day"] },
+            { "key": "walk", "label": "避難先まで歩く", "minutes": 6, "source_ids": ["src_route", "src_u2"] },
+            { "key": "climb", "label": "避難先で上がる", "minutes": 2, "source_ids": ["src_asm_climb"] }
+          ],
+          "assumptions": ["src_asm_leave_day", "src_asm_climb", "src_route"]
+        }
+      }
+    ]
+  },
+  "verify": {
+    "issues": [
+      { "issue_id": "iss_health", "field": "health_for_evacuation", "message": "服薬や持病など、避難に関わる心身の状況を、まだ聞いていません。", "severity": "要確認", "acknowledged": false },
+      { "issue_id": "iss_contact", "field": "contact", "message": "連絡手段（電話など）を、まだ聞いていません。", "severity": "要確認", "acknowledged": false }
+    ]
+  }
+}
