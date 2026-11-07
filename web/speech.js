@@ -170,9 +170,9 @@
       case 'audio-capture':
         return 'マイクが見つかりません。';
       case 'network':
-        return '音声を文字にできませんでした。通信を確認してください。';
+        return '音声認識ができませんでした。通信を確認してください。';
       case 'no-speech':
-        return '声が聞こえませんでした。もう一度「話す」を押してください。';
+        return '音声が聞き取れませんでした。もう一度「話す」を押してください。';
       case 'start-failed':
         return '音声入力を始められませんでした。';
       default:

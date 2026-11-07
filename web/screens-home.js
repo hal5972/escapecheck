@@ -48,12 +48,12 @@
       } catch (e) {
         msg.append(A.errorBox(A.errorText(e)));
         busy = false;
-        A.setActions([{ label: 'はいる', kind: 'primary', id: 'login', onClick: submit }]);
+        A.setActions([{ label: '次へ', kind: 'primary', id: 'login', onClick: submit }]);
         input.focus();
       }
       return buttons;
     };
-    A.setActions([{ label: 'はいる', kind: 'primary', id: 'login', onClick: submit }]);
+    A.setActions([{ label: '次へ', kind: 'primary', id: 'login', onClick: submit }]);
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
     if (!window.matchMedia || !window.matchMedia('(pointer: coarse)').matches) input.focus();
 
@@ -207,7 +207,7 @@
     const personInput = h('input', { class: 'input', id: 'name-person', type: 'text', autocomplete: 'off', placeholder: '例: 山田' });
     const supporterInput = h('input', { class: 'input', id: 'name-supporter', type: 'text', autocomplete: 'off', placeholder: '例: 西村（なくてもよい）' });
     const factsSlot = h('div', { class: 'facts-slot' });
-    const pickHint = h('p', { class: 'strong', id: 'pick-hint' }, '地図をさわると、下の「ここに決める」を押せるようになります。');
+    const pickHint = h('p', { class: 'strong', id: 'pick-hint' }, '地図をタップすると、下の「ここに決める」を押せるようになります。');
 
     const map = EC.map.create({
       interactive: true, height: 340, center: DEFAULT_CENTER, zoom: 16, label: '自宅の場所を決める地図',
@@ -233,7 +233,7 @@
 
     A.$main.append(
       h('h1', null, '新しい方'),
-      h('p', null, '地図をさわって、自宅の場所を決めてください。指でなぞると、地図が動きます。'),
+      h('p', null, '地図をタップ（指で軽く押す）して、自宅の場所を決めてください。指でなぞると、地図が動きます。'),
       map.el, map.credit, pickHint, factsSlot,
       h('h2', null, 'お名前（なくてもよい）'),
       h('p', { class: 'sub' }, 'デモ用の架空の名前を入れてください。実在の人の名前は入れないでください。この端末にだけ保存し、サーバーと AI（Claude）には、仮名（Aさん）で送ります。'),

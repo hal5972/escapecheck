@@ -112,7 +112,7 @@
   function setBanner() {
     const mock = EC.api.getMode() === 'mock';
     $banner.hidden = !mock;
-    $banner.textContent = mock ? '試験用: サーバー未接続。サンプルの値で動いています。' : '';
+    $banner.textContent = mock ? '試験用: サーバーにつながっていません。サンプルの値で動いています。' : '';
   }
 
   // --- 計画の保存（端末の中だけ） ----------------------------------------------
@@ -152,6 +152,11 @@
       }
     }
     return next;
+  }
+
+  /** 「記録」（フックが止めた書き込み）の画面への入口。ボタンの数には含めない、本文の中の行。 */
+  function auditLink(from) {
+    return h('button', { type: 'button', class: 'btn-row nav-row', onclick: () => go('audit', { from }) }, 'AI の書き込みを止めた記録を見る');
   }
 
   /** 画面の見出しに使う、計画の人の呼び方（本名は端末の中だけ）。 */
@@ -224,7 +229,7 @@
 
   EC.app = {
     state, $main, $actions, T, say, announce, go, setBack, setActions, setBanner, newScope,
-    save, openRecord, loadSessionRecord, mergeGeometry, ensureFacts, personLabel,
+    save, openRecord, loadSessionRecord, mergeGeometry, ensureFacts, personLabel, auditLink,
     noticePrivacy, noticeSafety, statusBox, errorBox, errorText,
     register, render, parseHash,
     scope: () => scope,

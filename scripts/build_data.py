@@ -2,7 +2,7 @@
 
     .venv/Scripts/python.exe -I scripts/build_data.py
 
-入力（data/raw/。git の対象外。ダウンロードは依頼者の了承を得て 2026-11-07 に実施）:
+入力（data/raw/。git の対象外。ダウンロードは 2026-11-07 に実施）:
 - data/raw/gsi_shelters/39205_2.csv: 国土地理院 指定緊急避難場所データ（土佐市、市町村コード 39205）
   https://hinanmap.gsi.go.jp/hinanjocp/hinanbasho/koukaidate.html（国土地理院コンテンツ利用規約と「ご利用上の注意」に同意して利用）
 - data/raw/a40/A40-16_39_GML.zip: 国土数値情報 津波浸水想定（A40）高知県、平成28年

@@ -74,6 +74,12 @@
     return el;
   }
 
+  /** 子を追加する。null・undefined・false は無視する（DOM の append に null を渡すと、文字の「null」が入るため）。 */
+  function add(el, ...children) {
+    appendChildren(el, children);
+    return el;
+  }
+
   const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
   function uid(prefix) {
@@ -127,6 +133,10 @@
         text: m === null ? '間に合わない' : `間に合わない（${m}分不足）`,
       };
     }
+    if (v === 'blocked') {
+      // 計画の避難先に上がれない（findingResult が付ける）。時間の数値は、上がれる別の避難先の分なので、ここには出さない
+      return { key: 'short', mark: '×', label: '計画の避難先に上がれない', detail: '', text: '計画の避難先に上がれない' };
+    }
     const reason = (result && REASONS[result.reason_code]) || '必要な値が足りません';
     return { key: 'unknown', mark: '？', label: L.VERDICT_LABELS.cannot_compute, detail: reason, text: `計算できない（${reason}）` };
   }
@@ -141,6 +151,30 @@
       return { ...result, verdict: result.supporter_verdict, margin_min: result.supporter_margin_min };
     }
     return result;
+  }
+
+  /** 計画の避難先（欄の避難先の shelter_id）。決まっていなければ null。 */
+  function plannedShelterId(plan) {
+    const field = plan && plan.fields && plan.fields.shelter && plan.fields.shelter.value;
+    return field && typeof field === 'object' && field.shelter_id ? field.shelter_id : null;
+  }
+
+  /**
+   * 計画の避難先に上がれない問題点か（前提条件 CANNOT_CLIMB）。
+   * サーバーの計算は、上がれる別の避難先に切り替わるので、結果は「間に合う」と出ることがある。
+   * その時間は、別の避難先の分。計画の避難先は、この方には使えない。
+   */
+  function isBlockedShelter(plan, finding) {
+    const r = finding && finding.result;
+    if (!r || finding.hole_type !== 'CANNOT_CLIMB' || !r.shelter_id) return false;
+    const planned = plannedShelterId(plan);
+    return Boolean(planned) && planned !== r.shelter_id;
+  }
+
+  /** 問題点の判定。計画の避難先に上がれないときは、時間を出さず「計画の避難先に上がれない」にする。 */
+  function findingResult(plan, finding) {
+    const r = worstResult(finding.result);
+    return isBlockedShelter(plan, finding) ? { ...r, verdict: 'blocked' } : r;
   }
 
   // ---------------------------------------------------------------------------
@@ -158,10 +192,25 @@
   function fillTemplate(template, result, extra) {
     if (!template) return '';
     const r = result || {};
+    // 区間（避難を始めるまで・歩く・上がる・声をかける）の分。所要時間なので、切り上げる
+    const part = (key) => {
+      const segs = (r.breakdown || []).filter((s) => s.key === key && isNum(s.minutes));
+      return segs.length ? String(ceilMin(segs.reduce((sum, s) => sum + s.minutes, 0))) : null;
+    };
+    const margin = isNum(r.margin_min) ? r.margin_min : null;
+    const sMargin = isNum(r.supporter_margin_min) ? r.supporter_margin_min : null;
     const values = {
       need_min: isNum(r.need_min) ? String(ceilMin(r.need_min)) : null,
       avail_min: isNum(r.avail_min) ? String(floorMin(r.avail_min)) : null,
-      margin_min: isNum(r.margin_min) ? String(r.margin_min < 0 ? ceilMin(-r.margin_min) : floorMin(r.margin_min)) : null,
+      // {margin_min} は、間に合うときの余裕。足りないときの古い書き方でも、不足の分を出す
+      margin_min: margin === null ? null : String(margin < 0 ? ceilMin(-margin) : floorMin(margin)),
+      shortage_min: margin !== null && margin < 0 ? String(ceilMin(-margin)) : null,
+      supporter_margin_min: sMargin !== null && sMargin >= 0 ? String(floorMin(sMargin)) : null,
+      supporter_shortage_min: sMargin !== null && sMargin < 0 ? String(ceilMin(-sMargin)) : null,
+      leave_min: part('leave'),
+      walk_min: part('walk'),
+      climb_min: part('climb'),
+      help_min: part('help'),
       ...(extra || {}),
     };
     return String(template).replace(/\{(\w+)\}/g, (all, key) => (values[key] != null ? values[key] : '？'));
@@ -208,9 +257,9 @@
   }
 
   EC.u = {
-    h, svg, clear, sleep, uid, safeHref,
+    h, svg, clear, add, sleep, uid, safeHref,
     isNum, ceilMin, floorMin, roundMin,
-    verdictView, severityOf, worstResult,
+    verdictView, severityOf, worstResult, plannedShelterId, isBlockedShelter, findingResult,
     splitLabel, fillTemplate, formatDate, formatClock,
     pseudonymize, reveal,
   };

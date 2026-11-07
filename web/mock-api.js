@@ -422,6 +422,18 @@
       return { ok: true, reasons: [], plan: { ...clone(plan), status: 'final' } };
     },
 
+    /** 記録（サンプルの値）。サーバーの /api/audit と同じ形。 */
+    async audit() {
+      await sleep(300);
+      const data = await loadJson('mock/audit.json');
+      const now = Date.now();
+      return data.entries.map((e) => {
+        const { ago_sec: ago, ...rest } = e;
+        // サーバーと同じ形: args は短くした JSON の文字
+        return { ...rest, args: typeof rest.args === 'string' ? rest.args : JSON.stringify(rest.args || {}), at: new Date(now - ago * 1000).toISOString() };
+      });
+    },
+
     async facts(plan) {
       await sleep(400);
       const sample = await sampleOf(plan);

@@ -18,7 +18,7 @@
         "mobility": { "value": "一人では立ち上がれない", "quote": "一人では立ち上がれん" },
         "notes": { "value": "いつも近所の人が来てくれる（名前は未確認）", "quote": "いつも近所の人が来てくれゆう" }
       },
-      "next_question": "歩く速さを教えてください。100メートルを、何分くらいで歩けますか。"
+      "next_question": "歩行速度を教えてください。100メートルを、何分くらいで歩けますか。"
     },
     {
       "utterance": "歩くのは、もうよう歩かん。立たせてもろうて、ゆっくり、100メートルに5分くらいかのう。",
@@ -47,11 +47,11 @@
     "src_elev": { "kind": "dataset", "label": "国土地理院 標高 API（サンプルの値）", "name": "標高", "version": "サンプルの値", "url": "https://maps.gsi.go.jp/", "value": 2.4, "unit": "m" },
     "src_route": { "kind": "tool", "label": "距離の概算（直線距離×1.3）", "name": "直線距離に係数 1.3 を掛けた概算", "value": 381, "unit": "m", "basis": "直線距離 293m に、道なりにする係数 1.3（仮定）を掛けた概算。道路のデータは使っていない" },
     "src_asm_winter": { "kind": "assumption", "label": "冬は、避難を始めるまでに2分を加える", "value": 2, "unit": "分", "basis": "冬の防寒の支度に必要な時間（仮定）" },
-    "src_asm_dark": { "kind": "assumption", "label": "夜は、暗いので歩く速さを0.8倍にする", "value": 0.8, "unit": "倍", "basis": "足元が見えにくい（仮定）" },
+    "src_asm_dark": { "kind": "assumption", "label": "夜は、暗いので歩行速度を0.8倍にする", "value": 0.8, "unit": "倍", "basis": "足元が見えにくい（仮定）" },
     "src_asm_climb": { "kind": "assumption", "label": "避難先で上がる時間は3分", "value": 3, "unit": "分", "basis": "階段のある避難先で、支えてもらいながら上がる場合（仮定）" },
     "src_asm_leave_day": { "kind": "assumption", "label": "日中の避難開始時間は5分", "value": 5, "unit": "分", "basis": "聞き取れていないため置いた仮定" },
     "src_asm_leave_night": { "kind": "assumption", "label": "夜の避難開始時間は10分", "value": 10, "unit": "分", "basis": "聞き取れていないため置いた仮定。夜は支度の分を加えた" },
-    "src_asm_standup": { "kind": "assumption", "label": "立たせてもらってから歩く速さは100mを5分", "value": 5, "unit": "分/100m", "basis": "本人の話（100メートルに5分くらい）をそのまま使う" }
+    "src_asm_standup": { "kind": "assumption", "label": "立たせてもらってからの歩行速度は100mを5分", "value": 5, "unit": "分/100m", "basis": "本人の話（100メートルに5分くらい）をそのまま使う" }
   },
   "facts": {
     "target": "home",

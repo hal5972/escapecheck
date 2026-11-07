@@ -7,7 +7,7 @@
   'use strict';
   const EC = (window.EC = window.EC || {});
   const A = EC.app;
-  const { h, clear, sleep, verdictView, severityOf, worstResult, isNum, floorMin, fillTemplate } = EC.u;
+  const { h, clear, sleep, verdictView, severityOf, worstResult, findingResult, isBlockedShelter, plannedShelterId, isNum, floorMin, fillTemplate } = EC.u;
   const ui = EC.ui;
   const L = EC.L;
   const S = EC.speech;
@@ -32,7 +32,7 @@
   }
 
   function isImprovable(plan, finding) {
-    const key = verdictView(worstResult(finding.result)).key;
+    const key = verdictView(findingResult(plan, finding)).key;
     return key !== 'ok' && fixesFor(plan, finding).length > 0;
   }
 
@@ -53,7 +53,8 @@
   }
 
   function shortSpeech(plan, finding) {
-    const v = verdictView(worstResult(finding.result));
+    if (isBlockedShelter(plan, finding)) return '計画の避難先には、上がれません。';
+    const v = verdictView(findingResult(plan, finding));
     return `${ui.scenarioTopic(plan, finding)}は、${v.label}。${v.detail ? `${v.detail}。` : ''}`;
   }
 
@@ -76,15 +77,23 @@
     const need = isNum(result.need_min) ? `${EC.u.ceilMin(result.need_min)}分` : null;
     const avail = isNum(result.avail_min) ? `${floorMin(result.avail_min)}分` : null;
     const head = '改善案を反映して、計算し直しました。';
-    const times = need && avail ? `避難にかかる時間は${need}、津波が来るまで${avail}で、` : '';
+    const times = need && avail ? `避難所要時間は${need}、津波到達時間は${avail}で、` : '';
     if (v.key === 'ok') return `${head}${times}間に合います${v.detail ? `（${v.detail}）` : ''}。`;
     if (v.key === 'tight') return `${head}${times}余裕が少ない状態です${v.detail ? `（${v.detail}）` : ''}。`;
     if (v.key === 'short') return `${head}${times}${v.detail ? `まだ${v.detail}です。` : 'まだ間に合いません。'}`;
     return `${head}計算できませんでした。`;
   }
 
+  /** 結果の、画面に出る内容（判定・時間・避難先・区間の分）だけを比べるための文字。出典 ID の違いは、変わったことにしない。 */
+  function resultSignature(r) {
+    if (!r) return '';
+    return JSON.stringify([r.verdict, r.need_min, r.avail_min, r.margin_min, r.supporter_verdict, r.supporter_margin_min, r.shelter_id,
+      (r.breakdown || []).map((s) => [s.key, s.minutes])]);
+  }
+
   /** 承認の直後に、サーバーが計算し直した結果（approve の results）を、点検の結果に反映する。 */
-  function applyResults(rec, prevFindings, results) {
+  function applyResults(rec, prevPlan, results) {
+    const prevFindings = prevPlan.findings || [];
     rec.ui = rec.ui || {};
     rec.ui.prevFindings = prevFindings;
     rec.ui.afterText = rec.ui.afterText || {};
@@ -93,7 +102,8 @@
       if (!next) continue;
       const before = prevFindings.find((x) => x.finding_id === f.finding_id);
       f.result = next;
-      if (!before || JSON.stringify(before.result) !== JSON.stringify(next)) rec.ui.afterText[f.finding_id] = afterSentence(next);
+      const unblocked = Boolean(before) && isBlockedShelter(prevPlan, before) && !isBlockedShelter(rec.plan, { ...f, result: next });
+      if (!before || unblocked || resultSignature(before.result) !== resultSignature(next)) rec.ui.afterText[f.finding_id] = afterSentence(next);
     }
     rec.versions = rec.versions || [];
     rec.versions.push({ label: '改善後', at: new Date().toISOString(), plan: clone(rec.plan) });
@@ -117,7 +127,7 @@
     const premisesSlot = h('div', { class: 'premises-slot' });
     const introSlot = h('div', { class: 'intro-slot' });
     const cardsSlot = h('div', { class: 'cards' });
-    A.$main.append(h('h1', null, `${A.personLabel(rec)}の点検`), introSlot, progressSlot, improvedSlot, summarySlot, cardsSlot, premisesSlot, factsSlot, A.noticeSafety());
+    A.$main.append(h('h1', null, `${A.personLabel(rec)}の点検`), introSlot, progressSlot, improvedSlot, summarySlot, cardsSlot, premisesSlot, factsSlot, A.auditLink('check'), A.noticeSafety());
 
     const cards = new Map(); // finding_id → { el, setOpen, resultKey }
     let openCard = null;
@@ -133,7 +143,7 @@
       if (versions.length < 2) return null;
       const prev = versions[versions.length - 2].plan;
       const f = (prev.findings || []).find((x) => x.scenario_id === scenarioId);
-      return f ? f.result : null;
+      return f ? findingResult(prev, f) : null;
     }
 
     function assumptionsBlock(result) {
@@ -155,11 +165,13 @@
 
     function buildBody(finding) {
       const result = finding.result;
-      const wr = worstResult(result);
-      const v = verdictView(wr);
-      // 図（タイムライン）を先に出す。スマートフォンの 1 画面で、津波の線と不足が見えるように
-      const parts = [EC.timeline.render(result)];
-      parts.push(h('p', { class: 'explain' }, T(bodyText(finding))));
+      const v = verdictView(findingResult(viewPlan, finding));
+      const blocked = isBlockedShelter(viewPlan, finding);
+      const timeline = EC.timeline.render(result, blocked ? { title: `上がれる避難先（${result.shelter_name || '別の避難先'}）にした場合` } : {});
+      const explain = h('p', { class: 'explain' }, T(bodyText(finding)));
+      // 図（タイムライン）を先に出す。スマートフォンの 1 画面で、津波の線と不足が見えるように。
+      // 計画の避難先に上がれないときは、図が別の避難先の分なので、説明を先に出す
+      const parts = blocked ? [explain, timeline] : [timeline, explain];
       if (finding.scenario_id === 'S8') {
         const premise = (viewPlan.premises || []).find((p) => p.code === finding.hole_type) || (viewPlan.premises || [])[0];
         if (premise) parts.push(h('p', null, '話の中の言葉: ', h('span', { class: 'quote' }, `「${T(premise.quote)}」`)));
@@ -168,15 +180,17 @@
         parts.push(h('p', { class: 'sub' }, `問題点の種類: ${L.HOLE_TYPES[finding.hole_type]}`));
       }
       const before = prevResult(finding.scenario_id);
-      if (before && verdictView(worstResult(before)).key !== v.key) {
-        const bv = verdictView(worstResult(before));
+      if (before && verdictView(before).key !== v.key) {
+        const bv = verdictView(before);
         parts.push(h('p', { class: 'change-line' }, `前回: ${bv.mark} ${bv.text}　→　今回: ${v.mark} ${v.text}`));
       }
       if (result.supporter_verdict) {
         const sv = verdictView({ verdict: result.supporter_verdict, margin_min: result.supporter_margin_min });
         parts.push(h('p', { class: 'change-line' }, `避難支援者（${T(((viewPlan.supporters || [])[0] || {}).alias || '')}）: ${sv.mark} ${sv.text}`));
       }
-      const m = ui.scenarioMap(result, { plan: viewPlan, facts: A.state.facts, T });
+      const m = ui.scenarioMap(result, blocked
+        ? { plan: viewPlan, facts: A.state.facts, T, shelterId: result.shelter_id, oldShelterId: plannedShelterId(viewPlan), shelterLabel: '上がれる避難先' }
+        : { plan: viewPlan, facts: A.state.facts, T });
       scope.onLeave(() => m.map.destroy());
       parts.push(m.el);
       const assumptions = assumptionsBlock(result);
@@ -188,7 +202,7 @@
     }
 
     function buildCard(finding, isNew) {
-      const wr = worstResult(finding.result);
+      const wr = findingResult(viewPlan, finding);
       const v = verdictView(wr);
       const body = h('div', { class: 'scen-body', hidden: true });
       const head = h('button', { type: 'button', class: 'scen-head', 'aria-expanded': 'false' },
@@ -234,16 +248,18 @@
       return card;
     }
 
-    function summaryNode(findings) {
+    function summaryNode(plan, findings) {
       const count = { short: 0, tight: 0, ok: 0, unknown: 0 };
-      for (const f of findings) count[verdictView(worstResult(f.result)).key] += 1;
+      for (const f of findings) count[verdictView(findingResult(plan, f)).key] += 1;
+      const blockedOne = findings.find((f) => isBlockedShelter(plan, f));
       const row = (key, mark, label) => h('div', { class: `count-row count-${key}` },
         h('span', { class: 'mark', 'aria-hidden': 'true' }, mark), h('span', { class: 'count-label' }, label), h('span', { class: 'count-num' }, String(count[key])));
       const box = h('div', { class: 'card summary-card' },
         h('p', { class: 'strong' }, `点検したシナリオ（厳しい条件）: ${findings.length}つ`),
         row('short', '×', '間に合わない'), row('tight', '△', '余裕が少ない'), row('ok', '○', '間に合う'),
         count.unknown ? row('unknown', '？', '計算できない') : null,
-        h('p', { class: 'sub' }, '時間は、すべて、揺れてからの分です。'));
+        blockedOne ? h('p', null, `計画の避難先（${currentShelterName(plan, T)}）には上がれないため、点検は、${blockedOne.result.shelter_name || '別の避難先'}で計算しています。`) : null,
+        h('p', { class: 'sub' }, '避難所要時間と、津波到達時間を比べます。時間は、すべて、揺れてからの分です。'));
       if (findings.length && count.short === findings.length) {
         // E5: すべてのシナリオで間に合わない
         box.append(h('p', { class: 'strong' }, 'この方は、現在の条件では間に合いません。'),
@@ -287,7 +303,7 @@
       renderPremises();
       clear(summarySlot);
       const findings = rec.plan.findings || [];
-      if (findings.length) summarySlot.append(summaryNode(findings));
+      if (findings.length) summarySlot.append(summaryNode(rec.plan, findings));
       else summarySlot.append(h('div', { class: 'card' }, h('p', null, '問題点は見つかりませんでした。')));
       return true;
     }
@@ -330,16 +346,20 @@
       const finding = (rec.plan.findings || []).find((f) => f.finding_id === fix.finding_id);
       const before = (prevFindings || []).find((f) => f.finding_id === fix.finding_id);
       if (!finding || !before) return;
-      const bv = verdictView(worstResult(before.result));
-      const av = verdictView(worstResult(finding.result));
+      const versions = rec.versions || [];
+      const beforePlan = versions.length >= 2 ? versions[versions.length - 2].plan : rec.plan;
+      const beforeResult = findingResult(beforePlan, before);
+      const afterResult = findingResult(rec.plan, finding);
+      const bv = verdictView(beforeResult);
+      const av = verdictView(afterResult);
       improvedSlot.append(h('div', { class: 'result-change' },
         h('p', { class: 'strong' }, '改善の結果'),
         h('p', null, ui.scenarioTitle(rec.plan, finding)),
         h('p', { class: 'sub' }, '改善前'),
-        ui.verdictBadge(worstResult(before.result)),
+        ui.verdictBadge(beforeResult),
         h('p', { class: 'arrow' }, `↓ ${L.FIX_TYPES[fix.fix_type] || ''}`),
         h('p', { class: 'sub' }, '改善後'),
-        ui.verdictBadge(worstResult(finding.result))));
+        ui.verdictBadge(afterResult)));
       A.say(`${ui.scenarioTopic(rec.plan, finding)}は、${bv.label}から、${av.label}になりました。${av.detail ? `${av.detail}。` : ''}`);
     }
 
@@ -350,7 +370,7 @@
       progressSlot.append(A.errorBox(A.errorText(e)));
       A.setActions([
         { id: 'retry', kind: 'primary', label: 'もう一度', onClick: retry },
-        { id: 'back', label: '話す画面にもどる', onClick: () => A.go('talk') },
+        { id: 'back', label: '話す画面に戻る', onClick: () => A.go('talk') },
       ]);
     }
 
@@ -484,7 +504,7 @@
       showResults();
     } else {
       introSlot.append(
-        h('p', { class: 'lead' }, '津波が来る前に避難できるかを、厳しい条件で確かめます。'),
+        h('p', { class: 'lead' }, '津波が来る前に避難できるかを、厳しい条件で点検します。'),
         h('p', null, 'たとえば、冬の深夜、家族がいない昼、道がふさがったとき、避難支援者が来られないときです。'),
         h('p', { class: 'sub' }, '数値は、プログラムのコードが計算します。AI は計算しません。'));
       A.setActions([{ id: 'run', kind: 'primary', label: '点検する', onClick: () => runCheck(false) }]);
@@ -517,7 +537,8 @@
       if (!scope.alive) return;
       clear(body);
       const fix = fixes[index];
-      const wr = worstResult(finding.result);
+      const wr = findingResult(plan, finding);
+      const blocked = isBlockedShelter(plan, finding);
       const name = targetName(plan, fix, facts);
       const title = `${L.FIX_TYPES[fix.fix_type]}${name ? `: ${T(name)}` : ''}`;
       const afterView = verdictView(worstResult(fix.result));
@@ -536,7 +557,7 @@
 
       body.append(
         h('div', { class: 'fix-card' },
-          h('p', { class: 'fix-count' }, `案 ${index + 1}／${fixes.length}${isNum(fix.saved_min) ? `　${floorMin(fix.saved_min)}分、短くなります` : ''}`),
+          h('p', { class: 'fix-count' }, `案 ${index + 1}／${fixes.length}${isNum(fix.saved_min) && floorMin(fix.saved_min) >= 1 ? `　${floorMin(fix.saved_min)}分、短くなります` : ''}`),
           h('p', { class: 'fix-title' }, title),
           h('p', { class: 'explain' }, T(fixExplanation(plan, fix, name))),
           h('p', { class: 'sub' }, `いまの点検の結果: ${ui.scenarioTitle(plan, finding)}`),
@@ -545,7 +566,9 @@
           ui.verdictBadge(worstResult(fix.result))),
         h('h2', null, 'いまと、この案を比べる'),
         h('div', { class: 'compare' },
-          EC.timeline.render(finding.result, { scale, title: 'いま' }),
+          blocked
+            ? h('p', { class: 'explain' }, `いまの避難先（${currentShelterName(plan, T)}）には、上がれません。`)
+            : EC.timeline.render(finding.result, { scale, title: 'いま' }),
           EC.timeline.render(fix.result, { scale, title: 'この案にすると', footnote: false })),
         h('h2', null, '地図'),
         m.el,
@@ -569,13 +592,13 @@
       const box = A.statusBox('計画を変更しています');
       body.prepend(box);
       try {
-        const prevFindings = clone(rec.plan.findings || []);
+        const prevPlan = clone(rec.plan);
         const res = await api.approve(rec.plan, fixes[index].fix_id, 'minsei');
         if (!scope.alive) return;
         rec.plan = A.mergeGeometry(res.plan, rec.plan);
         if (res.results) {
           // サーバーが、承認の直後にコードで計算し直した結果。すぐに点検の画面へ出す（もう一度、Claude に点検させない）
-          applyResults(rec, prevFindings, res.results);
+          applyResults(rec, prevPlan, res.results);
           A.save();
           A.go('check', { improved: '1' });
         } else {

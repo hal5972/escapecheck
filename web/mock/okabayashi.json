@@ -56,8 +56,8 @@
     "src_inund": { "kind": "dataset", "label": "津波浸水想定（サンプルの値）", "name": "津波浸水想定", "version": "サンプルの値", "value": "3〜5m" },
     "src_route": { "kind": "tool", "label": "距離の概算（直線距離×1.3）", "name": "直線距離に係数 1.3 を掛けた概算", "value": 192, "unit": "m", "basis": "直線距離 148m に、道なりにする係数 1.3（仮定）を掛けた概算。道路のデータは使っていない" },
     "src_asm_winter": { "kind": "assumption", "label": "冬は、避難を始めるまでに2分を加える", "value": 2, "unit": "分", "basis": "冬の防寒の支度に必要な時間（仮定）" },
-    "src_asm_dark": { "kind": "assumption", "label": "夜は、暗いので歩く速さを0.8倍にする", "value": 0.8, "unit": "倍", "basis": "足元が見えにくい（仮定）" },
-    "src_asm_wheel": { "kind": "assumption", "label": "車いすを押して進む速さは0.5 m/秒", "value": 0.5, "unit": "m/秒", "basis": "歩行が困難な人と一緒に避難するときの速さの例（仮定）" },
+    "src_asm_dark": { "kind": "assumption", "label": "夜は、暗いので歩行速度を0.8倍にする", "value": 0.8, "unit": "倍", "basis": "足元が見えにくい（仮定）" },
+    "src_asm_wheel": { "kind": "assumption", "label": "車いすを押して進む歩行速度は0.5 m/秒", "value": 0.5, "unit": "m/秒", "basis": "歩行が困難な人と一緒に避難するときの速さの例（仮定）" },
     "src_asm_climb": { "kind": "assumption", "label": "避難先で上がる時間は2分", "value": 2, "unit": "分", "basis": "階段のある避難先の場合（仮定）" },
     "src_asm_leave_night": { "kind": "assumption", "label": "夜の避難開始時間は10分", "value": 10, "unit": "分", "basis": "聞き取れていないため置いた仮定。夜は着替えと支度の分を加えた" }
   },

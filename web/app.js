@@ -9,7 +9,7 @@
   const store = EC.store;
   const api = EC.api;
 
-  // 合言葉の確認が切れたとき（サーバーを再起動したときなど）は、合言葉の画面にもどる
+  // 合言葉の確認が切れたとき（サーバーを再起動したときなど）は、合言葉の画面に戻る
   api.setAuthLostHandler(() => {
     api.logout();
     store.setSession('token', null);

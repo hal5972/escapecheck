@@ -497,6 +497,30 @@ def lan_address() -> str | None:
         return None
 
 
+def _stdin_is_console() -> bool:
+    """標準入力が、人が入力できるコンソールか。
+
+    Windows では、標準入力が NUL（バックグラウンドの起動）でも isatty() が真になり、合言葉の入力待ちで止まる。
+    そのため、Windows ではコンソールの入力かどうかも確かめる。
+    """
+    stdin = sys.stdin
+    if stdin is None or not stdin.isatty():
+        return False
+    if sys.platform != "win32":
+        return True
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel32.GetStdHandle.restype = wintypes.HANDLE
+        handle = kernel32.GetStdHandle(-10)  # STD_INPUT_HANDLE
+        mode = wintypes.DWORD()
+        return bool(kernel32.GetConsoleMode(handle, ctypes.byref(mode)))
+    except (OSError, AttributeError):
+        return False
+
+
 def choose_passphrase() -> tuple[str, bool]:
     """合言葉を決める。(合言葉, 自動で作成したか)。"""
     import os
@@ -504,7 +528,7 @@ def choose_passphrase() -> tuple[str, bool]:
     value = os.environ.get("ESCAPECHECK_PASSPHRASE", "").strip()
     if value:
         return value, False
-    if sys.stdin is not None and sys.stdin.isatty():
+    if _stdin_is_console():
         entered = getpass.getpass("合言葉を決めて入力してください（画面には表示されません。空なら自動で作成します）: ").strip()
         if entered:
             return entered, False
