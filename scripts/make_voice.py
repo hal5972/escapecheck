@@ -57,14 +57,28 @@ class VoiceError(RuntimeError):
 
 
 def load_readings(path: Path | None = None) -> dict[str, str]:
-    """読み仮名の一覧（{"書き方": "読み"}）。ファイルが無ければ既定の一覧。"""
+    """読み仮名の一覧（書き方 → 読み）。画面と同じ web/readings.json を読む。ファイルが無ければ既定の一覧。
+
+    形は {"readings": [{"text": "書き方", "reading": "読み"}, ...]}（画面の web/speech.js と同じ）。
+    {"書き方": "読み"} の形も読める。
+    """
     path = path or ROOT / "web" / "readings.json"
     if not path.exists():
         return dict(DEFAULT_READINGS)
     data = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(data, dict) or not all(isinstance(k, str) and isinstance(v, str) and k for k, v in data.items()):
-        raise VoiceError(f'{path.name} の形が正しくありません（{{"書き方": "読み"}} の形にしてください）')
-    return data
+    bad = VoiceError(f'{path.name} の形が正しくありません（{{"readings": [{{"text": "書き方", "reading": "読み"}}]}} の形にしてください）')
+    if isinstance(data, dict) and isinstance(data.get("readings"), list):
+        out: dict[str, str] = {}
+        for item in data["readings"]:
+            if not (isinstance(item, dict) and isinstance(item.get("text"), str) and item["text"]
+                    and isinstance(item.get("reading"), str)):
+                raise bad
+            out[item["text"]] = item["reading"]
+        return out
+    if isinstance(data, dict) and all(isinstance(k, str) and isinstance(v, str) and k and not k.startswith("_")
+                                      for k, v in data.items()):
+        return data
+    raise bad
 
 
 def to_speech(text: str, readings: dict[str, str]) -> str:

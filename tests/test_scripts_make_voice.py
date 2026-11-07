@@ -33,15 +33,24 @@ class SpeechTextTest(unittest.TestCase):
         self.assertNotIn("間に合", speech)
         self.assertIn("まにあわない", speech)
 
-    def test_readings_file_must_be_an_object_of_strings(self):
+    def test_readings_file_uses_the_same_format_as_the_screen(self):
         with tempfile.TemporaryDirectory() as d:
             path = Path(d) / "readings.json"
+            screen_format = {"_notice": "説明", "readings": [{"text": "新居", "reading": "にい"}]}
+            path.write_text(json.dumps(screen_format, ensure_ascii=False), encoding="utf-8")
+            self.assertEqual(mv.load_readings(path), {"新居": "にい"})
             path.write_text(json.dumps({"新居": "にい"}, ensure_ascii=False), encoding="utf-8")
             self.assertEqual(mv.load_readings(path), {"新居": "にい"})
-            path.write_text(json.dumps(["新居", "にい"]), encoding="utf-8")
-            with self.assertRaises(mv.VoiceError):
-                mv.load_readings(path)
+            for bad in (["新居", "にい"], {"readings": [{"text": "新居"}]}, {"readings": [{"text": "", "reading": "x"}]}):
+                path.write_text(json.dumps(bad, ensure_ascii=False), encoding="utf-8")
+                with self.assertRaises(mv.VoiceError):
+                    mv.load_readings(path)
             self.assertEqual(mv.load_readings(Path(d) / "none.json"), mv.DEFAULT_READINGS)
+
+    def test_the_screen_readings_file_can_be_read(self):
+        readings = mv.load_readings()
+        self.assertEqual(readings.get("何分"), "なんぷん")
+        self.assertEqual(readings.get("間に合"), "まにあ")
 
 
 class TextsTest(unittest.TestCase):
