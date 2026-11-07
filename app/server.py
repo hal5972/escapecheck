@@ -289,7 +289,7 @@ class Handler(BaseHTTPRequestHandler):
         self._body_read = method not in ("POST", "PUT", "DELETE", "OPTIONS")
         try:
             if not self._host_ok():
-                raise ApiError(421, "この住所（Host）からは使えません")
+                raise ApiError(421, "この接続先（Host）からは使えません")
             parts = urlsplit(self.path)
             path = parts.path
             if path.startswith("/api/"):

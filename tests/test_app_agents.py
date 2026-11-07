@@ -45,6 +45,17 @@ class AgentOptionsTest(unittest.TestCase):
         self.assertIn("no-session-persistence", options.extra_args)
         self.assertEqual(options.env["CLAUDE_CODE_DISABLE_CLAUDE_MDS"], "1")
 
+    def test_model_and_skills_can_be_switched_for_evaluation(self):
+        # 土佐弁の評価（モデル2つ × Skill の有無）を、コードを変えずに実行するための切り替え
+        with mock.patch.dict(os.environ, {"ESCAPECHECK_MODEL_INTERVIEW": "claude-haiku-5-5",
+                                          "ESCAPECHECK_SKILLS_INTERVIEW": "kobetsu-plan-form,yasashii-kotoba"}):
+            options = options_for("interview")
+        self.assertEqual(options.model, "claude-haiku-5-5")
+        self.assertEqual(options.skills, ["kobetsu-plan-form", "yasashii-kotoba"])
+        with mock.patch.dict(os.environ, {"ESCAPECHECK_SKILLS_INTERVIEW": ""}):
+            self.assertEqual(options_for("interview").skills, [])
+        self.assertEqual(options_for("interview").model, "claude-sonnet-5-5")  # 切り替えが無ければ設計どおり
+
     def test_structured_output_for_interview_and_verify(self):
         self.assertEqual(options_for("interview").output_format["type"], "json_schema")
         self.assertEqual(options_for("verify").output_format["type"], "json_schema")

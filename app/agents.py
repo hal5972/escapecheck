@@ -43,21 +43,38 @@ from tools import plan_model as pm
 
 log = logging.getLogger("escapecheck.agents")
 
-MODELS = {
-    "interview": os.environ.get("ESCAPECHECK_MODEL_INTERVIEW", config.MODEL_INTERVIEW),
-    "redteam": os.environ.get("ESCAPECHECK_MODEL_REDTEAM", config.MODEL_REDTEAM),
-    "verify": os.environ.get("ESCAPECHECK_MODEL_VERIFY", config.MODEL_VERIFY),
-}
-EFFORT = {
-    "interview": os.environ.get("ESCAPECHECK_EFFORT_INTERVIEW", "low"),
-    "redteam": os.environ.get("ESCAPECHECK_EFFORT_REDTEAM", "medium"),
-    "verify": os.environ.get("ESCAPECHECK_EFFORT_VERIFY", "low"),
-}
+MODELS = {"interview": config.MODEL_INTERVIEW, "redteam": config.MODEL_REDTEAM, "verify": config.MODEL_VERIFY}
+EFFORT = {"interview": "low", "redteam": "medium", "verify": "low"}
 SKILLS = {
     "interview": ["kobetsu-plan-form", "tosa-ben", "yasashii-kotoba"],
     "redteam": ["red-team-scenarios", "tosa-ben", "yasashii-kotoba"],
     "verify": ["kobetsu-plan-form"],
 }
+
+
+def _role_setting(name: str, role: str, default: Any) -> Any:
+    """評価のための切り替え（例: ESCAPECHECK_MODEL_INTERVIEW=claude-haiku-5-5、ESCAPECHECK_SKILLS_INTERVIEW=kobetsu-plan-form）。
+
+    呼び出すたびに環境変数を読むので、評価のスクリプトは1回ごとに切り替えられる。Skill は「,」区切り（空なら Skill を使わない）。
+    """
+    value = os.environ.get(f"ESCAPECHECK_{name}_{role.upper()}")
+    if value is None:
+        return default
+    if name == "SKILLS":
+        return [s.strip() for s in value.split(",") if s.strip()]
+    return value.strip() or default
+
+
+def model_for(role: str) -> str:
+    return _role_setting("MODEL", role, MODELS[role])
+
+
+def effort_for(role: str) -> str:
+    return _role_setting("EFFORT", role, EFFORT[role])
+
+
+def skills_for(role: str) -> list[str]:
+    return _role_setting("SKILLS", role, SKILLS[role])
 MAX_TURNS = {"interview": config.MAX_TURNS_INTERVIEW, "redteam": config.MAX_TURNS_REDTEAM, "verify": config.MAX_TURNS_VERIFY}
 TIMEOUTS = {"interview": config.TIMEOUT_INTERVIEW_SEC, "redteam": config.TIMEOUT_REDTEAM_SEC, "verify": config.TIMEOUT_VERIFY_SEC}
 
@@ -223,7 +240,7 @@ def build_options(session: PlanSession, role: str, run: AgentRun | None = None) 
             run.stderr_tail = (run.stderr_tail + [privacy.redact_secrets(line)[:300]])[-20:]
 
     options = ClaudeAgentOptions(
-        model=MODELS[role],
+        model=model_for(role),
         system_prompt=SYSTEM_PROMPTS[role],
         tools=["Skill"],
         allowed_tools=allowed,
@@ -233,11 +250,11 @@ def build_options(session: PlanSession, role: str, run: AgentRun | None = None) 
         hooks=hooks.build_hooks(session),
         cwd=str(config.AGENT_HOME),
         setting_sources=["project"],
-        skills=SKILLS[role],
+        skills=skills_for(role),
         permission_mode="dontAsk",
         max_turns=MAX_TURNS[role],
         max_budget_usd=config.MAX_BUDGET_USD_PER_CALL,
-        effort=EFFORT[role],  # type: ignore[arg-type]
+        effort=effort_for(role),  # type: ignore[arg-type]
         env=agent_env(),
         extra_args={"no-session-persistence": None},
         stderr=on_stderr,
