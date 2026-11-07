@@ -82,11 +82,13 @@ class StubBackend:
         if scenario_id not in pm.SCENARIOS:
             raise ValueError(f"シナリオの ID が正しくありません: {scenario_id}")
         registered = {p["premise_id"]: p for p in plan.get("premises", [])}
-        for pid in premise_ids or []:
+        if premise_ids is None:  # 省略すると登録済みの前提条件をすべて使う（[] なら使わない。tools/sim.py と同じ）
+            premise_ids = list(registered)
+        for pid in premise_ids:
             if pid not in registered:
                 raise ValueError(f"計画に登録されていない前提条件です: {pid}")
-        codes = {registered[pid]["code"] for pid in premise_ids or []}
-        premises = [registered[pid] for pid in premise_ids or []]
+        codes = {registered[pid]["code"] for pid in premise_ids}
+        premises = [registered[pid] for pid in premise_ids]
         fixes = self._approved_fix_types(plan)
         assumptions: list[str] = []
         fields = plan["fields"]
@@ -157,6 +159,8 @@ class StubBackend:
         result = pm.ScenarioResult(scenario_id=scenario_id, verdict=self._verdict(margin), need_min=round(need, 2),
                                    avail_min=arrival, margin_min=round(margin, 2), breakdown=breakdown,
                                    assumptions=assumptions + [arrival_src])
+        result["shelter_id"] = shelter["shelter_id"]  # type: ignore[typeddict-unknown-key]  tools/sim.py と同じく、使った避難先
+        result["shelter_name"] = shelter["name"]  # type: ignore[typeddict-unknown-key]
         if scenario_id == "S5":
             if not supporters:
                 return pm.ScenarioResult(scenario_id=scenario_id, verdict="cannot_compute", need_min=None, avail_min=arrival,
@@ -182,7 +186,7 @@ class StubBackend:
             if target_id not in {s["shelter_id"] for s in STUB_SHELTERS}:
                 raise ValueError("津波の指定緊急避難場所ではない避難先は選べません")
             shelter = next(s for s in STUB_SHELTERS if s["shelter_id"] == target_id)
-            trial["fields"]["shelter"] = pm.FieldValue(value={"text": shelter["name"], "shelter_id": target_id},
+            trial["fields"]["shelter"] = pm.FieldValue(value={"name": shelter["name"], "shelter_id": target_id},
                                                        status="filled", source_id=f"src_{target_id}")
         elif fix_type == "ADD_CALLER":
             if target_id not in {s["supporter_id"] for s in plan.get("supporters", [])}:
@@ -192,8 +196,7 @@ class StubBackend:
                                                               avail_min=None, margin_min=None, breakdown=[],
                                                               assumptions=[]), saved_min=None))
         trial["approvals"].append(pm.Approval(fix_id="fix_trial", by="minsei", at=""))
-        premise_ids = [p["premise_id"] for p in plan.get("premises", [])] or None
-        result = self.run_scenario(trial, scenario_id, premise_ids)
+        result = self.run_scenario(trial, scenario_id, None)  # run_scenario(plan, scenario_id) と同じ条件
         for sid, source in trial["sources"].items():
             plan["sources"].setdefault(sid, source)
         return result

@@ -14,7 +14,8 @@ from app.session import PlanSession
 from app.stub_backend import StubBackend, sample_plan
 from tools import plan_model as pm
 
-TEXT = "Aさんは杖ついちゅう。100メートル歩くのに三分くらいかかる。夜は2階で寝ゆう。耳が遠うて、放送は聞こえんがよ。"
+TEXT = ("Aさんは杖ついちゅう。100メートル歩くのに三分くらいかかる。夜は2階で寝ゆう。耳が遠うて、放送は聞こえんがよ。"
+        "避難先は避難タワーにしちゅう。")
 
 
 def make_session(role="redteam"):
@@ -22,6 +23,9 @@ def make_session(role="redteam"):
     pm.register_source(plan, pm.Source(kind="utterance", label="民生委員の発言", text=TEXT, speaker="minsei"), "src_u")
     plan["fields"]["walk_speed"] = pm.FieldValue(value={"text": "100mを3分", "meters": 100, "minutes": 3},
                                                  status="filled", source_id="src_u", quote="100メートル歩くのに三分くらいかかる")
+    # 避難先はテスト用の避難タワーA（遠いほう）。高台B に変えると時間が短縮される
+    plan["fields"]["shelter"] = pm.FieldValue(value={"name": "避難タワー", "shelter_id": "shel_stub_tower"},
+                                              status="filled", source_id="src_u", quote="避難先は避難タワーにしちゅう")
     session = PlanSession(plan=plan, role=role, audit=AuditLog(), backend=StubBackend())
     return session, mcp_inprocess.make_tools(session)
 

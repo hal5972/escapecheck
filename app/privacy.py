@@ -20,9 +20,9 @@ from tools import plan_model as pm
 
 #: Claude に渡さないキー（計画のどの階層にあっても取り除く）
 FORBIDDEN_KEYS = frozenset(
-    {"home", "location", "point", "lat", "lon", "lng", "latitude", "longitude",
+    {"home", "location", "point", "points", "lat", "lon", "lng", "latitude", "longitude",
      "name_real", "real_name", "full_name", "phone", "tel", "telephone", "address", "email"}
-)
+)  # points: 地図で指定した避難経路の座標（fields["route"]["value"]["points"]）
 
 _PATTERNS: list[tuple[str, re.Pattern[str], str]] = [
     ("email", re.compile(r"[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}"), "［メールアドレス］"),

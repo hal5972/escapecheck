@@ -170,9 +170,12 @@ def _check_utterance_quote(plan: pm.Plan, source_id: Any, quote: Any, what: str)
 
 
 def check_set_fields(
-    plan: pm.Plan, items: Any, known_shelter_ids: set[str] | None = None
+    plan: pm.Plan, items: Any, known_shelter_ids: set[str] | None = None, *, from_claude: bool = True
 ) -> list[str]:
-    """plan.set_fields の確認（S-02・AC-02・AC-10）。"""
+    """plan.set_fields の確認（S-02・AC-02・AC-10）。
+
+    from_claude=False は、画面（地図のタップ）が書いた欄を完成のチェックで確認し直すとき。地図の座標の数値を拒否しない。
+    """
     if not isinstance(items, list) or not items:
         return ["items が空です。書き込む欄を1つ以上指定してください"]
     if len(items) > MAX_ITEMS_PER_CALL:
@@ -221,8 +224,8 @@ def check_set_fields(
                 reasons.append(f"値の数値が出典リストの値と一致しません: {field}（{', '.join(missing)}）")
                 continue
         elif kind == "map_tap":
-            if numbers_in_value(value):
-                reasons.append(f"地図の位置の欄に数値は書き込めません: {field}")
+            if from_claude and numbers_in_value(value):
+                reasons.append(f"地図の位置の欄に数値は書き込めません: {field}（地図の位置は画面が書き込みます）")
                 continue
         else:
             reasons.append(f"出典の種類が正しくありません: {field}")
@@ -320,6 +323,9 @@ def _placeholder_hints(missing: list[str], values: dict[str, str | None]) -> str
         hints.append("避難支援者は間に合わないので {supporter_shortage_min} を使ってください")
     if "shelter_name" in missing:
         hints.append("計画の避難先がデータの避難先と結び付いていないため、{shelter_name} は使えません。「避難先」と書いてください")
+    numeric = {"need_min", "avail_min", "margin_min", "shortage_min"}
+    if numeric & set(missing) and all(values.get(n) is None for n in numeric):
+        hints.append("この結果は時間を計算できない種類です（一人では避難できない、声をかける人がいない、など）。数値のプレースホルダーを使わずに説明してください")
     return "。".join(hints)
 
 
@@ -373,8 +379,12 @@ def check_propose_fix(
     args: dict[str, Any],
     result: pm.ScenarioResult | None = None,
     known_shelters: dict[str, pm.Shelter] | None = None,
+    baseline: pm.ScenarioResult | None = None,
 ) -> list[str]:
-    """plan.propose_fix の確認。result（sim.try_fix の結果）を渡すと、効き目と危険な案も確認する（S-03）。"""
+    """plan.propose_fix の確認。result（sim.try_fix の結果）を渡すと、効き目と危険な案も確認する（S-03）。
+
+    baseline は効き目を比べる元の結果（try_fix と同じ条件の run_scenario）。省略すると問題点の結果と比べる。
+    """
     reasons: list[str] = []
     finding = find_finding(plan, args.get("finding_id"))
     if finding is None:
@@ -408,7 +418,7 @@ def check_propose_fix(
     if not reasons and result is not None and finding is not None:
         if result.get("supporter_verdict") == "short":
             reasons.append("この改善案では、避難支援者が間に合わなくなります（出さない案です）")
-        saved = saved_minutes(finding["result"], result)
+        saved = saved_minutes(baseline or finding["result"], result)
         if saved is not None and saved <= 0:
             reasons.append("計算の結果、この改善案では時間が短縮されません")
         if not reasons:
@@ -436,16 +446,11 @@ def check_apply_fix(plan: pm.Plan, fix_id: Any) -> list[str]:
 
 def _field_source_problem(plan: pm.Plan, key: str, field: pm.FieldValue) -> str | None:
     reasons = check_set_fields(
-        plan, [{"field": key, "value": field.get("value"), "source_id": field.get("source_id"), "quote": field.get("quote")}]
+        plan,
+        [{"field": key, "value": field.get("value"), "source_id": field.get("source_id"), "quote": field.get("quote")}],
+        from_claude=False,
     )
     return reasons[0] if reasons else None
-
-
-def scenario_premise_ids(plan: pm.Plan, scenario_id: str) -> list[str] | None:
-    """コードの点検で使う前提条件: S8 は登録したすべての前提条件、それ以外は使わない。"""
-    if scenario_id != "S8":
-        return None
-    return [p["premise_id"] for p in plan.get("premises", [])]
 
 
 def code_issues(plan: pm.Plan, backend: Any = None) -> list[pm.Issue]:
@@ -472,11 +477,11 @@ def code_issues(plan: pm.Plan, backend: Any = None) -> list[pm.Issue]:
                 ))
     if backend is not None:
         for scenario_id, label in pm.SCENARIOS.items():
-            premise_ids = scenario_premise_ids(plan, scenario_id)
-            if scenario_id == "S8" and not premise_ids:
-                continue
+            if scenario_id == "S8" and not plan.get("premises"):
+                continue  # 話の中だけの前提条件が無ければ、S8 は当てはまらない
             try:
-                result = backend.run_scenario(plan, scenario_id, premise_ids)
+                # premise_ids を省略: 登録済みの前提条件をすべて当てはめる（安全側。sim の取り決め）
+                result = backend.run_scenario(plan, scenario_id, None)
             except Exception:  # noqa: BLE001  計算のモジュールの不具合でも、完成にはさせない
                 issues.append(pm.Issue(
                     issue_id=f"chk_error_{scenario_id}", severity="誤り", acknowledged=False,
@@ -532,12 +537,21 @@ def deny_output(reason: str) -> dict[str, Any]:
 
 
 def scenario_result_for(session: PlanSession, scenario_id: str, premise_ids: list[str] | None = None) -> pm.ScenarioResult:
-    """問題点に付ける計算の結果。同じセッションで直前に計算した結果があればそれを使い、無ければ計算する。"""
+    """問題点に付ける計算の結果。同じセッションで直前に計算した結果があればそれを使い、無ければ計算する。
+
+    premise_ids を省略すると、登録済みの前提条件をすべて使う（[] なら使わない。sim の取り決め）。
+    """
     if premise_ids is None and scenario_id in session.last_results:
         return session.last_results[scenario_id]
-    if premise_ids is None:
-        premise_ids = scenario_premise_ids(session.plan, scenario_id)
     return session.backend.run_scenario(session.plan, scenario_id, premise_ids)
+
+
+def fix_baseline(session: PlanSession, finding: pm.Finding) -> pm.ScenarioResult:
+    """改善案の効き目を比べる元の結果。sim.try_fix と同じ条件（登録済みの前提条件をすべて使う）で計算し直す。"""
+    try:
+        return session.backend.run_scenario(session.plan, finding["scenario_id"], None)
+    except ValueError:
+        return finding["result"]
 
 
 def pre_tool_reasons(session: PlanSession, tool_name: str, args: dict[str, Any]) -> list[str]:
@@ -574,7 +588,8 @@ def pre_tool_reasons(session: PlanSession, tool_name: str, args: dict[str, Any])
                 result = session.backend.try_fix(plan, finding["scenario_id"], args["fix_type"], args.get("target_id"))
             except ValueError as exc:  # sim.try_fix は危険な改善案を ValueError で拒否する（S-03）
                 return [f"この改善案は使えません: {exc}"]
-            return check_propose_fix(plan, args, result, session.known_shelters or None)
+            return check_propose_fix(plan, args, result, session.known_shelters or None,
+                                     baseline=fix_baseline(session, finding))
         if label == "plan.apply_fix":
             return check_apply_fix(plan, args.get("fix_id"))
         if label == "plan.finalize":

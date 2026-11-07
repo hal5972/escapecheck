@@ -19,7 +19,7 @@ from app import agents, mcp_inprocess, orchestrator, server
 from app.stub_backend import StubBackend, sample_plan
 
 PASS = "test-passphrase"
-UTTERANCE = "Aさんは杖ついちゅう。夜は2階で寝ゆう。"
+UTTERANCE = "Aさんは杖ついちゅう。夜は2階で寝ゆう。避難先は避難タワーにしちゅう。"
 FAKE_KEY = "sk-ant-api03-" + "z" * 40
 
 
@@ -35,7 +35,9 @@ def fake_runner(session, role, prompt):
         sid = [k for k, s in plan["sources"].items() if s["kind"] == "utterance"][-1]
         call("plan", "set_fields", {"items": [
             {"field": "mobility", "value": "杖を使う", "source_id": sid, "quote": "杖ついちゅう"},
-            {"field": "sleep_place", "value": "2階", "source_id": sid, "quote": "夜は2階で寝ゆう"}]})
+            {"field": "sleep_place", "value": "2階", "source_id": sid, "quote": "夜は2階で寝ゆう"},
+            {"field": "shelter", "value": {"name": "避難タワー", "shelter_id": "shel_stub_tower"}, "source_id": sid,
+             "quote": "避難先は避難タワーにしちゅう"}]})
         return agents.AgentRun(role=role, structured={"next_field": "walk_speed",
                                                        "next_question": "100メートル歩くのに、何分くらいかかりますか。"})
     if role == "redteam":
@@ -189,7 +191,7 @@ class FlowTest(ServerTestCase):
 
         status, _, data = self.request("POST", "/api/interview", {"plan": plan, "utterance": UTTERANCE}, token=token)
         self.assertEqual(status, 200, data)
-        self.assertEqual(sorted(data["changed_fields"]), ["mobility", "sleep_place"])
+        self.assertEqual(sorted(data["changed_fields"]), ["mobility", "shelter", "sleep_place"])
         self.assertEqual(data["next_field"], "walk_speed")
         plan = data["plan"]
 

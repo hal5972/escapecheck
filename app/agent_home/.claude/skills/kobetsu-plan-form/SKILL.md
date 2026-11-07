@@ -22,7 +22,7 @@ description: 個別避難計画の様式の欄の一覧と記載方法。聞き�
 | health_for_evacuation | 避難に関わる心身の状況 | 服薬、医療機器など、避難に必要な箇所だけ | 文字列 |
 | supporters | 避難支援者 | 仮名と続柄（例: 隣のBさん） | 文字列 |
 | support_method | 避難支援の方法 | 声かけ、一緒に避難する、など | 文字列 |
-| shelter | 避難先 | 指定緊急避難場所（市が指定した避難先） | `{"text": "話した名前", "shelter_id": "..."}`。shelter_id は hazard.find_shelters の結果の中で、話した避難先と同じものがあるときだけ入れる |
+| shelter | 避難先 | 指定緊急避難場所（市が指定した避難先） | `{"name": "話した名前", "shelter_id": "..."}`。shelter_id は hazard.find_shelters の結果の中で、話した避難先と同じものが1つに決まるときだけ入れる（決まらなければ name だけ） |
 | route | 避難経路 | 通る道、目印 | 文字列 |
 | contact | 連絡手段 | 電話の種類など。電話番号は書かない | 文字列 |
 | welfare_services | 利用している福祉サービス | デイサービスなど | 文字列 |

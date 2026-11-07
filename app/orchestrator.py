@@ -328,7 +328,7 @@ def recheck(plan: Plan) -> dict[str, pm.ScenarioResult]:
     results: dict[str, pm.ScenarioResult] = {}
     for scenario_id in dict.fromkeys(f["scenario_id"] for f in plan.get("findings", [])):
         try:
-            results[scenario_id] = backend().run_scenario(plan, scenario_id, hooks.scenario_premise_ids(plan, scenario_id))
+            results[scenario_id] = backend().run_scenario(plan, scenario_id, None)  # 登録済みの前提条件をすべて使う
         except (NotImplementedError, ValueError):
             continue
     return results

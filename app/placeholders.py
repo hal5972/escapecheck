@@ -58,7 +58,7 @@ def shelter_text(plan: pm.Plan) -> str | None:
     value = field.get("value")
     if not isinstance(value, dict) or not value.get("shelter_id"):
         return None
-    text = value.get("text")
+    text = value.get("name") or value.get("text")
     return text if isinstance(text, str) and text.strip() else None
 
 
@@ -96,7 +96,11 @@ def placeholder_values(
                 values["supporter_shortage_min"] = str(_ceil(-sup_margin))
     if saved_min is not None and saved_min > 0:
         values["saved_min"] = str(_floor(saved_min))
-    name = shelter_name or (shelter_text(plan) if plan is not None else None)
+    # 避難先の名前: 改善案の対象 → 計算に使った避難先（sim の結果の shelter_name）→ データと結び付いた計画の避難先
+    result_shelter = result.get("shelter_name") if result is not None else None  # type: ignore[union-attr]
+    name = shelter_name or (result_shelter if isinstance(result_shelter, str) and result_shelter.strip() else None)
+    if name is None and plan is not None:
+        name = shelter_text(plan)
     if name:
         values["shelter_name"] = name
     return values

@@ -107,7 +107,7 @@ def apply_fix(plan: pm.Plan, fix_id: str, backend: Any) -> list[str]:
         if shelter is None:
             return ["改善案の避難先が見つかりません。もう一度点検してください"]
         plan["fields"]["shelter"] = pm.FieldValue(
-            value={"text": shelter["name"], "shelter_id": shelter["shelter_id"]},
+            value={"name": shelter["name"], "shelter_id": shelter["shelter_id"]},
             status="filled",
             source_id=shelter["source_id"],
         )
@@ -154,7 +154,7 @@ def make_tools(session: PlanSession) -> dict[str, dict[str, SdkMcpTool[Any]]]:
                         "properties": {
                             "field": {"type": "string", "enum": list(pm.FIELDS)},
                             "value": {"type": ["string", "object", "number"],
-                                      "description": "文字列。walk_speed は {text, meters, minutes}、time_to_leave_day/night は {text, minutes}、shelter は {text, shelter_id}"},
+                                      "description": "文字列。walk_speed は {text, meters, minutes}、time_to_leave_day/night は {text, minutes}、shelter は {name, shelter_id}"},
                             "source_id": {"type": "string"},
                             "quote": {"type": "string", "description": "発言の原文からそのまま抜き出した引用"},
                         },
@@ -312,10 +312,11 @@ def make_tools(session: PlanSession) -> dict[str, dict[str, SdkMcpTool[Any]]]:
                 result = _call_backend(session, "try_fix", plan, finding["scenario_id"], args["fix_type"], args.get("target_id"))
             except ValueError as exc:
                 return _error(f"この改善案は使えません: {exc}")
-            reasons = hooks.check_propose_fix(plan, args, result, known)
+            baseline = hooks.fix_baseline(session, finding)
+            reasons = hooks.check_propose_fix(plan, args, result, known, baseline=baseline)
             if reasons:
                 return _error(reasons)
-            saved = hooks.saved_minutes(finding["result"], result)
+            saved = hooks.saved_minutes(baseline, result)
             name = known[args["target_id"]]["name"] if known and args.get("target_id") in known else None
             values = ph.placeholder_values(result, plan, saved_min=saved, shelter_name=name)
             fix = pm.Fix(
@@ -405,7 +406,8 @@ def make_tools(session: PlanSession) -> dict[str, dict[str, SdkMcpTool[Any]]]:
         session.add_event(scenario_event(scenario_id))
         with session.lock:
             try:
-                result = _call_backend(session, "run_scenario", plan, scenario_id, args.get("premise_ids") or None)
+                # premise_ids を省略すると、登録済みの前提条件をすべて使う（[] なら使わない。sim の取り決め）
+                result = _call_backend(session, "run_scenario", plan, scenario_id, args.get("premise_ids"))
             except ValueError as exc:
                 return _error(f"計算できませんでした: {exc}")
             session.last_results[scenario_id] = result

@@ -94,10 +94,25 @@ class PlaceholderTest(unittest.TestCase):
 
     def test_shelter_name_only_when_linked_to_data(self):
         plan = pm.new_plan("Aさん", "宇佐")
-        plan["fields"]["shelter"] = pm.FieldValue(value={"text": "近くのタワー"}, status="filled", source_id="s", quote="タワー")
+        plan["fields"]["shelter"] = pm.FieldValue(value={"name": "近くのタワー"}, status="filled", source_id="s", quote="タワー")
         self.assertIsNone(ph.placeholder_values(None, plan)["shelter_name"])
         plan["fields"]["shelter"]["value"]["shelter_id"] = "shel_1"
         self.assertEqual(ph.placeholder_values(None, plan)["shelter_name"], "近くのタワー")
+
+    def test_shelter_name_prefers_the_shelter_used_by_the_calculation(self):
+        # sim の結果の shelter_name（計算に使った避難先。S7 で変わる）を、計画の避難先より優先する
+        plan = pm.new_plan("Aさん", "宇佐")
+        plan["fields"]["shelter"] = pm.FieldValue(value={"name": "近くのタワー", "shelter_id": "shel_1"}, status="filled",
+                                                  source_id="s", quote="タワー")
+        result = self.result(20.0, 25.0, 5.0)
+        result["shelter_name"] = "テスト用の高台B"  # type: ignore[typeddict-unknown-key]
+        self.assertEqual(ph.placeholder_values(result, plan)["shelter_name"], "テスト用の高台B")
+
+    def test_route_points_are_not_passed_to_claude(self):
+        plan = pm.new_plan("Aさん", "宇佐")
+        plan["fields"]["route"] = pm.FieldValue(value={"text": "地図で指定", "points": [{"lat": 33.4, "lon": 133.4}]},
+                                                status="filled", source_id="s")
+        self.assertEqual(privacy.find_forbidden_keys(privacy.view_for_claude(plan)), [])
 
     def test_saved_min_only_when_positive(self):
         self.assertIsNone(ph.placeholder_values(None, saved_min=0.0)["saved_min"])
