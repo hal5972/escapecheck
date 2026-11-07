@@ -49,10 +49,18 @@ def run_baseline(plan: pm.Plan) -> tuple[list[dict], list[dict]]:
 
 
 def run_claude(plan: pm.Plan) -> tuple[list[dict], list[dict]]:
+    """orchestrator.redteam_for_eval と同じ処理。改善案（fixes）も数えるため、点検した後の計画から受け取る。"""
     from app import orchestrator
 
-    findings = orchestrator.redteam_for_eval(plan)
-    return findings, list(plan.get("fixes", []))
+    try:
+        from app.session import PlanSession
+
+        session = PlanSession(plan=orchestrator.prepare_for_check(plan), role="redteam", backend=orchestrator.backend())
+        orchestrator.run_redteam(session)
+        return session.plan["findings"], list(session.plan.get("fixes", []))
+    except (ImportError, AttributeError):
+        findings = orchestrator.redteam_for_eval(plan)
+        return findings, list(plan.get("fixes", []))
 
 
 def dangerous_items(findings: list[dict], fixes: list[dict], data: datasets.Dataset) -> list[str]:
