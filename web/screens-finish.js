@@ -272,7 +272,7 @@
           A.setStage(5); // 完成にした。段階の表示も、完成へ進める
           itemSlot.append(h('div', { class: 'card item-card' },
             h('p', { class: 'strong' }, '確認が終わりました。'),
-            h('p', null, '計画を完成にしました。市に出す様式と、本人用の避難カードを印刷できます。')));
+            h('p', null, '計画が完成しました。市に出す様式と、本人用の避難カードを印刷できます。')));
           A.say('確認が終わりました。印刷できます。');
           A.setActions([{ id: 'print', kind: 'confirm', icon: 'print', label: '印刷へ進む', onClick: () => A.go('print') }]);
         } else {

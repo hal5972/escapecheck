@@ -190,7 +190,7 @@ default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' https://
 
 ## 確認の結果と、残った課題
 
-確認した環境: Chrome（アプリ内のブラウザ）、幅 360px と 390px。サンプルデータで、全画面の動作と `audit.js`（11 画面で問題なし）、印刷（headless の Chrome で A4・2 枚）を確認した。
+確認した環境: Chrome（アプリ内のブラウザ）、幅 360px と 390px。サンプルデータで、全画面の動作と `audit.js`（12 画面で問題なし）、印刷（headless の Chrome で A4・2 枚）を確認した。実際のサーバーで、新しい画面を開いて、CSP の違反が出ないことも確認した。
 
 残った課題:
 

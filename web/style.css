@@ -893,7 +893,7 @@ label.field-label-text { display: block; font-weight: 700; margin: var(--sp-3) 0
   display: inline-block; margin: 0 0 6px; padding: 0 12px;
   font-weight: 700; color: var(--ai-900); background: var(--ai-100); border-radius: 999px;
 }
-.fix-title { margin: 0 0 6px; font-size: var(--fs-lg); font-weight: 700; line-height: 1.4; color: var(--ai-900); }
+.fix-title { margin: 0 0 6px; font-size: var(--fs-md); font-weight: 700; line-height: 1.4; color: var(--ai-900); }
 .saved-line { display: flex; align-items: center; gap: 8px; margin: 12px 0 4px; font-size: var(--fs-lg); font-weight: 700; color: var(--ok-ink); }
 .saved-line .ic { color: var(--ok); }
 .fix-card .arrow { display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--ai-700); }

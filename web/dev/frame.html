@@ -21,7 +21,7 @@ const acts={
     tr.textContent='山田さんは一人暮らしで、杖ついちゅう。';
     const s=w.document.createElement('span'); s.className='interim'; s.textContent='夜は1階の奥の部屋で'; tr.appendChild(s);
     w.EC.app.setActions([{id:'talk',kind:'primary',label:'止める',listening:true,onClick(){}},{id:'ok',label:'それでいい',trailing:'chevron-right',disabled:true,onClick(){}}]);
-    badge.scrollIntoView({block:'nearest'}); main.scrollTop+=8;
+    tr.scrollIntoView({block:'end'}); main.scrollTop+=8;
   },
   dialog(w){ w.EC.ui.confirmDialog({title:'計画の削除',danger:true,message:'山田さんの計画を、この端末から消します。元には戻せません。',okLabel:'消す',cancelLabel:'やめる'}); },
   // 音声入力が使えなかったとき: 文字の入力に切り替わり、失敗の表示が出る（実際の流れと同じ）

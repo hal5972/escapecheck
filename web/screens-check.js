@@ -262,7 +262,12 @@
     }
 
     /** 点検の結論の 1 文と、その判定の種類。画面の先頭に、いちばん大事なことを出す。 */
-    function headlineOf(count) {
+    function headlineOf(count, prev) {
+      // 改善のあとは、成果（間に合わないシナリオが減ったこと）から言う
+      if (prev && prev.short > count.short) {
+        const left = count.short > 0;
+        return { key: left ? 'short' : (count.tight > 0 ? 'tight' : 'ok'), text: `間に合わないシナリオは、${prev.short}つから${count.short}つになりました。` };
+      }
       if (count.short > 0) return { key: 'short', text: `${count.short}つのシナリオで、間に合いません。` };
       if (count.tight > 0) return { key: 'tight', text: `${count.tight}つのシナリオは、余裕が少ないです。` };
       if (count.unknown > 0) return { key: 'unknown', text: `${count.unknown}つのシナリオは、計算できません。` };
@@ -281,14 +286,14 @@
         h('span', { class: 'mark', 'aria-hidden': 'true' }, EC.verdictIcon(key, 22), h('span', { class: 'mark-char' }, mark)),
         h('span', { class: 'count-label' }, label),
         h('span', { class: 'count-num' }, changed && prev[key] !== count[key] ? `${prev[key]} → ${count[key]}` : String(count[key])));
-      const head = headlineOf(count);
+      const head = headlineOf(count, prev);
       const box = h('div', { class: 'card summary-card' },
         h('div', { class: `verdict verdict-${head.key} headline` },
           h('span', { class: 'mark', 'aria-hidden': 'true' }, EC.verdictIcon(head.key, 26)),
           h('span', { class: 'vtext' }, head.text)),
         row('short', '×', '間に合わない'), row('tight', '△', '余裕が少ない'), row('ok', '○', '間に合う'),
         count.unknown ? row('unknown', '？', '計算できない') : null,
-        h('p', { class: 'sub' }, `厳しい条件で点検した、${findings.length}つのシナリオの結果です。${changed ? '数字の矢印は、前回の点検からの変化です。' : ''}`),
+        changed ? h('p', { class: 'sub' }, '数字の矢印は、前回の点検からの変化です。') : null,
         blockedOne ? h('p', null, `計画の避難先（${currentShelterName(plan, T)}）には上がれないため、点検は、${blockedOne.result.shelter_name || '別の避難先'}で計算しています。`) : null);
       if (findings.length && count.short === findings.length) {
         // E5: すべてのシナリオで間に合わない
@@ -599,7 +604,7 @@
           // いちばん先に、案の名前と、いまの判定 → この案にしたときの判定を見せる。説明は、そのあと
           h('p', { class: 'fix-count' }, `案 ${index + 1}／${fixes.length}`),
           h('p', { class: 'fix-title' }, title),
-          h('p', { class: 'sub' }, `いまの点検の結果: ${ui.scenarioTitle(plan, finding)}`),
+          h('p', { class: 'sub' }, `${ui.scenarioTitle(plan, finding)}の点検`),
           ui.verdictBadge(wr),
           h('p', { class: 'arrow' }, EC.icon('arrow-down', { size: 24 }), 'この案にすると'),
           ui.verdictBadge(worstResult(fix.result)),

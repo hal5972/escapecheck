@@ -81,7 +81,7 @@
 
     // 画面では閉じておく（印刷では、print.css が開く）。押すと開く
     const body = h('div', { class: 'sheet-body', hidden: true }, h('table', { class: 'sheet-table' }, tbody));
-    const toggle = h('button', { type: 'button', class: 'btn-row sheet-toggle', 'aria-expanded': 'false' }, '市に出す様式の中身を見る');
+    const toggle = h('button', { type: 'button', class: 'btn-row sheet-toggle', 'aria-expanded': 'false' }, '様式の中身を見る（A4・1枚）');
     toggle.addEventListener('click', () => {
       const open = toggle.getAttribute('aria-expanded') === 'true';
       toggle.setAttribute('aria-expanded', open ? 'false' : 'true');
@@ -89,7 +89,6 @@
     });
     const sheet = h('section', { class: 'sheet sheet-form' },
       h('h2', { class: 'sheet-title' }, '1枚目: 個別避難計画（市に出す様式の項目）'),
-      h('p', { class: 'sub screen-only' }, 'A4・1枚。市の様式に合わせた項目です。'),
       toggle, body);
 
     // 点検の結果
