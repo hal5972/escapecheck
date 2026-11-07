@@ -266,7 +266,11 @@
       // 改善のあとは、成果（間に合わないシナリオが減ったこと）から言う
       if (prev && prev.short > count.short) {
         const left = count.short > 0;
-        return { key: left ? 'short' : (count.tight > 0 ? 'tight' : 'ok'), text: `間に合わないシナリオは、${prev.short}つから${count.short}つになりました。` };
+        // 0 のときは「0つ」と書かない
+        const text = left
+          ? `間に合わないシナリオは、${prev.short}つから${count.short}つになりました。`
+          : `${prev.short}つあった間に合わないシナリオは、なくなりました。`;
+        return { key: left ? 'short' : (count.tight > 0 ? 'tight' : 'ok'), text };
       }
       if (count.short > 0) return { key: 'short', text: `${count.short}つのシナリオで、間に合いません。` };
       if (count.tight > 0) return { key: 'tight', text: `${count.tight}つのシナリオは、余裕が少ないです。` };
