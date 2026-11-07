@@ -18,6 +18,9 @@
     }
 
 出典 ID: 紙の様式は "src_form"、話は "utt_<id>"。引用（quote）は出典の原文にそのまま含まれることを確認する（フックと同じ規則）。
+
+names（省略可）: {"Aさん": ["山田さん", "山田"], ...}。話（talk）は話したとおりに名前を含めて記載し、計画を作るときに、
+話・引用・欄の文字列の値の名前を仮名に置き換える（R-02。画面は端末の中で名前に戻す）。長い言い方から順に置き換える。
 """
 
 from __future__ import annotations
@@ -45,10 +48,33 @@ def _value_text(value: object) -> str:
     return str(value)
 
 
+def pseudonymizer(names: dict[str, list[str]] | None):
+    """名前の言い方を仮名に置き換える関数を返す（長い言い方から順に置き換える）。"""
+    pairs = sorted(((variant, alias) for alias, variants in (names or {}).items() for variant in variants if variant),
+                   key=lambda pair: -len(pair[0]))
+
+    def apply(value):
+        if not isinstance(value, str):
+            return value
+        for variant, alias in pairs:
+            value = value.replace(variant, alias)
+        return value
+
+    return apply
+
+
 def build_plan(case: dict) -> pm.Plan:
     """ケースファイルの内容から計画を作成する。引用が原文に無いときは CaseError。"""
     if case.get("fictional") is not True:
         raise CaseError(f"{case.get('case_id')}: 架空の人物であること（fictional: true）が必要です")
+    alias_of = pseudonymizer(case.get("names"))
+    case = {
+        **case,
+        "talk": [{**u, "text": alias_of(u["text"])} for u in case.get("talk", [])],
+        "form": {k: {**spec, "value": alias_of(spec["value"]), **({"quote": alias_of(spec["quote"])} if spec.get("quote") else {})}
+                 for k, spec in case.get("form", {}).items()},
+        "premises": [{**p, "quote": alias_of(p["quote"])} for p in case.get("premises", [])],
+    }
     plan = pm.new_plan(case.get("alias", "Aさん"), case.get("area_label", ""))
     plan["plan_id"] = f"plan_{case['case_id']}"
     if case.get("home"):

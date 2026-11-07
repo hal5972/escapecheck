@@ -208,8 +208,10 @@ def build_sample_plans() -> list[str]:
         case = casefile.load_case(path)
         plan = casefile.build_plan(case)
         out = path.with_name(f"{path.stem}.plan.json")
+        # plan は仮名だけ（Claude に送る形）。talk（話したとおりの文）と names（仮名 → 名前）は、端末の中で使う
         payload = {"fictional": True, "note": case.get("note", ""), "title": case.get("title", ""),
-                   "person": case.get("person", {}), "talk": case.get("talk", []), "plan": plan}
+                   "person": case.get("person", {}), "names": case.get("names", {}), "talk": case.get("talk", []),
+                   "plan": plan}
         out.write_text(json.dumps(payload, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
         written.append(out.name)
     return written

@@ -64,6 +64,40 @@ class DatasetIntegrityTest(unittest.TestCase):
             self.assertTrue(case["forbidden"])
 
 
+class SampleDataTest(unittest.TestCase):
+    """デモ用の架空の人物のサンプルデータ: 架空と明記し、計画には仮名だけが入る（R-02）。"""
+
+    def samples(self):
+        paths = sorted(p for p in (ROOT / "data" / "samples").glob("*.json") if not p.stem.endswith(".plan"))
+        return [json.loads(p.read_text(encoding="utf-8")) for p in paths]
+
+    def test_three_fictional_people(self):
+        samples = self.samples()
+        self.assertEqual(sorted(s["case_id"] for s in samples), ["okabayashi", "takemura", "yamada"])
+        for sample in samples:
+            self.assertIs(sample["fictional"], True)
+            self.assertIn("架空", sample["note"])
+
+    def test_names_are_replaced_by_aliases_in_the_plan(self):
+        for sample in self.samples():
+            with self.subTest(sample=sample["case_id"]):
+                plan = casefile.build_plan(sample)
+                texts = json.dumps(pm.for_claude(plan), ensure_ascii=False)
+                for alias, variants in sample["names"].items():
+                    for name in variants:
+                        self.assertNotIn(name, texts)
+                    self.assertIn(alias, texts)
+
+    def test_supporter_facts_come_from_the_talk(self):
+        # 避難支援者の昼・夜の在宅は、話に根拠がある（検証エージェントの指摘への対応）
+        for sample in self.samples():
+            plan = casefile.build_plan(sample)
+            for supporter in plan["supporters"]:
+                with self.subTest(sample=sample["case_id"], supporter=supporter["alias"]):
+                    source = plan["sources"][supporter["source_id"]]["text"]
+                    self.assertTrue(any(word in source for word in ("昼も夜も", "いつも家")))
+
+
 class CasefileTest(unittest.TestCase):
     def base_case(self):
         return {"case_id": "t", "fictional": True, "talk": [{"id": "t1", "speaker": "minsei", "text": "杖ついちゅう"}],
