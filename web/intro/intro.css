@@ -1,0 +1,144 @@
+/*
+ * 「はじめに」のアニメーション（約30秒）。素の SVG と CSS の @keyframes だけで作成している。
+ * 場面の長さは --d1〜--d5 を変えると、後ろの場面の開始時刻も合わせて動く。
+ *   ① 宇佐の海辺の町  ② 地震と、津波が来るまでの時計  ③ 紙の様式を前に悩む民生委員
+ *   ④ 「夜中に、本当に間に合う？」  ⑤ 話す・点検する・改善する → アプリへ
+ */
+
+:root {
+  --d1: 5s;
+  --d2: 7s;
+  --d3: 7s;
+  --d4: 3.5s;
+  --d5: 5.5s;
+  --t1: 0s;
+  --t2: calc(var(--t1) + var(--d1));
+  --t3: calc(var(--t2) + var(--d2));
+  --t4: calc(var(--t3) + var(--d3));
+  --t5: calc(var(--t4) + var(--d4));
+  --total: calc(var(--t5) + var(--d5));
+}
+
+/* --- 共通の動き ------------------------------------------------------------ */
+
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fade-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes cap-in { from { opacity: 0; transform: translateY(1.2cqw); } to { opacity: 1; transform: none; } }
+@keyframes cap-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes drift-160 { from { transform: translateX(0); } to { transform: translateX(-160px); } }
+@keyframes bob { from { transform: translateY(-4px); } to { transform: translateY(5px); } }
+@keyframes cloud-drift { from { transform: translateX(-30px); } to { transform: translateX(70px); } }
+
+.stage * { transform-box: fill-box; }
+.stage text { font-family: var(--font); font-weight: 700; }
+
+/* --- 家の色（<use> に渡す） ---------------------------------------------------- */
+
+.wall-f { fill: var(--wf, #f6f1e7); }
+.wall-s { fill: var(--ws, #d9d0bd); }
+.wall-g { fill: var(--wg, #ebe3d2); }
+.roof { fill: var(--rf, #56626f); }
+.roof-s { fill: var(--rs, #46515c); }
+.eave { fill: rgba(0, 0, 0, 0.16); }
+.door { fill: #7b5b3b; }
+.win { fill: var(--win, #bde1f1); }
+.hv1 { --wf: #f6f1e7; --ws: #d8cfbc; --wg: #e8dfcd; --rf: #53606e; --rs: #444f5b; }
+.hv2 { --wf: #efe3cf; --ws: #d2c3a8; --wg: #e2d4ba; --rf: #94503f; --rs: #7d4132; }
+.hv3 { --wf: #e9eef0; --ws: #c9d2d6; --wg: #dbe3e6; --rf: #3f4b57; --rs: #323d47; }
+.hv4 { --wf: #f4ead4; --ws: #d9c9a3; --wg: #e8dcc0; --rf: #6f594a; --rs: #5c493c; }
+symbol { overflow: visible; }
+
+/* --- ① 宇佐の海辺の町 -------------------------------------------------------- */
+
+#town { transform-origin: 50% 60%; animation: push-in var(--d1) ease-out var(--t1) both; }
+@keyframes push-in { from { transform: scale(1.07); } to { transform: scale(1); } }
+
+.wave-row.w1 { animation: drift-160 9s linear infinite; }
+.wave-row.w2 { animation: drift-160 7s linear infinite reverse; }
+.wave-row.w3 { animation: drift-160 8s linear infinite; }
+.wave-row.w4 { animation: drift-160 6s linear infinite reverse; }
+.boat.b1 { animation: bob 3.6s ease-in-out infinite alternate; }
+.boat.b2 { animation: bob 4.2s ease-in-out -1.2s infinite alternate; }
+.boat.b3 { animation: bob 3.2s ease-in-out -2s infinite alternate; }
+.cloud.c1 { animation: cloud-drift 18s ease-in-out infinite alternate; }
+.cloud.c2 { animation: cloud-drift 22s ease-in-out -6s infinite alternate-reverse; }
+.cloud.c3 { animation: cloud-drift 16s ease-in-out -3s infinite alternate; }
+
+/* --- ③ 紙の様式を前に悩む民生委員 ------------------------------------------------ */
+
+#room { animation: fade-in 0.9s ease-out calc(var(--t3) - 0.3s) both, fade-out 0.9s ease-in calc(var(--t4) - 0.2s) forwards; }
+#paper-form { animation: fade-in 0.7s ease-out calc(var(--t3) + 0.5s) both; }
+#paper-map { animation: fade-in 0.7s ease-out calc(var(--t3) + 1s) both; }
+#head { transform-origin: 50% 100%; animation: sway 3.6s ease-in-out calc(var(--t3) + 1s) infinite alternate both; }
+@keyframes sway { from { transform: rotate(-4deg); } to { transform: rotate(3deg); } }
+.qm { opacity: 0; }
+.qm.q1 { animation: q-float 3.2s ease-out calc(var(--t3) + 1.6s) infinite; }
+.qm.q2 { animation: q-float 3.2s ease-out calc(var(--t3) + 2.4s) infinite; }
+.qm.q3 { animation: q-float 3.2s ease-out calc(var(--t3) + 3.2s) infinite; }
+@keyframes q-float {
+  0%   { opacity: 0; transform: translateY(24px); }
+  20%  { opacity: 1; }
+  75%  { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-44px); }
+}
+.steam { opacity: 0; animation: steam 3s ease-out infinite; }
+.steam.s2 { animation-delay: -1.4s; }
+@keyframes steam { 0% { opacity: 0; transform: translateY(14px); } 30% { opacity: 0.85; } 100% { opacity: 0; transform: translateY(-20px); } }
+
+/* ④ 夜（②のあと、③の部屋が消えるときに町が夜になる） */
+#sky-night { opacity: 0; animation: fade-in 1.6s ease-in-out calc(var(--t4) - 0.2s) both; }
+#night { opacity: 0; animation: night-to 1.6s ease-in-out calc(var(--t4) - 0.2s) both; }
+@keyframes night-to { from { opacity: 0; } to { opacity: 0.58; } }
+
+/* --- ② 地震と、津波が来るまでの時計 --------------------------------------------- */
+
+#town-shake { animation: shake 2.4s linear calc(var(--t2) + 0.3s) both; }
+@keyframes shake {
+  0%   { transform: translate(0, 0); }
+  8%   { transform: translate(-16px, 4px); }
+  18%  { transform: translate(14px, -5px); }
+  28%  { transform: translate(-12px, 4px); }
+  40%  { transform: translate(10px, -3px); }
+  52%  { transform: translate(-8px, 3px); }
+  64%  { transform: translate(6px, -2px); }
+  76%  { transform: translate(-4px, 1px); }
+  88%  { transform: translate(2px, 0); }
+  100% { transform: translate(0, 0); }
+}
+
+#quake-tag { animation: pop 0.5s ease-out calc(var(--t2) + 0.3s) both, fade-out 0.6s ease-in calc(var(--t2) + 3.2s) forwards; }
+@keyframes pop {
+  from { opacity: 0; transform: scale(0.7); }
+  70%  { transform: scale(1.04); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+#sun { animation: fade-out 1.6s ease-out calc(var(--t2) + 0.5s) forwards; }
+#clouds { animation: fade-in-half 1.6s ease-out calc(var(--t2) + 0.5s) both; }
+@keyframes fade-in-half { from { opacity: 1; } to { opacity: 0.45; } }
+#dim { opacity: 0; animation: dim-to 2s ease-out calc(var(--t2) + 0.6s) both; }
+@keyframes dim-to { from { opacity: 0; } to { opacity: 0.2; } }
+
+#wave { transform-origin: 50% 0; animation: wave-run calc(var(--d2) - 1.2s) ease-in calc(var(--t2) + 0.9s) both; }
+@keyframes wave-run {
+  from { opacity: 0; transform: translateY(-14px) scaleY(0.25); }
+  10%  { opacity: 1; }
+  to   { opacity: 1; transform: translateY(196px) scaleY(1.15); }
+}
+
+#clock-ui { animation: fade-in 0.6s ease-out calc(var(--t2) + 0.6s) both, fade-out 0.6s ease-in calc(var(--t3) - 0.5s) forwards; }
+#clock-face, #clock-label { animation: pop 0.8s ease-out calc(var(--t2) + 0.6s) both; }
+#clock-face { animation: pop 0.8s ease-out calc(var(--t2) + 0.6s) both, pulse 0.8s ease-in-out calc(var(--t2) + 4.8s) 3 alternate; }
+@keyframes pulse { from { transform: scale(1); } to { transform: scale(1.05); } }
+#sector { animation: sector-run 5.2s linear calc(var(--t2) + 1.4s) both; }
+@keyframes sector-run { from { stroke-dasharray: 300 360; } to { stroke-dasharray: 22 360; } }
+#hand { transform-origin: 50% 100%; animation: hand-run 5.2s linear calc(var(--t2) + 1.4s) both; }
+@keyframes hand-run { from { transform: rotate(300deg); } to { transform: rotate(22deg); } }
+
+/* --- 場面の文 --------------------------------------------------------------- */
+
+.cap-1 { left: 4cqw; top: 3.2cqw; animation: cap-in 0.8s ease-out calc(var(--t1) + 0.8s) both, cap-out 0.5s ease-in calc(var(--t2) - 0.5s) forwards; }
+.cap-2 { left: 4cqw; top: 3.2cqw; max-width: 62cqw; animation: cap-in 0.8s ease-out calc(var(--t2) + 0.9s) both, cap-out 0.5s ease-in calc(var(--t3) - 0.6s) forwards; }
+.cap-2 strong { color: #a81f17; }
+.note-2 { left: 4cqw; top: 17cqw; max-width: 62cqw; animation: cap-in 0.8s ease-out calc(var(--t2) + 1.6s) both, cap-out 0.5s ease-in calc(var(--t3) - 0.6s) forwards; }
+.cap-3 { left: 4cqw; top: 3.2cqw; max-width: 66cqw; animation: cap-in 0.8s ease-out calc(var(--t3) + 0.7s) both, cap-out 0.5s ease-in calc(var(--t4) - 0.5s) forwards; }

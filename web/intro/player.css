@@ -1,0 +1,170 @@
+/*
+ * 説明のアニメーション（はじめに・仕組み）の再生画面。2つのページで共通。
+ * - 16:9 の枠（1920×1080）。下の約15%は字幕を入れるために空ける
+ * - 置くボタンは「再生・一時停止」と「最初から」の2つ（高さ 64px 以上、文字 24px 以上）
+ * - ?rec を付けると、ボタンを隠して枠だけを表示する（画面録画用）
+ * - インラインの script と style 属性は使わない（CSP）
+ */
+
+:root {
+  --navy: #0e2b52;
+  --blue: #0a4a98;
+  --focus: #ffb300;
+  --page: #0a1428;
+  --font: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Yu Gothic", "Meiryo", "Noto Sans JP", sans-serif;
+  --controls-h: 6.4rem;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  /* 24px 以上。利用者がブラウザの文字を大きくしているときは、それに従う */
+  font-size: max(24px, 100%);
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--page);
+  color: #fff;
+  font-family: var(--font);
+  line-height: 1.6;
+  word-break: auto-phrase;
+  line-break: strict;
+  overflow-wrap: anywhere;
+}
+
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+:focus-visible { outline: 5px solid var(--focus); outline-offset: 3px; }
+
+/* --- 枠 ------------------------------------------------------------------ */
+
+.player {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.frame {
+  position: relative;
+  flex: none;
+  width: min(100vw, calc((100vh - var(--controls-h)) * 16 / 9));
+  width: min(100vw, calc((100dvh - var(--controls-h)) * 16 / 9));
+  aspect-ratio: 16 / 9;
+  container-type: inline-size;
+  background: #000;
+}
+
+.stage { display: block; width: 100%; height: 100%; }
+
+/* 経過時間を測るための、見えない要素（長さは各ページの --total） */
+.clock {
+  position: absolute; left: 0; top: 0; width: 1px; height: 1px; opacity: 0; pointer-events: none;
+  animation: clock var(--total) linear both;
+}
+@keyframes clock { from { transform: translateX(0); } to { transform: translateX(1px); } }
+
+/* --- 場面の文（1場面に1文）。枠の中の上側に置く。下の約15%は字幕のために空ける ----------- */
+
+.caps { position: absolute; inset: 0; pointer-events: none; }
+
+.cap {
+  position: absolute;
+  margin: 0;
+  padding: 0.5em 0.9em;
+  max-width: 68cqw;
+  font-size: 3.1cqw;
+  font-weight: 700;
+  line-height: 1.5;
+  color: var(--navy);
+  background: #fff;
+  border: 0.12em solid var(--navy);
+  border-radius: 0.45em;
+  box-shadow: 0 0.18em 0 rgba(10, 20, 40, 0.28);
+  opacity: 0;
+}
+.cap-note {
+  position: absolute;
+  margin: 0;
+  padding: 0.35em 0.8em;
+  max-width: 68cqw;
+  font-size: 1.75cqw;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--navy);
+  background: rgba(255, 255, 255, 0.94);
+  border-radius: 0.4em;
+  opacity: 0;
+}
+
+/* --- ボタン ----------------------------------------------------------------- */
+
+.controls {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 14px 18px;
+  width: 100%;
+  min-height: var(--controls-h);
+  padding: 12px 16px;
+}
+
+.btn {
+  min-width: 9.5rem;
+  min-height: 64px;
+  padding: 0 24px;
+  font: inherit;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--navy);
+  background: #fff;
+  border: 3px solid #fff;
+  border-radius: 14px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+.btn-sub { color: #fff; background: transparent; }
+.btn[hidden] { display: none; }
+
+.time {
+  min-width: 6.5rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  color: #d6e2f5;
+}
+
+/* --- 画面録画用（?rec）: ボタンを隠し、枠を画面いっぱいに表示する ------------------------ */
+
+body.rec { --controls-h: 0px; cursor: none; background: #000; }
+body.rec .player { justify-content: center; }
+body.rec .controls { display: none; }
+
+/* --- 幅の狭い画面（スマートフォン）: 場面の文を枠の下に、大きな文字で表示する ---------------- */
+
+@media (max-width: 800px) {
+  body:not(.rec) .frame { width: 100vw; margin-bottom: 9.5rem; container-type: normal; }
+  body:not(.rec) .caps { inset: 100% 0 auto 0; padding: 12px 16px; }
+  body:not(.rec) .cap,
+  body:not(.rec) .cap-note {
+    left: 16px; right: 16px; top: 12px; max-width: none;
+    font-size: 1.05rem; color: #fff; background: none; border: 0; box-shadow: none; padding: 0;
+  }
+  body:not(.rec) .cap-note { top: 5.6rem; font-size: 0.85rem; font-weight: 500; color: #d6e2f5; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn { transition: none; }
+}
