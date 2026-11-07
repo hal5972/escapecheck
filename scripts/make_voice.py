@@ -1,18 +1,21 @@
 """合成音声（ElevenLabs の音声合成）で、アプリの決まった文の音声と、動画用の音声を作る。
 
 使い方（API キーは環境変数 ELEVENLABS_API_KEY から読む。画面にもログにも出さない）:
-  python scripts/make_voice.py models                          # 使えるモデルの ID を表示する
-  python scripts/make_voice.py questions --voice <声の ID>      # アプリの決まった文の音声 → web/audio/
-  python scripts/make_voice.py sample yamada --voice <声の ID>  # サンプルの発言（架空）の音声 → video/voice/yamada/
-  python scripts/make_voice.py lines <文の一覧.txt> --voice <声の ID> --out video/voice/narration  # 1行を1つの音声に
-  --dry-run を付けると、送る文を表示するだけで、API は呼ばない
+  python scripts/make_voice.py models                                        # 使えるモデルの ID を表示する
+  python scripts/make_voice.py questions --voice <声の ID>                    # アプリの決まった文の音声 → web/audio/
+  python scripts/make_voice.py lines <台本.md> --voice <声の ID> --out <フォルダ>  # 台本の1行を1つの音声に（01.wav…）
+  --dry-run を付けると、送る文を表示するだけで、API は呼ばない。--limit 1 で、最初の1件だけを作る（声の試し）
 
+- 合成音声に送るのは、読み（ひらがな）の文だけにする。漢字は読み誤りがあるため。外来語はカタカナでよい。
+  漢字・数字・英字が残っている読みがあれば、作らずに止める
+- 台本は Markdown の表で、見出しに「表示の文」と「読み」の列を持つ。表示の文は画面と字幕に出す文、読みは合成音声に送る文。
+  「#」の列があれば、その番号を音声のファイル名にする。「確認」の列に「要確認」とある行は、音声を作らない。
+  アプリの決まった文の台本は scripts/voice_app.md。アプリの文が台本に無ければ、作らずに止める
 - 送る文は、アプリの決まった文と、架空の人物の文だけにする（実在の人の情報を送らない）
-- 声は、ElevenLabs の Voice Design で作った架空の声を使う（実在の人の声を複製しない）
-- 読み上げで誤りやすい語（何分、間に合う、地名）は、送る前に読み仮名に置き換える（web/readings.json。無ければ既定の一覧）
-- 音声のファイル（web/audio/、video/）はリポジトリに入れない（.gitignore で除外）
+- 声は、ElevenLabs の音声ライブラリで共有されている声を使う。実在の人の声を、こちらで複製しない
+- 音声のファイル（web/audio/、動画の素材）はリポジトリに入れない（.gitignore で除外）
 - 画面は web/audio/manifest.json を読み、表示している文と同じ文の音声があるときだけ再生する。無ければブラウザの読み上げで読む。
-  文を直したら、このスクリプトで作り直す（文が変わった物だけを作る）
+  文を直したら、台本の表示の文と読みも直して、このスクリプトで作り直す（文・読み・声の設定が変わった物だけを作る）
 """
 
 from __future__ import annotations
@@ -22,19 +25,23 @@ import ast
 import hashlib
 import json
 import os
+import re
 import sys
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
-from typing import Callable
+from typing import Callable, NamedTuple
 
 ROOT = Path(__file__).resolve().parents[1]
 API = "https://api.elevenlabs.io"
 KEY_ENV = "ELEVENLABS_API_KEY"
 DEFAULT_MODEL = "eleven_v4"
-OUTPUT_FORMAT = "wav_24000"  # 44.1kHz の WAV は上位の契約が必要
+DEFAULT_FORMAT = "wav_24000"  # 44.1kHz の WAV は上位の契約が必要
+DEFAULT_STABILITY = 0.5  # ElevenLabs のサイトの既定と同じ（依頼者が試した設定）
+DEFAULT_SIMILARITY = 0.75
+APP_SCRIPT = ROOT / "scripts" / "voice_app.md"
 MANIFEST = "manifest.json"
 
 #: 画面の決まった文（web/ の文と同じにする。違うと、画面は合成音声を使わず、ブラウザの読み上げで読む）
@@ -43,8 +50,8 @@ SCREEN_TEXTS = [
     "聞き取りは、ひととおり終わりました。「それでいい」を押すと、点検します。",  # 聞き取りの終わり
 ]
 
-#: 読み上げで誤りやすい語の読み（web/readings.json が無いときに使う）
-DEFAULT_READINGS = {"何分": "なんぷん", "間に合": "まにあ"}
+#: 読みに残っていてはいけない文字（漢字、数字、英字）
+NOT_KANA = re.compile(r"[㐀-䶿一-鿿豈-﫿々〆0-9０-９A-Za-zＡ-Ｚａ-ｚ]")
 
 
 class VoiceError(RuntimeError):
@@ -52,41 +59,67 @@ class VoiceError(RuntimeError):
 
 
 # ---------------------------------------------------------------------------
-# 送る文
+# 台本
 # ---------------------------------------------------------------------------
 
 
-def load_readings(path: Path | None = None) -> dict[str, str]:
-    """読み仮名の一覧（書き方 → 読み）。画面と同じ web/readings.json を読む。ファイルが無ければ既定の一覧。
+class Line(NamedTuple):
+    """台本の1行。"""
 
-    形は {"readings": [{"text": "書き方", "reading": "読み"}, ...]}（画面の web/speech.js と同じ）。
-    {"書き方": "読み"} の形も読める。
+    number: str  # 「#」の列の値（無ければ表の順の番号）。音声のファイル名に使う
+    text: str  # 表示の文（画面と字幕に出す文）
+    speech: str  # 読み（合成音声に送る文）
+    pending: bool  # 「確認」の列が「要確認」（確認するまで音声を作らない）
+
+
+def read_script(path: Path) -> list[Line]:
+    """台本（Markdown の表）の行を、表の順に読む。
+
+    見出しの行に「表示の文」と「読み」の列がある表だけを読む。「#」の列があれば、その値を音声のファイル名にする
+    （行を足したり、要確認の行を飛ばしたりしても、ほかの行のファイル名が変わらないように）。
+    「確認」の列に「要確認」とある行は、pending にする。セルの中に | は書けない。
     """
-    path = path or ROOT / "web" / "readings.json"
     if not path.exists():
-        return dict(DEFAULT_READINGS)
-    data = json.loads(path.read_text(encoding="utf-8"))
-    bad = VoiceError(f'{path.name} の形が正しくありません（{{"readings": [{{"text": "書き方", "reading": "読み"}}]}} の形にしてください）')
-    if isinstance(data, dict) and isinstance(data.get("readings"), list):
-        out: dict[str, str] = {}
-        for item in data["readings"]:
-            if not (isinstance(item, dict) and isinstance(item.get("text"), str) and item["text"]
-                    and isinstance(item.get("reading"), str)):
-                raise bad
-            out[item["text"]] = item["reading"]
-        return out
-    if isinstance(data, dict) and all(isinstance(k, str) and isinstance(v, str) and k and not k.startswith("_")
-                                      for k, v in data.items()):
-        return data
-    raise bad
+        raise VoiceError(f"台本が見つかりません: {path}")
+    rows: list[Line] = []
+    cols: dict[str, int] | None = None
+    for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+        s = line.strip()
+        if not s.startswith("|"):
+            cols = None  # 表の外
+            continue
+        cells = [c.strip() for c in s.strip("|").split("|")]
+        if cols is None:
+            if "表示の文" in cells and "読み" in cells:
+                cols = {name: cells.index(name) for name in ("#", "表示の文", "読み", "確認") if name in cells}
+            continue
+        if all(c and set(c) <= set("-: ") for c in cells):  # 見出しの下の区切りの行
+            continue
+        if max(cols.values()) >= len(cells):
+            raise VoiceError(f"{path.name} の {number} 行目: 列の数が見出しと合いません")
+        text, speech = cells[cols["表示の文"]], cells[cols["読み"]]
+        if not text and not speech:
+            continue
+        if not (text and speech):
+            raise VoiceError(f"{path.name} の {number} 行目: 表示の文か読みが空です")
+        num = cells[cols["#"]] if "#" in cols else str(len(rows) + 1)
+        if not re.fullmatch(r"[0-9A-Za-z_-]{1,20}", num):
+            raise VoiceError(f"{path.name} の {number} 行目: 「#」の列は、数字か英字にしてください")
+        pending = "確認" in cols and "要確認" in cells[cols["確認"]]
+        rows.append(Line(num, text, speech, pending))
+    if not rows:
+        raise VoiceError(f"{path.name} に、「表示の文」と「読み」の列がある表がありません")
+    numbers = [r.number for r in rows]
+    if len(numbers) != len(set(numbers)):
+        raise VoiceError(f"{path.name}: 「#」の列に、同じ番号があります")
+    return rows
 
 
-def to_speech(text: str, readings: dict[str, str]) -> str:
-    """読み上げに渡す文にする。長い語から順に読み仮名に置き換える（画面の表示は変えない）。"""
-    out = text
-    for word in sorted(readings, key=len, reverse=True):
-        out = out.replace(word, readings[word])
-    return out
+def check_speech(speech: str) -> None:
+    """読みに漢字・数字・英字が残っていれば止める（読み誤りを防ぐため、送る文はひらがなとカタカナだけにする）。"""
+    bad = "".join(sorted(set(NOT_KANA.findall(speech))))
+    if bad:
+        raise VoiceError(f"読みに漢字・数字・英字が残っています（{bad}）: {speech}")
 
 
 def question_templates(path: Path | None = None) -> dict[str, str]:
@@ -129,13 +162,30 @@ def app_texts() -> list[str]:
     return unique(texts)
 
 
-def hashed_name(text: str) -> str:
+def app_items(script: Path, ext: str) -> list[tuple[str, str, str]]:
+    """アプリの決まった文の（表示の文, 読み, ファイル名）。台本に無い文（要確認の行を含む）があれば、すべて挙げて止める。"""
+    speeches = {r.text: r.speech for r in read_script(script) if not r.pending}
+    missing = [t for t in app_texts() if t not in speeches]
+    if missing:
+        raise VoiceError(f"{script.name} に読みが無い文があります（表示の文を、画面の文と同じにしてください）:\n"
+                         + "\n".join(f"  {t}" for t in missing))
+    return [(t, speeches[t], hashed_name(t, ext)) for t in app_texts()]
+
+
+def line_items(rows: list[Line], ext: str) -> tuple[list[tuple[str, str, str]], list[Line]]:
+    """台本の行の（表示の文, 読み, ファイル名）と、要確認のため作らない行。"""
+    names = [(r.number.zfill(2) if r.number.isdigit() else r.number) + ext for r in rows]
+    items = [(r.text, r.speech, name) for r, name in zip(rows, names) if not r.pending]
+    return items, [r for r in rows if r.pending]
+
+
+def hashed_name(text: str, ext: str = ".wav") -> str:
     """文から決まるファイル名（同じ文なら同じ名前）。"""
-    return "v_" + hashlib.sha256(text.encode("utf-8")).hexdigest()[:16] + ".wav"
+    return "v_" + hashlib.sha256(text.encode("utf-8")).hexdigest()[:16] + ext
 
 
-def numbered_names(texts: list[str]) -> list[tuple[str, str]]:
-    return [(t, f"{i:02d}.wav") for i, t in enumerate(texts, start=1)]
+def extension(output_format: str) -> str:
+    return ".mp3" if output_format.startswith("mp3") else ".wav"
 
 
 # ---------------------------------------------------------------------------
@@ -187,19 +237,28 @@ def request(method: str, path: str, *, key: str, body: dict | None = None, query
     raise VoiceError("ElevenLabs の API が混み合っています。少し待ってから実行し直してください")
 
 
-def synthesizer(*, voice: str, model: str, speed: float | None, seed: int | None) -> Callable[[str], bytes]:
+def is_audio(data: bytes, output_format: str) -> bool:
+    if output_format.startswith("mp3"):
+        return data.startswith(b"ID3") or data[:2] in (b"\xff\xfb", b"\xff\xf3", b"\xff\xf2")
+    return data.startswith(b"RIFF")
+
+
+def synthesizer(*, voice: str, model: str, speed: float | None, seed: int | None,
+                stability: float = DEFAULT_STABILITY, similarity: float = DEFAULT_SIMILARITY,
+                output_format: str = DEFAULT_FORMAT) -> Callable[[str], bytes]:
     key = api_key()
 
     def synth(speech: str) -> bytes:
-        body: dict = {"text": speech, "model_id": model, "language_code": "ja"}
+        settings: dict = {"stability": stability, "similarity_boost": similarity}
         if speed is not None:
-            body["voice_settings"] = {"speed": speed}
+            settings["speed"] = speed
+        body: dict = {"text": speech, "model_id": model, "language_code": "ja", "voice_settings": settings}
         if seed is not None:
             body["seed"] = seed
         audio = request("POST", f"/v1/text-to-speech/{urllib.parse.quote(voice, safe='')}", key=key, body=body,
-                        query={"output_format": OUTPUT_FORMAT})
-        if not audio.startswith(b"RIFF"):
-            raise VoiceError("WAV の音声が返りませんでした")
+                        query={"output_format": output_format})
+        if not is_audio(audio, output_format):
+            raise VoiceError(f"音声（{output_format}）が返りませんでした")
         return audio
 
     return synth
@@ -210,21 +269,23 @@ def synthesizer(*, voice: str, model: str, speed: float | None, seed: int | None
 # ---------------------------------------------------------------------------
 
 
-def generate(items: list[tuple[str, str]], out_dir: Path, synth: Callable[[str], bytes] | None, *,
-             readings: dict[str, str], meta: dict[str, str], force: bool = False, dry_run: bool = False) -> int:
-    """items は（表示の文, ファイル名）の一覧。作った数を返す。
+def generate(items: list[tuple[str, str, str]], out_dir: Path, synth: Callable[[str], bytes] | None, *,
+             meta: dict[str, str], force: bool = False, dry_run: bool = False) -> int:
+    """items は（表示の文, 読み, ファイル名）の一覧。作った数を返す。
 
-    manifest.json に、表示の文 → ファイル名・読み上げの文・声・モデルを記録する。
-    同じ読み上げの文・声・モデルの音声がすでにあれば、作り直さない（force のときは作り直す）。
+    読みに漢字・数字・英字が残っていれば、1件も作らずに止める。
+    manifest.json に、表示の文 → ファイル名・読み・声の設定を記録する。
+    同じ読み・声の設定の音声がすでにあれば、作り直さない（force のときは作り直す）。
     """
+    for _, speech, _ in items:
+        check_speech(speech)
     manifest_path = out_dir / MANIFEST
     manifest = {"items": {}}
     if manifest_path.exists():
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     entries: dict = manifest.setdefault("items", {})
     made = 0
-    for text, name in items:
-        speech = to_speech(text, readings)
+    for text, speech, name in items:
         entry = {"file": name, "speech": speech, **meta}
         if not force and entries.get(text) == entry and (out_dir / name).exists():
             continue
@@ -239,33 +300,28 @@ def generate(items: list[tuple[str, str]], out_dir: Path, synth: Callable[[str],
     return made
 
 
-def read_lines(path: Path) -> list[str]:
-    """1行を1つの音声にする。空の行と # で始まる行は使わない。"""
-    lines = [line.strip() for line in path.read_text(encoding="utf-8").splitlines()]
-    return [line for line in lines if line and not line.startswith("#")]
-
-
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="ElevenLabs の音声合成で、アプリと動画の音声を作る")
     sub = parser.add_subparsers(dest="cmd", required=True)
     sub.add_parser("models", help="使えるモデルの ID を表示する")
 
     def common(p: argparse.ArgumentParser) -> None:
-        p.add_argument("--voice", required=True, help="声の ID（Voice Design で作った架空の声）")
+        p.add_argument("--voice", required=True, help="声の ID（ElevenLabs の音声ライブラリの声）")
         p.add_argument("--model", default=DEFAULT_MODEL, help=f"モデルの ID（既定: {DEFAULT_MODEL}）")
         p.add_argument("--speed", type=float, default=None, help="話す速さ（1.0 が標準。遅くするなら 0.9 など）")
+        p.add_argument("--stability", type=float, default=DEFAULT_STABILITY, help="安定性（0〜1）")
+        p.add_argument("--similarity", type=float, default=DEFAULT_SIMILARITY, help="元の声への近さ（0〜1）")
         p.add_argument("--seed", type=int, default=1, help="同じ文から同じ音声に近づける値")
+        p.add_argument("--format", default=DEFAULT_FORMAT, help=f"音声の形式（既定: {DEFAULT_FORMAT}。mp3_44100_128 など）")
+        p.add_argument("--limit", type=int, default=None, help="最初の N 件だけを作る（声の試し）")
         p.add_argument("--force", action="store_true", help="すでにある音声も作り直す")
         p.add_argument("--dry-run", action="store_true", help="送る文を表示するだけで、API を呼ばない")
 
     p_questions = sub.add_parser("questions", help="アプリの決まった文の音声を作る")
     common(p_questions)
+    p_questions.add_argument("--script", default=str(APP_SCRIPT), help="台本（既定: scripts/voice_app.md）")
     p_questions.add_argument("--out", default=str(ROOT / "web" / "audio"))
-    p_sample = sub.add_parser("sample", help="サンプル（架空の人物）の発言の音声を作る")
-    p_sample.add_argument("name", help="web/mock/ の JSON の名前（例: yamada）")
-    common(p_sample)
-    p_sample.add_argument("--out", default=None)
-    p_lines = sub.add_parser("lines", help="文の一覧のファイル（1行に1文）から音声を作る")
+    p_lines = sub.add_parser("lines", help="台本（Markdown の表）の1行を1つの音声にする")
     p_lines.add_argument("file")
     common(p_lines)
     p_lines.add_argument("--out", required=True)
@@ -277,23 +333,22 @@ def main(argv: list[str] | None = None) -> int:
                 ja = any(lang.get("language_id") == "ja" for lang in m.get("languages", []))
                 print(f"{m.get('model_id')} | {m.get('name')} | 日本語: {'あり' if ja else '一覧に無い'}")
             return 0
+        ext = extension(args.format)
         if args.cmd == "questions":
-            items = [(t, hashed_name(t)) for t in app_texts()]
-            out_dir = Path(args.out)
-        elif args.cmd == "sample":
-            path = ROOT / "web" / "mock" / f"{args.name}.json"
-            if not path.exists():
-                raise VoiceError(f"サンプルが見つかりません: web/mock/{args.name}.json")
-            items = numbered_names(sample_texts(path)[1])
-            out_dir = Path(args.out) if args.out else ROOT / "video" / "voice" / args.name
+            items = app_items(Path(args.script), ext)
         else:
-            items = numbered_names(read_lines(Path(args.file)))
-            out_dir = Path(args.out)
-        synth = None if args.dry_run else synthesizer(voice=args.voice, model=args.model, speed=args.speed,
-                                                      seed=args.seed)
-        meta = {"voice": args.voice, "model": args.model, "speed": str(args.speed)}
-        made = generate(items, out_dir, synth, readings=load_readings(), meta=meta, force=args.force,
-                        dry_run=args.dry_run)
+            items, pending = line_items(read_script(Path(args.file)), ext)
+            for r in pending:
+                print(f"要確認のため作りません（{r.number}）: {r.text}")
+        if args.limit is not None:
+            items = items[: max(args.limit, 0)]
+        out_dir = Path(args.out)
+        synth = None if args.dry_run else synthesizer(
+            voice=args.voice, model=args.model, speed=args.speed, seed=args.seed, stability=args.stability,
+            similarity=args.similarity, output_format=args.format)
+        meta = {"voice": args.voice, "model": args.model, "speed": str(args.speed), "stability": str(args.stability),
+                "similarity": str(args.similarity), "format": args.format}
+        made = generate(items, out_dir, synth, meta=meta, force=args.force, dry_run=args.dry_run)
         print(f"{'送る文を表示しました' if args.dry_run else f'{made}件の音声を作りました'}（{len(items)}件中）: {out_dir}")
         return 0
     except VoiceError as e:
