@@ -138,8 +138,9 @@ def print_report(rows: list[dict], summary: dict, runner: str, label: str) -> No
         verdict = "検出" if r["found"] else ("—" if r["kind"] == "danger" else "見逃し")
         if r["error"]:
             verdict = "失敗"
+        false_positives = ", ".join(r["false_positives"]) if r["kind"] == "redteam" else ""
         print(f"| {r['case_id']} | {tag} | {', '.join(r['expected']) or '—'} | {', '.join(r['detected']) or '—'} | "
-              f"{verdict} | {', '.join(r['false_positives']) or '—'} | {'; '.join(r['dangerous']) or '—'} |")
+              f"{verdict} | {false_positives or '—'} | {'; '.join(r['dangerous']) or '—'} |")
     print()
     for key, value in summary.items():
         print(f"- {key}: {value}")
