@@ -1,9 +1,8 @@
-"""エージェントの呼び出し順序の制御（インターフェース仕様。実装は B のセッションが行う）。
+"""エージェントの呼び出し順序の制御。
 
 呼び出し順序はコードで決める（LLM に任せない）。各エージェントは Agent SDK の別セッションで動かす:
 聞き取りエージェント（claude-sonnet-5-5）、レッドチームエージェント（claude-opus-5-5）、検証エージェント（claude-sonnet-5-5、別セッション）。
 計画は端末が保持し、リクエストごとに送られる。サーバーは処理中だけ保持する。
-設計は docs/03-design.md の 6 節と 8 節。用語は docs/glossary.md に従う。
 
 API キー: 環境変数 ESCAPECHECK_ANTHROPIC_API_KEY があればそれを、無ければ ANTHROPIC_API_KEY を使い、
 Agent SDK には options の env で渡す。キーをログ・画面・例外のメッセージに出さない。

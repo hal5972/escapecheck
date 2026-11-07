@@ -32,7 +32,7 @@ Claude は呼び出さない（エージェントの実行はテスト用の関�
 | 環境変数 | 例 | 既定 |
 |---|---|---|
 | `ESCAPECHECK_MODEL_INTERVIEW`・`_REDTEAM`・`_VERIFY` | `claude-haiku-5-5` | Sonnet 5.5・Opus 5.5・Sonnet 5.5 |
-| `ESCAPECHECK_SKILLS_INTERVIEW` など | `kobetsu-plan-form,yasashii-kotoba`（空なら Skill を使わない） | 設計の 6.1 節の Skill |
+| `ESCAPECHECK_SKILLS_INTERVIEW` など | `kobetsu-plan-form,yasashii-kotoba`（空なら Skill を使わない） | エージェントごとに使う Skill |
 | `ESCAPECHECK_EFFORT_INTERVIEW` など | `medium` | low・medium・low |
 
 点検の評価は `orchestrator.redteam_for_eval(plan)`（start_check と同じ処理を同期的に実行し、findings を返す）。

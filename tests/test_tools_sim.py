@@ -1,6 +1,6 @@
 """tools/sim.py（避難が間に合うかの計算）の単体テスト。
 
-期待値は docs/03-design.md の 5 節の式から手で計算した値。テストのデータ（test_tools_helpers.make_dataset）:
+期待値は、計算式から手で計算した値。テストのデータ（test_tools_helpers.make_dataset）:
 自宅から避難先 A まで直線 300m（道なりの概算 390m）、杖 0.5 m/秒で移動 13.0分、日中の避難開始時間 5分、上がる時間 2分。
 """
 

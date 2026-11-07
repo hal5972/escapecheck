@@ -1,4 +1,4 @@
-"""監査ログ（docs/03-design.md の 6.4 節）。
+"""監査ログ。
 
 MCP ツールの呼び出しごとに1行（時刻、エージェント、MCP ツール、引数の要約、結果の要約）を記録する。
 フックが拒否した呼び出しも、理由とともに記録する（AC-02）。
@@ -28,7 +28,7 @@ def now_iso() -> str:
 
 
 def tool_label(tool_name: str) -> str:
-    """mcp__plan__set_fields を plan.set_fields にする（設計書の表記に合わせる）。"""
+    """mcp__plan__set_fields を plan.set_fields にする（表示用の表記にそろえる）。"""
     if tool_name.startswith("mcp__"):
         parts = tool_name.split("__")
         if len(parts) >= 3:

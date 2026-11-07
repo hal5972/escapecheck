@@ -1,7 +1,7 @@
 """計算と地理情報の呼び出し口（tools/ の hazard・sim）。
 
 数値はすべて tools/ の関数が出す（S-01）。app/ は値を作らず、ここから呼び出す。
-tools/ の中身は A のセッションが実装する。それまでの開発と試験では、環境変数 ESCAPECHECK_STUB_TOOLS=1 で
+試験では、環境変数 ESCAPECHECK_STUB_TOOLS=1 で
 テスト用の仮の値（app/stub_backend.py）に切り替える。仮の値は出典に「テスト用の仮の値」と記載される。
 """
 

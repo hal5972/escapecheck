@@ -1,4 +1,4 @@
-"""作品の中のエージェント（Agent SDK の設定。docs/03-design.md の 6.1・6.2 節）。
+"""作品の中のエージェント（Agent SDK の設定）。
 
 | エージェント | モデル | MCP ツール | Skills |
 |---|---|---|---|
@@ -9,7 +9,7 @@
 共通の設定:
 - 組み込みツールは Skill だけを残し、ほかはすべて外す（tools=["Skill"] と disallowed_tools。X-02）
 - cwd は app/agent_home、setting_sources は ["project"]。skills で Skill の名前を絞る
-- 開発用の CLAUDE.md（リポジトリの直下）を作品のエージェントに読ませない（CLAUDE_CODE_DISABLE_CLAUDE_MDS）
+- リポジトリにあるプロジェクトのメモリーファイルを、作品のエージェントに読ませない（CLAUDE_CODE_DISABLE_CLAUDE_MDS）
 - セッションの記録をディスクに残さない（--no-session-persistence。R-03）
 - permission_mode は dontAsk（許可した MCP ツール以外は実行しない）
 - API キーは env で渡す。値をログ・画面・例外のメッセージに出さない（X-01）

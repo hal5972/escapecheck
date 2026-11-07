@@ -1,6 +1,6 @@
 # 画面（web/）
 
-逃げ道の点検屋の画面。HTML・CSS・JavaScript だけで作成した（ライブラリとビルドツールは使わない）。担当は C のセッション。`web/intro/`（はじめに）と `web/story/`（仕組みの説明）は D のセッションが作成する。
+逃げ道の点検屋の画面。HTML・CSS・JavaScript だけで作成した（ライブラリとビルドツールは使わない）。`web/intro/`（はじめに）と `web/story/`（仕組みの説明）は、説明用のアニメーション。
 
 画面の文言は、プロジェクトの用語集と文章のルールに従う。画面への表示は `textContent` で行い、`innerHTML` は使わない。インラインの `<script>`・`style` 属性も使わない（CSP のため）。
 
@@ -8,7 +8,7 @@
 
 ### サーバーなし（サンプルデータで動かす）
 
-サーバー（B のセッション）ができるまでは、`web/mock/` のサンプルデータ（架空の人物）の JSON で動かす。
+サーバーに接続できないときは、`web/mock/` のサンプルデータ（架空の人物）の JSON で動かす。
 
 ```bash
 .venv/Scripts/python.exe -m http.server 8765 --bind 127.0.0.1 --directory web
@@ -74,8 +74,8 @@
 | `GET /api/jobs/{id}` | | `{ job_id, state, events, plan, error }`（1.2 秒ごとに問い合わせる） |
 | `POST /api/approve` | `{ plan, fix_id, by }` | `{ plan, results }`。`results` は、承認の直後にコードが計算し直したシナリオの結果（ID → 結果）。あれば、Claude に点検させ直さず、すぐに「改善の結果」を出す。無いときは、`/api/check` で点検し直す |
 | `POST /api/verify` | `{ plan }` | `{ issues, plan }`（`issues` だけ、または配列でもよい）。`chk_short_◯` の項目は、点検のカードごとの「相談する」の確認（`issue_id` が `consult_<finding_id>`）で扱う |
-| `POST /api/finalize` | `{ plan }` | `{ ok, reasons, plan }`（設計の 8 節に無い。B のサーバーにある）。サーバーに無い（404・405・501）ときは、未解決の項目が残っていないかを画面で確認する |
-| `POST /api/facts` | `{ plan, target: "home" }` | `{ facts, shelters, sources }`（設計の 8 節は GET だが、GET では計画（座標）を送れないため POST。B のサーバーも POST）。失敗したときは、地図は点と線だけにする |
+| `POST /api/finalize` | `{ plan }` | `{ ok, reasons, plan }`（サーバーが提供する）。サーバーに無い（404・405・501）ときは、未解決の項目が残っていないかを画面で確認する |
+| `POST /api/facts` | `{ plan, target: "home" }` | `{ facts, shelters, sources }`（計画（座標を含む）を送るため POST）。失敗したときは、地図は点と線だけにする |
 | `GET /api/samples`、`GET /api/samples/{id}` | | サンプルデータ（架空の人物）。`{ case_id, title, alias, area_label, home, talk[], form{}, supporters[] }` の形（A の `data/samples/`）。画面は、これから計画を作る（「話す手順から」は、`talk` を話す内容の例にする。「途中から」は、`form` を欄に入れ、`talk` を出典にする）。無いときは `mock/` の JSON |
 
 画面が前提にしている計画の形:
@@ -86,7 +86,7 @@
 - `fixes[].fix_type` は `FIX_TYPES` にあるものだけ表示する（S-03 の二重の防止）。いまの避難先への「避難先を変更する」は出さない
 - 判定が `cannot_compute` のときは、`reason_code`（`NO_ARRIVAL_TIME`・`NO_SHELTER`・`NO_HOME`・`NO_WALK_SPEED`・`NO_SUPPORTER`）を文にする。ほかの値は「必要な値が足りません」と表示する
 
-### CSP（B のセッションが設定するヘッダー）
+### CSP（サーバーが設定するヘッダー）
 
 画面は、次の CSP で動く。
 

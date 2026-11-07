@@ -1,4 +1,4 @@
-"""作品の中のフック（docs/03-design.md の 6.4 節）。
+"""作品の中のフック。
 
 PreToolUse で MCP ツールの引数を確認し、規則に反する呼び出しを理由つきで拒否する。理由は Claude に返り、Claude が修正する。
 PostToolUse ですべての MCP ツールの呼び出しを監査ログに記録する。拒否も記録する（AC-02）。
@@ -29,7 +29,7 @@ from app.audit import tool_label
 from app.session import PlanSession
 from tools import plan_model as pm
 
-#: 完成に必要な欄（埋まっているか「未確認のまま」の印が必要。docs/03-design.md の 6.4 節）
+#: 完成に必要な欄（埋まっているか「未確認のまま」の印が必要）
 REQUIRED_FIELDS: list[str] = [
     "household",
     "mobility",
