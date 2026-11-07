@@ -20,7 +20,7 @@
 | annotated-types | 0.8.0 | MIT |
 | anyio | 4.16.0 | MIT |
 | attrs | 26.1.0 | MIT |
-| cffi | 2.1.1 | MIT-0（承認の記録: [docs/oss-approvals.json](docs/oss-approvals.json)） |
+| cffi | 2.1.1 | MIT-0（改変せずに使用） |
 | click | 8.5.1 | BSD-3-Clause |
 | cryptography | 50.0.2 | Apache-2.0 OR BSD-3-Clause（Apache-2.0 を選ぶ） |
 | h11 | 0.16.0 | MIT |

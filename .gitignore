@@ -10,6 +10,9 @@ __pycache__/
 # ダウンロードした元データ（容量が大きい。再配布しない）
 data/raw/
 
+# docs/ などの非公開の資料は、開発中は Git で管理し、公開用ブランチ（public）を作るときに履歴ごと取り除く
+# （scripts/publish/make_public_branch.ps1）。ここでは無視しない
+
 # 動画・音声の素材（リポジトリに含めない）
 video/
 *.mp4
