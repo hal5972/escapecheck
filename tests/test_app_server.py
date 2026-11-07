@@ -145,7 +145,8 @@ class HeadersAndLimitsTest(ServerTestCase):
                 csp = headers["Content-Security-Policy"]
                 self.assertIn("default-src 'self'", csp)
                 self.assertIn("script-src 'self'", csp)
-                self.assertIn("https://cyberjapandata.gsi.go.jp", csp)
+                self.assertIn("https://cyberjapandata.gsi.go.jp", csp)  # 地理院タイル
+                self.assertIn("https://disaportaldata.gsi.go.jp", csp)  # 津波浸水想定のタイル（web/map.js）
                 self.assertNotIn("unsafe-eval", csp)
                 self.assertEqual(headers["X-Content-Type-Options"], "nosniff")
                 self.assertEqual(headers["X-Frame-Options"], "DENY")
@@ -225,8 +226,10 @@ class FlowTest(ServerTestCase):
         self.assertFalse(any("12" in m for m in messages))  # 検証エージェントの文にも数値を出さない
 
         status, _, data = self.request("POST", "/api/finalize", {"plan": plan}, token=token)
-        self.assertEqual(status, 409)
+        self.assertEqual(status, 200)
+        self.assertFalse(data["ok"])
         self.assertTrue(data["reasons"])  # AC-03: 未解決の項目が残る間は完成にできない
+        self.assertNotEqual(data["plan"]["status"], "final")
 
         # 記録の画面用: 承認による反映と、完成の拒否が監査ログに残る（MCP ツールの呼び出しはフックが記録する）
         status, _, entries = self.request("GET", f"/api/audit?plan_id={plan['plan_id']}", token=token)

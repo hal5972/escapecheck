@@ -41,8 +41,8 @@ TOKEN_TTL_SEC = 12 * 60 * 60
 LOGIN_FAILURE_WINDOW_SEC = 5 * 60
 LOGIN_FAILURE_LIMIT = 5
 
-#: 地図のタイルの読み込み先（地理院タイル、ハザードマップポータルサイトの津波浸水想定）
-TILE_HOSTS = ("https://cyberjapandata.gsi.go.jp", "https://disaportal.gsi.go.jp")
+#: 地図のタイルの読み込み先（地理院タイル、ハザードマップポータルサイトの津波浸水想定。タイルは disaportaldata から配信）
+TILE_HOSTS = ("https://cyberjapandata.gsi.go.jp", "https://disaportal.gsi.go.jp", "https://disaportaldata.gsi.go.jp")
 
 CSP = "; ".join([
     "default-src 'self'",
@@ -372,7 +372,9 @@ class Handler(BaseHTTPRequestHandler):
         try:
             if path == "/api/facts":
                 target = data.get("target") or "home"
-                self._json(200, orchestrator.facts(plan, str(target)))
+                result = orchestrator.facts(plan, str(target))
+                result["sources"] = plan["sources"]  # 画面（C）は sources で出典表示を作る
+                self._json(200, result)
             elif path == "/api/interview":
                 utterance = data.get("utterance")
                 if not isinstance(utterance, str) or not utterance.strip():
@@ -396,11 +398,13 @@ class Handler(BaseHTTPRequestHandler):
                 issues = orchestrator.verify(plan)
                 self._json(200, {"issues": issues, "plan": plan})
             elif path == "/api/finalize":
-                self._json(200, {"plan": orchestrator.finalize(plan)})
+                # 完成にできないことは異常ではないので 200 で返す（画面は ok と reasons で表示を分ける）
+                try:
+                    self._json(200, {"ok": True, "reasons": [], "plan": orchestrator.finalize(plan)})
+                except orchestrator.FinalizeRejected as exc:
+                    self._json(200, {"ok": False, "reasons": exc.reasons, "plan": plan})
             else:
                 raise ApiError(404, "API が見つかりません")
-        except orchestrator.FinalizeRejected as exc:
-            raise ApiError(409, "まだ完成にできません。残っている項目を確認してください", reasons=exc.reasons) from None
         except orchestrator.Busy as exc:
             raise ApiError(429, str(exc)) from None
         except agents.AgentUnavailable as exc:

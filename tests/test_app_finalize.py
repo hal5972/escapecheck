@@ -115,6 +115,17 @@ class CheckFinalizeTest(unittest.TestCase):
         ack(plan, "chk_short_S1")
         self.assertEqual(hooks.check_finalize(plan, backend), [])
 
+    def test_consult_mark_on_finding_card_resolves_short_scenario(self):
+        # 画面は、問題点のカードの「本人・家族と相談する」を consult_<finding_id> の確認済みの項目として記録する
+        plan = make_complete_plan()
+        plan["findings"].append(pm.Finding(
+            finding_id="fnd_1", scenario_id="S1", hole_type="NIGHT_PREP", explanation_template="説明", explanation="説明",
+            result=FakeBackend({"S1": "short"}).run_scenario(plan, "S1"), source_ids=[]))
+        backend = FakeBackend({"S1": "short"})
+        self.assertTrue(hooks.check_finalize(plan, backend))
+        ack(plan, "consult_fnd_1")
+        self.assertEqual(hooks.check_finalize(plan, backend), [])
+
     def test_scenario_that_cannot_be_computed_needs_acknowledgement(self):
         plan = make_complete_plan()
         backend = FakeBackend({"S5": "cannot_compute"})

@@ -503,15 +503,24 @@ def code_issues(plan: pm.Plan, backend: Any = None) -> list[pm.Issue]:
     return issues
 
 
+def _consulted_scenarios(plan: pm.Plan) -> set[str]:
+    """画面で「本人・家族と相談する」を押した問題点のシナリオ（issue_id が consult_<finding_id> で確認済み）。"""
+    acked = {i.get("issue_id") for i in plan.get("issues", []) if i.get("acknowledged")}
+    return {f["scenario_id"] for f in plan.get("findings", []) if f"consult_{f.get('finding_id')}" in acked}
+
+
 def check_finalize(plan: pm.Plan, backend: Any = None) -> list[str]:
     """完成にできるか。できなければ理由の一覧（AC-03・F-12）。"""
     reasons: list[str] = []
     existing = {i.get("issue_id"): i for i in plan.get("issues", [])}
+    consulted = _consulted_scenarios(plan)
     computed = code_issues(plan, backend)
     computed_ids = {i["issue_id"] for i in computed}
     for issue in computed:
         if issue["severity"] == "誤り":
             reasons.append(issue["message"])
+        elif issue["issue_id"].startswith("chk_short_") and issue["issue_id"][len("chk_short_"):] in consulted:
+            continue  # 問題点のカードで「本人・家族と相談する」の印が付いている
         elif not existing.get(issue["issue_id"], {}).get("acknowledged"):
             reasons.append(issue["message"])
     for issue in plan.get("issues", []):
