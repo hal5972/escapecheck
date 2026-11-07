@@ -189,13 +189,10 @@
       A.setActions([talkAction, { id: 'ok', kind: 'confirm', label: 'それでいい', disabled: working, onClick: () => A.go('check') }]);
     }
 
-    /** いまの質問を読む。決まった質問は、音声ファイル（audio/questions/<欄のキー>.wav）があれば再生する。 */
+    /** いまの質問を読み上げる（合成音声のファイルがあれば、それを再生する）。 */
     function say() {
       const q = currentQuestion();
-      if (!q) return A.sayClip('done', DONE_TEXT);
-      // 欄のキーは、サーバーの応答の next_field。最初の質問は initial（サンプルの人は、名前が入るので使わない）
-      const key = rec.askedField || (rec.stage === 'start' && !rec.sample ? 'initial' : null);
-      return key ? A.sayClip(key, q) : A.say(q);
+      return A.say(q || DONE_TEXT);
     }
 
     // --- 聞き取り -------------------------------------------------------------
