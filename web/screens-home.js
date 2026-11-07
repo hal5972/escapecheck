@@ -31,10 +31,11 @@
   }
 
   /** 流れ（話す → 点検 → 改善）。何をするアプリかを、ひと目で見せる。 */
-  function flow() {
+  function flow(overlap) {
     const step = (icon, label) => h('div', { class: 'flow-step' }, h('span', { class: 'flow-ic' }, EC.icon(icon, { size: 30 })), label);
     const arrow = () => h('span', { class: 'flow-arrow', 'aria-hidden': 'true' }, EC.icon('chevron-right', { size: 24 }));
-    return h('div', { class: 'flow' }, step('mic', '話す'), arrow(), step('clipboard', '点検'), arrow(), step('trend', '改善'));
+    // overlap: 藍の面の下端に重ねて浮かせる（前の計画が先に並ぶときは、重ねない）
+    return h('div', { class: `flow${overlap ? '' : ' is-flat'}` }, step('mic', '話す'), arrow(), step('clipboard', '点検'), arrow(), step('trend', '改善'));
   }
 
   // ---------------------------------------------------------------------------
@@ -107,17 +108,11 @@
 
   A.register('home', () => {
     A.setBack(null);
-    A.$main.append(
-      hero('民生委員が、話して津波の個別避難計画を作り、厳しい条件で点検して、改善します。下の大きなボタンから、選んでください。'),
-      flow(),
-      h('div', { class: 'card choose-card' },
-        h('p', { class: 'strong' }, 'どちらから始めますか'),
-        chooseRow('play', 'サンプルデータで試す', 'デモ用の架空の人物で、話すところから試せます。', true),
-        chooseRow('plus', '新しい計画を作る', '自宅の場所を地図で決めてから、話します。', false)),
-      A.noticePrivacy());
+    A.$main.append(hero('民生委員が、話して津波の個別避難計画を作り、厳しい条件で点検して、改善します。下の大きなボタンから、選んでください。'));
 
     const all = store.listPlans();
     const plans = all.slice(0, 5); // 新しい順に 5 件まで
+    // 保存した計画があるときは、続きをする入口を、はじめの説明より先に出す
     if (plans.length) {
       A.$main.append(h('h2', null, '前の計画'));
       for (const rec of plans) {
@@ -131,7 +126,7 @@
               h('span', { class: 'field-title' }, `${title}${rec.sample ? '（架空の人物）' : ''}`),
               h('span', { class: 'field-hint' }, `${recStatus(rec)}　${formatClock(rec.updated)}`))),
           h('button', {
-            type: 'button', class: 'btn-row saved-delete',
+            type: 'button', class: 'btn-row saved-delete', 'aria-label': `${title}の計画を消す`,
             onclick: async () => {
               const ok = await EC.ui.confirmDialog({
                 title: '計画の削除', danger: true,
@@ -144,11 +139,19 @@
                 A.go('home');
               }
             },
-          }, '消す'));
+          }, EC.icon('trash', { size: 28 })));
         A.$main.append(row);
       }
       A.$main.append(h('p', { class: 'sub' }, `計画は、この端末の中だけに保存されています。${all.length > plans.length ? `（ほかに${all.length - plans.length}件）` : ''}`));
     }
+
+    A.$main.append(
+      flow(!plans.length),
+      h('div', { class: 'card choose-card' },
+        h('p', { class: 'strong' }, 'どちらから始めますか'),
+        chooseRow('play', 'サンプルデータで試す', 'デモ用の架空の人物で、話すところから試せます。', true),
+        chooseRow('plus', '新しい計画を作る', '自宅の場所を地図で決めてから、話します。', false)),
+      A.noticePrivacy());
 
     // 「はじめに」のアニメーション（別のセッションが作成する）があるときだけ、案内を出す
     const introSlot = h('div', { class: 'intro-slot' });

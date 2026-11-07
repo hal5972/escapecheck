@@ -101,7 +101,7 @@
     const examplesSlot = h('div', { class: 'examples-slot' });
 
     EC.u.add(A.$main,
-      personBar, statusSlot, question, typedWrap, liveBadge, transcript, typedToggle, modeNote,
+      personBar, statusSlot, question, typedToggle, typedWrap, liveBadge, transcript, modeNote,
       S.sttSupported ? phoneSettings : null,
       premisesSlot,
       h('div', { class: 'fields-head' }, h('h2', null, '計画の欄')),

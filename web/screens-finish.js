@@ -269,6 +269,7 @@
           rec.plan = A.mergeGeometry(res.plan || rec.plan, rec.plan);
           rec.plan.status = 'final';
           A.save();
+          A.setStage(5); // 完成にした。段階の表示も、完成へ進める
           itemSlot.append(h('div', { class: 'card item-card' },
             h('p', { class: 'strong' }, '確認が終わりました。'),
             h('p', null, '計画を完成にしました。市に出す様式と、本人用の避難カードを印刷できます。')));

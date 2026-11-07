@@ -82,6 +82,14 @@
     return '';
   }
 
+  /** 理由の文に出てくる欄の英語のキー（mobility など）を、画面の欄の名前にする。 */
+  const FIELD_KEYS = Object.keys(L.FIELDS).sort((a, b) => b.length - a.length);
+  function plain(text) {
+    let out = String(text);
+    for (const key of FIELD_KEYS) out = out.replace(new RegExp(`\\b${key}\\b`, 'g'), splitLabel(L.FIELDS[key]).title);
+    return out;
+  }
+
   /** 1 件。止めた記録は、印（×）と文字（止めた）を付け、色だけで伝えない。 */
   function entryNode(entry, T) {
     const kind = kindOf(entry);
@@ -94,7 +102,7 @@
         h('span', null, DECISIONS[kind]),
         h('span', { class: 'audit-time' }, clock(entry.at))),
       h('p', null, `${who}　${what}${targetText(entry)}`),
-      (deny || kind === 'fail') && entry.reason ? h('p', { class: 'audit-reason' }, T(String(entry.reason))) : null);
+      (deny || kind === 'fail') && entry.reason ? h('p', { class: 'audit-reason' }, T(plain(entry.reason))) : null);
   }
 
   A.register('audit', ({ params, scope }) => {

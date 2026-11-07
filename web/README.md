@@ -28,7 +28,7 @@
 | `#/sample?id=yamada&stage=checked` | 山田さんの、点検が終わった状態の「点検」の画面を開く |
 | `#/sample?id=yamada&stage=checked&goto=fix` | 同じ状態から「改善案」の画面を開く |
 | `#/sample?id=yamada&stage=improved&goto=print` | 改善が終わった状態から「印刷」の画面を開く |
-| `dev/frame.html?w=360&h=2600&p=/sample?id=yamada&stage=checked`（`p` の `?`・`&`・`=` は `%3F`・`%26`・`%3D` にする） | 画像を撮る用。幅 `w`（既定 390px）・高さ `h` の枠（iframe）の中でアプリを開く。headless の Chrome は、窓の幅を 500px 未満にできないため |
+| `dev/frame.html?w=360&h=2600&p=/sample?id=yamada&stage=checked`（`p` の `?`・`&`・`=` は `%3F`・`%26`・`%3D` にする） | 画像を撮る用。幅 `w`（既定 390px）・高さ `h` の枠（iframe）の中でアプリを開く。headless の Chrome は、窓の幅を 500px 未満にできないため。`do=`（`listening`・`dialog`・`error`・`running`・`verify2`・`verifyDone`・`savedHome`）で、開いたあとに特別な状態を作る。`nobanner=1` で、サーバーなしのときだけ出る試験用の帯を隠す。`measure=1` は、画面の全体の高さを `body` の `data-h` に入れる（`h` を小さくして開く） |
 | `?audit=1`（コンソールで `await ECAudit.runAll()`） | 主な 12 画面を順に開いて、文字の大きさ・ボタンの高さ・コントラスト・横のはみ出しを確認する（結果が空なら問題なし。幅 360px と 390px で確認した） |
 
 `id` は `yamada`（山田さん）、`okabayashi`（岡林さん夫婦）、`takemura`（竹村さん）。`stage` は `start`（話す手順から）、`talked`（聞き取りのあと）、`checked`（点検のあと）、`improved`（改善のあと）。`goto` は `talk`・`check`・`fix`・`verify`・`print`。

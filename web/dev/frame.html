@@ -24,14 +24,18 @@ const acts={
     badge.scrollIntoView({block:'nearest'}); main.scrollTop+=8;
   },
   dialog(w){ w.EC.ui.confirmDialog({title:'計画の削除',danger:true,message:'山田さんの計画を、この端末から消します。元には戻せません。',okLabel:'消す',cancelLabel:'やめる'}); },
+  // 音声入力が使えなかったとき: 文字の入力に切り替わり、失敗の表示が出る（実際の流れと同じ）
   error(w){
     const A=w.EC.app; const main=A.$main;
+    const toggle=[...main.querySelectorAll('button.row-action')][0]; if(toggle) toggle.click();
     const slot=main.querySelector('.status-slot'); if(slot) slot.append(A.errorBox('音声入力を使えませんでした。文字で入力してください。'));
-    const tw=main.querySelector('.typed-wrap'); if(tw){ tw.hidden=false; tw.scrollIntoView({block:'nearest'}); }
+    const tw=main.querySelector('.typed-wrap'); if(tw) tw.scrollIntoView({block:'nearest'});
   },
+  // 文字で入力する状態
+  typed(w){ const toggle=[...w.EC.app.$main.querySelectorAll('button.row-action')][0]; if(toggle) toggle.click(); },
   running(w){ const b=w.document.getElementById('run'); if(b) b.click(); },
   // 確認の画面: 1 件めを済ませて、2 件めを出す／すべて済ませて、完成の表示にする
-  verify2(w){ const t=w.setInterval(()=>{ const b=w.document.getElementById('consult'); if(b&&!b.disabled){ w.clearInterval(t); b.click(); } },500); },
+  verify2(w){ const t=w.setInterval(()=>{ const d=w.document; const b=d.getElementById('consult')||d.getElementById('skip'); if(b&&!b.disabled){ w.clearInterval(t); b.click(); } },500); },
   verifyDone(w){
     const t=w.setInterval(()=>{
       const d=w.document; if(d.getElementById('print')){ w.clearInterval(t); return; }
@@ -43,6 +47,8 @@ const acts={
 };
 const act=q.get('do');
 if(act&&acts[act]) f.addEventListener('load',()=>setTimeout(()=>{ try{ acts[act](f.contentWindow); }catch(e){} }, Number(q.get('wait')||2000)));
+// nobanner=1: 試験用の帯（サーバーなしのときだけ出る）を隠す。本番の見た目を撮るため
+if(q.get('nobanner')) f.addEventListener('load',()=>{ try{ const s=f.contentDocument.createElement('style'); s.textContent='#banner{display:none!important}'; f.contentDocument.head.appendChild(s); }catch(e){} });
 if(q.get('measure')) f.addEventListener('load',()=>setTimeout(()=>{
   try{
     const m=f.contentDocument.getElementById('main');

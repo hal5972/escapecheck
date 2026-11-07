@@ -243,6 +243,8 @@ a { color: var(--ai-700); font-weight: 700; text-underline-offset: 4px; text-dec
   -webkit-overflow-scrolling: touch;
 }
 .main:focus { outline: none; }
+.main.is-entering { animation: screen-in 0.22s ease-out 1; }
+@keyframes screen-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 
 /* 下の大きなボタン（1 画面で 2 つまで） */
 .actions {
@@ -543,6 +545,7 @@ label.field-label-text { display: block; font-weight: 700; margin: var(--sp-3) 0
   border-radius: var(--r-lg);
   box-shadow: var(--shadow-2);
 }
+.flow.is-flat { margin-top: 0; box-shadow: var(--shadow-1); }
 .flow-step { text-align: center; font-weight: 700; color: var(--ai-900); line-height: 1.3; }
 .flow-ic {
   display: grid; place-items: center; width: 56px; height: 56px; margin: 0 auto 4px;
@@ -563,7 +566,7 @@ label.field-label-text { display: block; font-weight: 700; margin: var(--sp-3) 0
 .saved-row { display: flex; gap: var(--sp-2); align-items: stretch; margin: 0 0 var(--sp-2); }
 .saved-row .btn-row { margin: 0; }
 .saved-open { flex: 1; min-width: 0; }
-.saved-delete { flex: none; width: auto; min-width: 88px; text-align: center; font-weight: 700; color: var(--short-ink); border-color: var(--short-line); }
+.saved-delete { display: grid; place-items: center; flex: none; width: var(--tap); padding: 0; color: var(--short-ink); border-color: var(--short-line); }
 .sample-list { margin: 0 0 var(--sp-3); }
 .sample-list .btn-row { padding-top: 12px; padding-bottom: 12px; }
 
@@ -1004,9 +1007,13 @@ label.field-label-text { display: block; font-weight: 700; margin: var(--sp-3) 0
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
 
-/* 幅 380px 未満: 上の帯の名前は隠して、ロゴだけにする（戻る・読み上げを止めるの場所を空ける） */
+/* 幅 380px 未満: 上の帯の名前は隠して、ロゴだけにする（戻る・読み上げを止めるの場所を空ける）。結論の札は、文字の幅を広げる */
 @media (max-width: 379px) {
   .brand-name { display: none; }
+  .verdict.headline { gap: 8px; padding-right: 10px; }
+  .verdict.headline .mark { width: 36px; height: 36px; }
+  .verdict.headline .mark .ic { width: 22px; height: 22px; }
+  .verdict.headline .vtext { font-size: var(--fs-base); }
 }
 
 /* 横幅の狭い端末（幅 360px 未満） */

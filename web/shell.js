@@ -273,6 +273,10 @@
     target({ params, scope: s });
     $main.scrollTop = 0;
     $main.focus({ preventScroll: true });
+    // 画面が替わったことが分かるよう、本文をやわらかく出す（動きを減らす設定では、CSS が止める）
+    $main.classList.remove('is-entering');
+    void $main.offsetWidth;
+    $main.classList.add('is-entering');
   }
 
   window.addEventListener('hashchange', render);
