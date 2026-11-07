@@ -10,6 +10,7 @@
 
 from __future__ import annotations
 
+import logging
 import os
 import re
 import unicodedata
@@ -98,6 +99,20 @@ def sanitize_incoming_plan(plan: pm.Plan) -> list[str]:
             field["quote"], kinds = mask_pii(field["quote"])
             found += kinds
     return sorted(set(found))
+
+
+def redacted_traceback(limit: int = 4000) -> str:
+    """直前の例外の traceback を、API キーを伏せて返す（ログ用）。"""
+    import traceback
+
+    return redact_secrets(traceback.format_exc())[-limit:]
+
+
+class RedactingFormatter(logging.Formatter):
+    """ログの1行と traceback の全体から、API キーを伏せる。"""
+
+    def format(self, record: logging.LogRecord) -> str:
+        return redact_secrets(super().format(record))
 
 
 def redact_secrets(text: str) -> str:

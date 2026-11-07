@@ -259,7 +259,7 @@ def _run_check_job(job: Job) -> None:
             job.error = str(exc)
             job.state = "failed"
     except Exception:  # noqa: BLE001  利用者には内部の情報を見せない
-        log.exception("check job failed")
+        log.error("check job failed\n%s", privacy.redacted_traceback())
         job.error = "点検の途中でエラーが起きました。もう一度お試しください"
         job.state = "failed"
     finally:
