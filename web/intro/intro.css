@@ -1,15 +1,15 @@
 /*
- * 「はじめに」のアニメーション（約25秒）。素の SVG と CSS の @keyframes だけで作成している。
- * 場面の長さは --d1〜--d5 を変えると、後ろの場面の開始時刻も合わせて動く。
+ * 「はじめに」のアニメーション（約35秒）。素の SVG と CSS の @keyframes だけで作成している。
+ * 場面の長さは --d1〜--d5 を変えると、後ろの場面の開始時刻も合わせて動く。動画のナレーションの長さに合わせる。
  *   ① 宇佐の海辺の町  ② 地震と、津波が来るまでの時計  ③ 紙の様式を前に悩む民生委員
- *   ④ 「夜中に、本当に間に合う？」  ⑤ 話す・点検する・改善する → アプリへ
+ *   ④ 「ほかに確認しないといけないことってある？」「夜中に、本当に間に合う？」  ⑤ 話す・点検する・改善する → アプリへ
  */
 
 :root {
-  --d1: 5s;
+  --d1: 12.5s;
   --d2: 6.5s;
   --d3: 5.5s;
-  --d4: 3s;
+  --d4: 6s;
   --d5: 5s;
   --t1: 0s;
   --t2: calc(var(--t1) + var(--d1));
@@ -128,7 +128,6 @@ symbol { overflow: visible; }
 .cap-1 { left: 4cqw; top: 3.2cqw; max-width: 66cqw; animation: cap-in 0.8s ease-out calc(var(--t1) + 0.6s) both, cap-out 0.5s ease-in calc(var(--t2) - 0.4s) forwards; }
 .cap-2 { left: 4cqw; top: 3.2cqw; max-width: 62cqw; animation: cap-in 0.8s ease-out calc(var(--t2) + 0.9s) both, cap-out 0.5s ease-in calc(var(--t3) - 0.6s) forwards; }
 .cap-2 strong { color: var(--short-deep); }
-.note-2 { left: 4cqw; top: 17.5cqw; max-width: 62cqw; font-size: 2.05cqw; animation: cap-in 0.8s ease-out calc(var(--t2) + 1.3s) both, cap-out 0.5s ease-in calc(var(--t3) - 0.6s) forwards; }
 .cap-3 { left: 4cqw; top: 3.2cqw; max-width: 66cqw; animation: cap-in 0.8s ease-out calc(var(--t3) + 0.7s) both, cap-out 0.5s ease-in calc(var(--t4) - 0.5s) forwards; }
 
 /* --- ④ 夜の問い ------------------------------------------------------------ */
@@ -144,10 +143,18 @@ symbol { overflow: visible; }
 .lit-g.l3 { animation: fade-in 0.9s ease-out calc(var(--t4) + 1.3s) both; }
 #mini-clock { animation: fade-out 0.5s ease-in calc(var(--t5) - 0.3s) forwards; }
 #mini-face { animation: pop 0.8s ease-out calc(var(--t4) + 0.9s) both, pulse 0.9s ease-in-out calc(var(--t4) + 1.7s) 2 alternate; }
+/* 2つの問いを、上から順に出す（下の小さな時計に重ならない高さ） */
+.cap-4, .cap-4b {
+  left: 0; right: 0; margin-inline: auto; width: fit-content; max-width: 92cqw;
+  padding: 0.55em 1em;
+}
 .cap-4 {
-  left: 0; right: 0; margin-inline: auto; width: fit-content; top: 17cqw; max-width: 90cqw;
-  padding: 0.55em 1em; font-size: 5cqw;
+  top: 5cqw; font-size: 4cqw;
   animation: cap-in 0.6s ease-out calc(var(--t4) + 0.3s) both, cap-out 0.4s ease-in calc(var(--t5) - 0.4s) forwards;
+}
+.cap-4b {
+  top: 18cqw; font-size: 4.6cqw;
+  animation: cap-in 0.6s ease-out calc(var(--t4) + 2.8s) both, cap-out 0.4s ease-in calc(var(--t5) - 0.4s) forwards;
 }
 
 /* --- ⑤ 話す・点検する・改善する → アプリへ -------------------------------------- */
