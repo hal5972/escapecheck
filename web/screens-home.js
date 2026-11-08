@@ -164,7 +164,7 @@
     const introSlot = h('div', { class: 'intro-slot' });
     A.$main.append(introSlot);
     fetch('intro/index.html', { method: 'HEAD', cache: 'no-store' }).then((res) => {
-      if (res.ok) introSlot.append(h('a', { class: 'btn-link', href: 'intro/' }, 'はじめに（35秒のアニメーション）を見る'));
+      if (res.ok) introSlot.append(h('a', { class: 'btn-link', href: 'intro/' }, 'はじめに（38秒のアニメーション）を見る'));
     }).catch(() => { /* ページが無いときは出さない */ });
 
     A.setActions([

@@ -15,7 +15,7 @@
 
   const AGENTS = {
     interview: '聞き取りエージェント（AI）',
-    redteam: 'レッドチームエージェント（AI。計画の弱点を探す）',
+    redteam: 'レッドチームエージェント（計画の弱点を探す役の AI）',
     verify: '検証エージェント（AI）',
     server: '民生委員の操作（完成など）',
   };
