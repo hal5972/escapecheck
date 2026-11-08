@@ -269,7 +269,7 @@
         // 0 のときは「0つ」と書かない
         const text = left
           ? `間に合わないシナリオは、${prev.short}つから${count.short}つになりました。`
-          : `${prev.short}つあった間に合わないシナリオは、なくなりました。`;
+          : '避難が間に合わないシナリオはなくなりました。';
         return { key: left ? 'short' : (count.tight > 0 ? 'tight' : 'ok'), text };
       }
       if (count.short > 0) return { key: 'short', text: `${count.short}つのシナリオで、間に合いません。` };
@@ -551,9 +551,8 @@
     } else {
       introSlot.append(h('div', { class: 'card intro-card' },
         h('span', { class: 'intro-ic', 'aria-hidden': 'true' }, EC.icon('clipboard', { size: 36 })),
-        h('p', { class: 'lead strong' }, '津波が来る前に避難できるかを、厳しい条件で点検します。'),
-        h('p', null, 'たとえば、冬の深夜、家族がいない昼、道がふさがったとき、避難支援者が来られないときです。'),
-        h('p', { class: 'sub' }, '数値は、プログラムのコードが計算します。AI は計算しません。')));
+        h('p', { class: 'lead strong' }, '津波が来る前に避難できるかを、点検します。'),
+        h('p', null, 'たとえば、冬の深夜、家族がいない昼、道がふさがったとき、避難支援者が来られないときです。')));
       A.setActions([{ id: 'run', kind: 'primary', icon: 'clipboard', label: '点検する', onClick: () => runCheck(false) }]);
     }
   });

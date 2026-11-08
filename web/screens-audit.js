@@ -14,10 +14,10 @@
   const L = EC.L;
 
   const AGENTS = {
-    interview: '聞き取りエージェント',
-    redteam: 'レッドチームエージェント（計画の弱点を探す）',
-    verify: '検証エージェント',
-    server: 'サーバーのコード',
+    interview: '聞き取りエージェント（AI）',
+    redteam: 'レッドチームエージェント（AI。計画の弱点を探す）',
+    verify: '検証エージェント（AI）',
+    server: '民生委員の操作（完成など）',
   };
 
   // 書き込みの種類（MCP ツールの名前）の表示名
@@ -38,7 +38,7 @@
     agent: 'エージェントの実行',
   };
 
-  const DECISIONS = { stop: '止めた', fail: '失敗', ok: '通した', info: '記録' };
+  const DECISIONS = { stop: '中止', fail: '失敗', ok: '問題なし', info: '記録' };
 
   /** 記録の種類。フックが止めた（deny）ほか、計算のコードが危険な案を断った（error と理由）ものも「止めた」に入れる。 */
   function kindOf(entry) {
@@ -98,13 +98,16 @@
     const deny = kind === 'stop';
     const who = AGENTS[entry.agent] || (entry.agent ? String(entry.agent) : '');
     const what = TOOLS[entry.tool] || (entry.tool ? String(entry.tool) : '');
+    // 見出しを付けた行にして、何を・だれが・なぜ、を読み分けられるようにする
+    const row = (label, text) => h('p', null, h('strong', null, `${label}　`), text);
     return h('div', { class: `audit-entry${deny ? ' is-deny' : ''}${kind === 'fail' ? ' is-fail' : ''}` },
       h('p', { class: 'audit-head' },
         h('span', { class: 'mark', 'aria-hidden': 'true' }, EC.icon(deny ? 'cross' : (kind === 'fail' ? 'exclam' : 'check'), { size: 20, stroke: 3 })),
         h('span', null, DECISIONS[kind]),
         h('span', { class: 'audit-time' }, clock(entry.at))),
-      h('p', null, `${who}　${what}${targetText(entry)}`),
-      (deny || kind === 'fail') && entry.reason ? h('p', { class: 'audit-reason' }, T(plain(entry.reason))) : null);
+      what ? row(deny ? '中止したこと' : '確かめたこと', `${what}${targetText(entry)}`) : null,
+      who ? row('だれが', who) : null,
+      (deny || kind === 'fail') && entry.reason ? h('p', { class: 'audit-reason' }, h('strong', null, '理由　'), T(plain(entry.reason))) : null);
   }
 
   A.register('audit', ({ params, scope }) => {
@@ -122,17 +125,15 @@
     const listSlot = h('div', { class: 'audit-list' });
     const switchRow = h('button', { type: 'button', class: 'switch-row', role: 'switch', 'aria-checked': 'false' },
       h('span', { class: 'switch-box', 'aria-hidden': 'true' }),
-      h('span', null, '通した記録も見る'),
+      h('span', null, '問題がなかった書き込みも見る'),
       h('span', { class: 'switch-state' }, '切'));
 
+    // 目的（何のための記録か）と、中止する書き込みの種類を、一覧より先に出す
     EC.u.add(A.$main,
-      h('h1', null, '記録'),
-      h('p', { class: 'lead' }, 'AI が計画に書き込もうとしたとき、プログラムが確認した記録です。'),
-      EC.api.getMode() === 'mock' ? h('p', { class: 'sub' }, 'これは、サンプルの記録です。サーバーに接続すると、実際の記録を出します。') : null,
+      h('h1', null, 'AI の書き込みを中止した記録'),
+      h('p', { class: 'lead' }, 'AI（Claude）が計画に書き込む前に、プログラムが中身を確かめた記録です。'),
+      h('p', null, '根拠のない書き込み、発言の原文にない引用、説明文に直接書いた数値、承認のない変更、危険な改善案は、書き込みを中止して、理由を AI に返します。AI は、直してから書き込み直します。'),
       statusSlot, summarySlot, switchRow, listSlot,
-      h('div', { class: 'card' },
-        h('p', { class: 'strong' }, '止める書き込み'),
-        h('p', null, '出典のない書き込み、原文にない引用、説明文に直接書いた数値、承認のない変更は、プログラムのコード（フック）が止めます。止めた理由は AI に返り、AI が直して、書き込み直します。この記録を、監査ログといいます。')),
       A.noticeSafety());
 
     function render() {
@@ -142,13 +143,13 @@
       summarySlot.append(h('div', { class: 'card audit-summary' },
         h('span', { class: 'audit-big', 'aria-hidden': 'true' }, String(denies.length)),
         h('div', null,
-          h('p', { class: 'strong' }, `プログラムが止めたもの: ${denies.length}件`),
-          h('p', { class: 'sub' }, `記録の全体: ${entries.length}件`))));
+          h('p', { class: 'strong' }, `中止した書き込み: ${denies.length}件`),
+          h('p', { class: 'sub' }, `プログラムが確かめた書き込み: ${entries.length}件`))));
       // 新しい順。同じ秒の記録は、あとから書かれたものを先に出す
       const shown = (showAll ? entries : denies).map((e, i) => ({ e, i }))
         .sort((a, b) => ((Date.parse(b.e.at) || 0) - (Date.parse(a.e.at) || 0)) || (b.i - a.i))
         .map((x) => x.e);
-      if (!shown.length) listSlot.append(h('p', null, showAll ? 'まだ記録がありません。' : '止めたものは、まだありません。AI が出した書き込みや改善案は、コードの確認をすべて通りました。'));
+      if (!shown.length) listSlot.append(h('p', null, showAll ? 'まだ記録がありません。' : '中止した書き込みは、まだありません。AI の書き込みと改善案は、プログラムの確認をすべて通りました。'));
       for (const e of shown) listSlot.append(entryNode(e, T));
     }
 

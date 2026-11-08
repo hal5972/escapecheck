@@ -120,7 +120,7 @@ uv sync
 .venv/Scripts/python.exe -m app.server
 ```
 
-Chrome で `http://localhost:8000/` を開き、合言葉を入れて「サンプルデータで試す」を選ぶ（サンプルの人物はすべて架空）。macOS と Linux では `.venv/bin/python` を使う。
+Chrome で `http://localhost:8000/` を開き、合言葉を入れて「計画を作る方を選ぶ」を選ぶ（一覧の人物は、すべて架空のサンプル）。macOS と Linux では `.venv/bin/python` を使う。
 
 API キーが無くても、画面だけはサンプルデータで動かせる。
 

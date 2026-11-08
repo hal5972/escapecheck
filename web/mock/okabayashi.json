@@ -58,7 +58,7 @@
     "src_asm_winter": { "kind": "assumption", "label": "冬は、避難を始めるまでに2分を加える", "value": 2, "unit": "分", "basis": "冬の防寒の支度に必要な時間（仮定）" },
     "src_asm_dark": { "kind": "assumption", "label": "夜は、暗いので歩行速度を0.8倍にする", "value": 0.8, "unit": "倍", "basis": "足元が見えにくい（仮定）" },
     "src_asm_wheel": { "kind": "assumption", "label": "車いすを押して進む歩行速度は0.5 m/秒", "value": 0.5, "unit": "m/秒", "basis": "歩行が困難な人と一緒に避難するときの速さの例（仮定）" },
-    "src_asm_climb": { "kind": "assumption", "label": "避難先で上がる時間は2分", "value": 2, "unit": "分", "basis": "階段のある避難先の場合（仮定）" },
+    "src_asm_climb": { "kind": "assumption", "label": "高所に上がる時間は2分", "value": 2, "unit": "分", "basis": "階段のある避難先の場合（仮定）" },
     "src_asm_leave_night": { "kind": "assumption", "label": "夜の避難開始時間は10分", "value": 10, "unit": "分", "basis": "聞き取れていないため置いた仮定。夜は着替えと支度の分を加えた" }
   },
   "facts": {
@@ -104,7 +104,7 @@
           "breakdown": [
             { "key": "leave", "label": "避難を始めるまで", "minutes": 12, "source_ids": ["src_asm_leave_night", "src_asm_winter"] },
             { "key": "walk", "label": "避難先まで車いすで行く", "minutes": 8, "source_ids": ["src_route", "src_asm_wheel", "src_asm_dark"] },
-            { "key": "climb", "label": "避難先で上がる", "minutes": 2, "source_ids": ["src_asm_climb"] }
+            { "key": "climb", "label": "高所に上がる", "minutes": 2, "source_ids": ["src_asm_climb"] }
           ],
           "assumptions": ["src_asm_leave_night", "src_asm_winter", "src_asm_wheel", "src_asm_dark", "src_asm_climb", "src_route"]
         }
@@ -119,7 +119,7 @@
           "breakdown": [
             { "key": "leave", "label": "避難を始めるまで", "minutes": 12, "source_ids": ["src_asm_leave_night", "src_asm_winter"] },
             { "key": "walk", "label": "避難先まで車いすで行く", "minutes": 8, "source_ids": ["src_route", "src_asm_wheel", "src_asm_dark"] },
-            { "key": "climb", "label": "避難先で上がる", "minutes": 2, "source_ids": ["src_asm_climb"] }
+            { "key": "climb", "label": "高所に上がる", "minutes": 2, "source_ids": ["src_asm_climb"] }
           ],
           "assumptions": ["src_arrival_early", "src_asm_leave_night", "src_asm_wheel", "src_asm_climb", "src_route"]
         }
@@ -146,7 +146,7 @@
           "breakdown": [
             { "key": "leave", "label": "避難を始めるまで", "minutes": 9, "source_ids": ["src_asm_leave_night", "src_asm_winter"] },
             { "key": "walk", "label": "避難先まで車いすで行く", "minutes": 8, "source_ids": ["src_route", "src_asm_wheel", "src_asm_dark"] },
-            { "key": "climb", "label": "避難先で上がる", "minutes": 2, "source_ids": ["src_asm_climb"] }
+            { "key": "climb", "label": "高所に上がる", "minutes": 2, "source_ids": ["src_asm_climb"] }
           ],
           "assumptions": ["src_asm_leave_night", "src_asm_winter", "src_asm_wheel", "src_asm_dark", "src_asm_climb", "src_route"]
         },
@@ -156,7 +156,7 @@
             "breakdown": [
               { "key": "leave", "label": "避難を始めるまで", "minutes": 9, "source_ids": ["src_asm_leave_night"] },
               { "key": "walk", "label": "避難先まで車いすで行く", "minutes": 8, "source_ids": ["src_route", "src_asm_wheel"] },
-              { "key": "climb", "label": "避難先で上がる", "minutes": 2, "source_ids": ["src_asm_climb"] }
+              { "key": "climb", "label": "高所に上がる", "minutes": 2, "source_ids": ["src_asm_climb"] }
             ],
             "assumptions": ["src_arrival_early", "src_asm_leave_night", "src_asm_wheel", "src_asm_climb", "src_route"]
           }
@@ -172,7 +172,7 @@
           "breakdown": [
             { "key": "leave", "label": "避難を始めるまで", "minutes": 10, "source_ids": ["src_asm_leave_night", "src_asm_winter"] },
             { "key": "walk", "label": "避難先まで車いすで行く", "minutes": 8, "source_ids": ["src_route", "src_asm_wheel"] },
-            { "key": "climb", "label": "避難先で上がる", "minutes": 2, "source_ids": ["src_asm_climb"] }
+            { "key": "climb", "label": "高所に上がる", "minutes": 2, "source_ids": ["src_asm_climb"] }
           ],
           "assumptions": ["src_arrival_early", "src_asm_leave_night", "src_asm_wheel", "src_asm_climb", "src_route"]
         }
@@ -194,7 +194,7 @@
             { "key": "supporter_travel", "label": "Cさんが駆けつける", "minutes": 1, "source_ids": ["src_route"] },
             { "key": "help", "label": "声をかけて、一緒に出る", "minutes": 3, "source_ids": ["src_asm_leave_night"] },
             { "key": "walk", "label": "避難先まで車いすで行く", "minutes": 5, "source_ids": ["src_route", "src_asm_wheel"] },
-            { "key": "climb", "label": "避難先で上がる", "minutes": 2, "source_ids": ["src_asm_climb"] }
+            { "key": "climb", "label": "高所に上がる", "minutes": 2, "source_ids": ["src_asm_climb"] }
           ],
           "assumptions": ["src_asm_leave_night", "src_asm_wheel", "src_asm_climb", "src_route"]
         }

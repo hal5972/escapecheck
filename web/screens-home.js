@@ -16,7 +16,7 @@
   /** ホーム・合言葉の先頭: ロゴ、名前、説明。藍の背景で、下は波の形で本文につなぐ。 */
   function hero(lead) {
     return h('section', { class: 'hero' },
-      h('div', { class: 'hero-top' }, EC.brandMark({ size: 64, onDark: true }), h('span', { class: 'hero-tag' }, '試作版')),
+      h('div', { class: 'hero-top' }, EC.brandMark({ size: 64, onDark: true })),
       h('h1', null, '逃げ道の点検屋'),
       h('p', null, lead),
       svg('svg', { class: 'hero-wave', viewBox: '0 0 390 28', preserveAspectRatio: 'none', 'aria-hidden': 'true', focusable: 'false' },
@@ -117,7 +117,7 @@
     const all = store.listPlans();
     const plans = all.slice(0, 5); // 新しい順に 5 件まで
     // 誰の（ひとりで逃げにくい方）、何を（津波の個別避難計画）、誰が・どうする（民生委員が話して作り、点検して、改善する）を、はじめに言う
-    A.$main.append(hero('ひとりで逃げにくい方の、津波の個別避難計画を、民生委員が話して作ります。厳しい条件で点検して、間に合わないところを改善します。'));
+    A.$main.append(hero('ひとりで逃げにくい方の、津波の個別避難計画を、民生委員が話して作ります。点検して、間に合わないところを改善します。'));
 
     // 保存した計画があるときは、続きをする入口を、はじめの説明より先に出す
     if (plans.length) {
@@ -131,7 +131,6 @@
             EC.icon('person', { size: 26 }),
             h('span', { class: 'row-text' },
               h('span', { class: 'field-title' }, title),
-              rec.sample ? h('span', { class: 'field-hint' }, '架空の人物') : null,
               h('span', { class: 'field-hint' }, `${recStatus(rec)}　${shortDate(rec.updated)}`))),
           h('button', {
             type: 'button', class: 'btn-row saved-delete', 'aria-label': `${title}の計画を消す`,
@@ -157,7 +156,7 @@
       flow(!plans.length),
       h('div', { class: 'card choose-card' },
         h('p', { class: 'strong' }, 'どちらから始めますか'),
-        chooseRow('play', 'サンプルデータで試す', 'デモ用の架空の人物で、話すところから試せます。', true),
+        chooseRow('play', '計画を作る方を選ぶ', '一覧から選んで、話すところから始めます。', true),
         chooseRow('plus', '新しい計画を作る', '自宅の場所を地図で決めてから、話します。', false)),
       A.noticePrivacy());
 
@@ -165,11 +164,11 @@
     const introSlot = h('div', { class: 'intro-slot' });
     A.$main.append(introSlot);
     fetch('intro/index.html', { method: 'HEAD', cache: 'no-store' }).then((res) => {
-      if (res.ok) introSlot.append(h('a', { class: 'btn-link', href: 'intro/' }, 'はじめに（30秒のアニメーション）を見る'));
+      if (res.ok) introSlot.append(h('a', { class: 'btn-link', href: 'intro/' }, 'はじめに（35秒のアニメーション）を見る'));
     }).catch(() => { /* ページが無いときは出さない */ });
 
     A.setActions([
-      { label: 'サンプルデータで試す', kind: 'primary', id: 'samples', icon: 'play', onClick: () => A.go('samples') },
+      { label: '計画を作る方を選ぶ', kind: 'primary', id: 'samples', icon: 'play', onClick: () => A.go('samples') },
       { label: '新しい計画を作る', id: 'new', icon: 'plus', onClick: () => A.go('new') },
     ]);
   });
@@ -178,11 +177,14 @@
   // サンプルデータ（F-02）。架空の人物
   // ---------------------------------------------------------------------------
 
+  /** 一覧の説明から「（架空の人物）」の注記を外す（架空であることは README とデータに書いてある）。 */
+  const plainSummary = (text) => String(text || '').replace(/[（(]架空の人物[）)]/g, '');
+
   A.register('samples', ({ scope }) => {
     A.setBack('home');
     A.$main.append(
-      h('h1', null, 'サンプルデータ'),
-      h('p', { class: 'lead' }, 'デモ用の架空の人物です。実在の人物とは関係ありません。'));
+      h('h1', null, '計画を作る方'),
+      h('p', { class: 'lead' }, '選ぶと、話すところから始めます。'));
     const list = h('div', { class: 'sample-list' });
     A.$main.append(list, h('p', { class: 'sub' }, '誰を選ぶかで、点検の結果が変わります。'));
 
@@ -192,8 +194,8 @@
         list.append(h('button', { type: 'button', class: 'btn-row nav-row', onclick: () => A.go('sample', { id: item.id }) },
           EC.icon('person', { size: 26 }),
           h('span', { class: 'row-text' },
-            h('span', { class: 'field-title' }, `${item.title}（架空の人物）`),
-            h('span', { class: 'field-hint' }, item.summary))));
+            h('span', { class: 'field-title' }, item.title),
+            h('span', { class: 'field-hint' }, plainSummary(item.summary)))));
       }
     }).catch(() => {
       list.append(A.errorBox('サンプルデータを読み込めませんでした。'));
@@ -229,8 +231,8 @@
       if (!scope.alive) return;
       const item = items.find((x) => x.id === id) || { title: id, summary: '' };
       A.$main.append(
-        h('h1', null, `${item.title}（架空の人物）`),
-        h('p', { class: 'lead' }, item.summary),
+        h('h1', null, item.title),
+        h('p', { class: 'lead' }, plainSummary(item.summary)),
         h('p', null, 'どこから試しますか。'),
         h('p', { class: 'sub' }, '「話す手順から」は、話した内容が欄に入るところから。「途中から」は、聞き取りが終わった計画を点検するところからです。'));
       A.setActions([

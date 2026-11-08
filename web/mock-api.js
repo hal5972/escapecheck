@@ -222,7 +222,7 @@
   function fromCase(c, stage) {
     const id = String(c.case_id || 'sample').replace(/[^A-Za-z0-9_-]/g, '') || 'sample';
     const plan = newPlan(c.alias || 'Aさん', c.area_label || '', c.home, `plan_sample_${id}_${uid('p').slice(2)}`);
-    plan.sources.src_home = { kind: 'map_tap', label: '自宅の場所（サンプルの位置）' };
+    plan.sources.src_home = { kind: 'map_tap', label: '自宅の場所' };
     const names = deriveNames(c);
     const talk = c.talk || [];
     const person = names.find((n) => n.role === 'person');
@@ -297,7 +297,7 @@
         versions: [],
         stage: 'start',
       };
-      plan.sources.src_home = { kind: 'map_tap', label: '自宅の場所（サンプルの位置）' };
+      plan.sources.src_home = { kind: 'map_tap', label: '自宅の場所' };
       if (stage === 'start') {
         record.nextQuestion = sample.initial_question;
         return record;

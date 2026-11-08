@@ -91,7 +91,7 @@
     BREAKDOWN_LABELS: {
       leave: '避難を始めるまで',
       walk: '避難先まで歩く',
-      climb: '避難先で上がる',
+      climb: '高所に上がる',
       help: '声をかけて、一緒に出る',
       supporter_travel: '避難支援者が駆けつける',
     },

@@ -145,8 +145,6 @@
       h('strong', null, avail === null ? '不明' : `${floorMin(avail)}分`));
 
     const notes = [];
-    if (o.footnote) notes.push('時間は、すべて、揺れ始めてからの分数です。');
-    if (o.footnote && segs.some((seg) => seg.key === 'climb')) notes.push('「上がる」は、避難先の階段や坂を上がる時間です。');
     if (o.footnote && segs.some((seg) => /直線距離\s*×\s*1\.3\s*の概算/.test(seg.label || ''))) notes.push('移動の距離は、直線距離 × 1.3 の概算です。');
     const note = notes.length ? h('p', { class: 'sub tl-foot' }, notes.join('')) : null;
     return h('div', { class: 'timeline' }, o.title ? h('p', { class: 'tl-title' }, o.title) : null, g, sum, legend, note);

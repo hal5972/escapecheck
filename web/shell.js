@@ -144,9 +144,9 @@
   }
 
   function setBanner() {
-    const mock = EC.api.getMode() === 'mock';
-    $banner.hidden = !mock;
-    $banner.textContent = mock ? '試験用: サーバーにつながっていません。サンプルの値で動いています。' : '';
+    // サーバーにつながっていないときの帯は出さない（11-08 依頼者の判断。デモの画面を分かりにくくするため）
+    $banner.hidden = true;
+    $banner.textContent = '';
   }
 
   // --- 計画の保存（端末の中だけ） ----------------------------------------------
@@ -191,7 +191,7 @@
   /** 「記録」（フックが止めた書き込み）の画面への入口。ボタンの数には含めない、本文の中の行。 */
   function auditLink(from) {
     return h('button', { type: 'button', class: 'btn-row nav-row', onclick: () => go('audit', { from }) },
-      EC.icon('list', { size: 26 }), h('span', null, 'AI の書き込みを止めた記録を見る'));
+      EC.icon('list', { size: 26 }), h('span', null, 'AI の書き込みを中止した記録を見る'));
   }
 
   /** 画面の見出しに使う、計画の人の呼び方（本名は端末の中だけ）。 */
@@ -218,7 +218,7 @@
     EC.icon('lock', { size: 28, class: 'notice-icon' }),
     h('div', { class: 'notice-body' },
       h('p', null, 'この画面には、実在の要支援者の情報を入力しないでください。'),
-      h('p', null, '民生委員には守秘義務があります（民生委員法第15条）。この版は、架空の人物で試すためのものです。')));
+      h('p', null, '民生委員には守秘義務があります（民生委員法第15条）。')));
 
   const noticeSafety = () => h('div', { class: 'notice notice-safety' },
     EC.icon('triangle', { size: 28, class: 'notice-icon' }),

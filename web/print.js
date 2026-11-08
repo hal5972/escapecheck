@@ -61,7 +61,7 @@
     const plan = rec.plan;
     const T = ctx.T;
     const rows = [];
-    rows.push(['お名前', `${personName(rec)}${rec.sample ? '（デモ用の架空の人物）' : ''}`]);
+    rows.push(['お名前', personName(rec)]);
     rows.push(['地区', plan.area_label || '']);
     rows.push(['作成日', formatDate(plan.updated || new Date().toISOString())]);
 
@@ -105,7 +105,7 @@
               ? h('div', null, `${blocked ? `上がれる避難先（${f.result.shelter_name || '別の避難先'}）にした場合: ` : ''}避難所要時間 ${ceilMin(f.result.need_min)}分／津波到達時間 ${floorMin(f.result.avail_min)}分`)
               : null)));
       }
-      body.append(h('h3', null, '点検の結果（厳しい条件でのシミュレーション）'), h('table', { class: 'sheet-table' }, resultRows));
+      body.append(h('h3', null, '点検の結果'), h('table', { class: 'sheet-table' }, resultRows));
       const allShort = findings.every((f) => verdictView(EC.u.findingResult(plan, f)).key === 'short');
       if (allShort) body.append(h('p', { class: 'strong' }, 'この方は、現在の条件では間に合いません。市や家族と話し合うための資料です。'));
     }
@@ -135,7 +135,7 @@
       h('p', null, SAFETY),
       datasets.length ? h('p', null, `データの出典: ${datasets.map((d) => `${d.label}${d.version && !d.label.includes(d.version) ? `（${d.version}）` : ''}`).join('、')}`) : null,
       h('p', null, '地図: 地理院タイル、津波浸水想定: 高知県（ハザードマップポータルサイト）'),
-      rec.sample ? h('p', null, 'この計画は、デモ用の架空の人物のサンプルです。実在の人物とは関係ありません。') : null);
+      null);
     body.append(foot);
     return sheet;
   }
@@ -206,7 +206,6 @@
     }).join('、');
     sheet.append(h('p', { class: 'big-line' }, `声をかける人: ${callers || '未確認'}`));
     sheet.append(h('p', { class: 'notice notice-safety' }, SAFETY));
-    if (rec.sample) sheet.append(h('p', { class: 'sub' }, 'デモ用の架空の人物のサンプルです。'));
     return sheet;
   }
 

@@ -141,7 +141,7 @@ class StubBackend:
         breakdown = [
             pm.Breakdown(key="leave", label="避難開始まで", minutes=round(leave, 2), source_ids=[leave_src]),
             pm.Breakdown(key="walk", label="移動", minutes=round(walk, 2), source_ids=[speed_src, f"src_{shelter['shelter_id']}"]),
-            pm.Breakdown(key="climb", label="避難先で上がる", minutes=shelter["climb_min"], source_ids=[]),
+            pm.Breakdown(key="climb", label="高所に上がる", minutes=shelter["climb_min"], source_ids=[]),
         ]
         need_aid = "NEEDS_AID" in codes
         supporters = plan.get("supporters", [])

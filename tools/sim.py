@@ -76,7 +76,7 @@ ASSUMPTIONS: dict[str, Assumption] = {
         Assumption("asm_speed_supporter_elderly", "仮定: 避難支援者の歩行速度（60代以上・年代が未確認）", 0.62, "m/秒", f"東日本大震災の避難の平均。{MLIT_GUIDE}"),
         Assumption("asm_route_factor", "仮定: 道なりの距離（直線距離 × 1.3）", hazard.ROUTE_FACTOR, "倍", "道路のデータを使わない概算（画面に「概算」と表示する）"),
         Assumption("asm_detour_factor", "仮定: 避難経路の閉塞による迂回", 1.3, "倍", "道なりの距離にもう一度 1.3 を掛ける（シナリオ S3）"),
-        Assumption("asm_climb", "仮定: 避難先で上がる時間", 2, "分", "タワー・建物の階段や高台の坂を上がる時間の仮定"),
+        Assumption("asm_climb", "仮定: 高所に上がる時間", 2, "分", "タワー・建物の階段や高台の坂を上がる時間の仮定"),
         Assumption("asm_help", "仮定: 声をかけ、一緒に避難を開始するまで", 3, "分", "避難支援者が声をかけ、一緒に出発するまでの時間の仮定"),
         Assumption("asm_upstairs", "仮定: 2階から階段を下りる時間", 3, "分", "2階で就寝している場合に、階段を下りる時間の仮定"),
         Assumption("asm_deep_sleep", "仮定: 眠りが深く、気づくまでの時間", 5, "分", "服薬などで眠りが深い場合に、気づくまでの時間の仮定"),
@@ -612,13 +612,13 @@ def _evaluate(plan: Plan, cond: _Cond, data: datasets.Dataset) -> ScenarioResult
     shelter_sources.append(hazard.register_shelter_source(plan, shelter, data))
     common.update(shelter_id=shelter.shelter_id, shelter_name=shelter.name)
 
-    # 本人の移動と、避難先で上がる時間
+    # 本人の移動と、高所に上がる時間
     speed, speed_sources = _person_speed(plan, cond, person, src)
     meters, distance_sources, method = _distance(plan, home, shelter, is_planned, cond, person, src)
     walk = Breakdown(key="walk", label=f"移動（約{round(meters)}m、{method}、{speed:.2f}m/秒）",
                      minutes=_ceil1(meters / speed / 60),
                      source_ids=list(dict.fromkeys(speed_sources + distance_sources + shelter_sources)))
-    climb = Breakdown(key="climb", label=f"避難先で上がる（{shelter.name}）", minutes=float(ASSUMPTIONS["asm_climb"].value),
+    climb = Breakdown(key="climb", label=f"高所に上がる（{shelter.name}）", minutes=float(ASSUMPTIONS["asm_climb"].value),
                       source_ids=[src.assume("asm_climb"), shelter_sources[-1]])
     leave = _leave_time(plan, cond, person, src)
     if alert_sources:

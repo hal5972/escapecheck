@@ -55,7 +55,7 @@
       h('span', { class: 'person-avatar', 'aria-hidden': 'true' }, EC.icon('person', { size: 26 })),
       h('div', { class: 'person-text' },
         h('span', { class: 'person-name' }, (person && person.call) || rec.title || rec.plan.alias),
-        rec.sample ? h('span', { class: 'sub' }, 'デモ用の架空の人物') : null),
+        null),
       h('div', { class: 'progress-wrap' },
         h('span', { class: 'progress-pill', id: 'progress' }),
         h('span', { class: 'meter', 'aria-hidden': 'true' }, h('span', { class: 'meter-fill', id: 'meter-fill' }))));
@@ -200,7 +200,7 @@
         toggle.setAttribute('aria-expanded', open ? 'false' : 'true');
         body.hidden = open;
       });
-      body.append(h('p', { class: 'sub' }, 'デモ用の架空の人物の話し言葉です。押すと、この文を話したことにして、欄に入れます。'));
+      body.append(h('p', { class: 'sub' }, '押すと、この文を話したことにして、欄に入れます。'));
       rec.examples.forEach((text) => {
         body.append(h('button', { type: 'button', class: 'btn-row', onclick: () => { if (!working) submit(text); } }, text));
       });
