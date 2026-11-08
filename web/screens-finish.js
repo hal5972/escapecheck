@@ -31,7 +31,7 @@
     const itemSlot = h('div', { class: 'item-slot' });
     A.$main.append(
       h('h1', null, `${A.personLabel(rec)}の確認`),
-      statusSlot, itemSlot, listSlot, A.auditLink('verify'), A.noticeSafety());
+      statusSlot, itemSlot, listSlot, A.noticeSafety());
 
     let listening = null;
     let working = false;

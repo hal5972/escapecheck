@@ -109,7 +109,7 @@
       S.sttSupported ? phoneSettings : null,
       premisesSlot,
       h('div', { class: 'fields-head' }, h('h2', null, '計画の欄')),
-      fieldsList, examplesSlot, A.auditLink('talk'), A.noticeSafety());
+      fieldsList, examplesSlot, A.noticeSafety());
 
     // --- 表示の更新 -----------------------------------------------------------
 

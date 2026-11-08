@@ -129,7 +129,7 @@
     const premisesSlot = h('div', { class: 'premises-slot' });
     const introSlot = h('div', { class: 'intro-slot' });
     const cardsSlot = h('div', { class: 'cards' });
-    A.$main.append(h('h1', null, `${A.personLabel(rec)}の${improved ? '改善後の点検' : '点検'}`), introSlot, progressSlot, improvedSlot, summarySlot, cardsSlot, premisesSlot, factsSlot, A.noticeSafety());
+    A.$main.append(h('h1', null, `${A.personLabel(rec)}の${improved ? '改善後の避難計画を点検' : '避難計画を点検'}`), introSlot, progressSlot, improvedSlot, summarySlot, cardsSlot, premisesSlot, factsSlot, A.noticeSafety());
 
     const cards = new Map(); // finding_id → { el, setOpen, resultKey }
     let openCard = null;
@@ -268,11 +268,11 @@
         const left = count.short > 0;
         // 0 のときは「0つ」と書かない
         const text = left
-          ? `間に合わないシナリオは、${prev.short}つから${count.short}つになりました。`
+          ? `避難が間に合わないシナリオは、${prev.short}つから${count.short}つになりました。`
           : '避難が間に合わないシナリオはなくなりました。';
         return { key: left ? 'short' : (count.tight > 0 ? 'tight' : 'ok'), text };
       }
-      if (count.short > 0) return { key: 'short', text: `${count.short}つのシナリオで、間に合いません。` };
+      if (count.short > 0) return { key: 'short', text: `${count.short}つのシナリオで、避難が間に合いません。` };
       if (count.tight > 0) return { key: 'tight', text: `${count.tight}つのシナリオは、余裕が少ないです。` };
       if (count.unknown > 0) return { key: 'unknown', text: `${count.unknown}つのシナリオは、計算できません。` };
       return { key: 'ok', text: 'すべてのシナリオで、間に合います。' };
@@ -304,8 +304,6 @@
         box.append(h('p', { class: 'strong' }, 'この方は、現在の条件では間に合いません。'),
           h('p', null, '市や家族と話し合うための資料として、どこで何分足りないかを印刷できます。'));
       }
-      // 「記録」（コードが止めた書き込み）への入口。結果の概要の中に置く（画面の下のほうに隠れないように）
-      box.append(A.auditLink('check'));
       return box;
     }
 
@@ -327,7 +325,7 @@
       const target = findings.find((f) => isImprovable(rec.plan, f));
       if (target) {
         A.setActions([
-          { id: 'fix', kind: 'primary', icon: 'trend', label: '改善案を見る', onClick: () => A.go('fix', { finding: target.finding_id }) },
+          { id: 'fix', kind: 'primary', icon: 'trend', label: '改善案を確認', onClick: () => A.go('fix', { finding: target.finding_id }) },
           { id: 'verify', label: '確認へ進む', trailing: 'chevron-right', onClick: () => A.go('verify') },
         ]);
       } else {
